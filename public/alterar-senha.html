@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alterar Senha - Lanchonete Admin</title>
+  <link rel="stylesheet" href="/css/auth.css">
+</head>
+<body>
+  <div class="auth-container auth-admin-theme">
+    <div class="auth-header">
+      <div class="auth-icon">&#128274;</div>
+      <h1 class="auth-title">Alterar Senha</h1>
+      <p class="auth-subtitle" id="user-greeting"></p>
+    </div>
+
+    <div class="auth-error" id="auth-error"></div>
+
+    <form id="alterar-senha-form" class="auth-form">
+      <div class="auth-form-group">
+        <label for="senha_atual">Senha atual</label>
+        <input type="password" id="senha_atual" name="senha_atual" placeholder="••••••••" required autocomplete="current-password">
+      </div>
+
+      <div class="auth-form-group">
+        <label for="nova_senha">Nova senha</label>
+        <input type="password" id="nova_senha" name="nova_senha" placeholder="Mínimo 4 caracteres" required autocomplete="new-password" minlength="4">
+      </div>
+
+      <div class="auth-form-group">
+        <label for="confirma_senha">Confirmar nova senha</label>
+        <input type="password" id="confirma_senha" name="confirma_senha" placeholder="Repita a nova senha" required autocomplete="new-password" minlength="4">
+      </div>
+
+      <button type="submit" class="auth-btn" id="alterar-btn">Alterar senha</button>
+    </form>
+
+    <a href="/admin" class="auth-link">&larr; Voltar para o painel</a>
+  </div>
+
+  <script src="/js/auth.js"></script>
+  <script>
+    if (!verificarAuth()) {
+      window.location.href = '/login-admin';
+    }
+    document.getElementById('user-greeting').textContent = 'Olá, ' + (localStorage.getItem('auth_nome') || 'admin');
+
+    document.getElementById('alterar-senha-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const errEl = document.getElementById('auth-error');
+      errEl.classList.remove('show');
+
+      const senhaAtual = document.getElementById('senha_atual').value;
+      const novaSenha = document.getElementById('nova_senha').value;
+      const confirmaSenha = document.getElementById('confirma_senha').value;
+
+      if (novaSenha !== confirmaSenha) {
+        errEl.textContent = 'As senhas não conferem';
+        errEl.classList.add('show');
+        return;
+      }
+
+      try {
+        const res = await authPost('/api/auth/alterar-senha', {
+          senha_atual: senhaAtual,
+          nova_senha: novaSenha
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          errEl.textContent = err.error || 'Erro ao alterar senha';
+          errEl.classList.add('show');
+          return;
+        }
+
+        const data = await res.json();
+        if (data.token) localStorage.setItem('auth_token', data.token);
+        alert('Senha alterada com sucesso!');
+        window.location.href = '/admin';
+      } catch (e) {
+        errEl.textContent = 'Erro de conexão';
+        errEl.classList.add('show');
+      }
+    });
+  </script>
+</body>
+</html>

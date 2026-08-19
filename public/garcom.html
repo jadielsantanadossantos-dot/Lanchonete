@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Garçom - Atendimento</title>
+  <link rel="stylesheet" href="/css/garcom.css">
+</head>
+<body>
+  <div class="auth-loader" id="auth-loader">
+    <div class="auth-loader-spin"></div>
+  </div>
+
+  <!-- HEADER -->
+  <header class="g-header">
+    <button class="g-header-btn" id="g-back-btn" onclick="voltarPagina()" style="display:none">&#8592;</button>
+    <h1 id="g-page-title">Mesas</h1>
+    <div style="display:flex;align-items:center;gap:8px">
+      <span id="garcom-user-info" style="font-size:0.8rem;color:var(--gray)"></span>
+      <button class="g-header-btn btn btn-danger btn-xs" onclick="logout()" style="padding:6px 10px;font-size:0.7rem">Sair</button>
+    </div>
+  </header>
+
+  <!-- ============= TELA: LISTA DE MESAS ============= -->
+  <div id="g-page-mesas" class="g-page active">
+    <div class="g-container">
+      <button class="btn btn-primary btn-block" onclick="abrirPedidoAvulso()">
+        + Pedido Avulso (sem mesa)
+      </button>
+      <h3 class="g-section-title">Mesas</h3>
+      <div id="g-mesas-grid" class="g-mesas-grid"></div>
+    </div>
+  </div>
+
+  <!-- ============= TELA: COMANDA DA MESA ============= -->
+  <div id="g-page-comanda" class="g-page">
+    <div class="g-container">
+      <div class="g-comanda-header">
+        <h2 id="g-comanda-titulo">Mesa 1</h2>
+        <span id="g-comanda-status" class="g-status-badge g-status-aberta">Aberta</span>
+      </div>
+
+      <div class="g-form-group" style="margin-bottom:8px">
+        <label>Nome do cliente (opcional)</label>
+        <input type="text" id="g-cliente-nome-mesa" placeholder="Ex: João, Mesa 2..." oninput="salvarNomeClienteMesa(this.value)">
+      </div>
+
+      <div class="g-comanda-actions">
+        <button class="btn btn-primary" onclick="abrirListaProdutos()">
+          + Adicionar Item
+        </button>
+        <button class="btn btn-warning" id="g-btn-enviar-cozinha" style="margin-top:8px;display:none" onclick="confirmarEnviarCozinha()">
+          🔥 Enviar para Cozinha
+        </button>
+        <button class="btn btn-danger" id="g-btn-liberar" style="margin-top:8px;display:none" onclick="confirmarLiberarMesa()">
+          Liberar Mesa
+        </button>
+      </div>
+
+      <div id="g-comanda-itens"></div>
+
+      <div id="g-comanda-empty" class="g-empty" style="display:none">
+        <div class="g-empty-icon">&#129309;</div>
+        <p>Nenhum item na comanda.<br>Toque em "Adicionar Item".</p>
+      </div>
+
+      <div id="g-comanda-total" class="g-total-box" style="display:none">
+        <div class="g-total-row">
+          <span>Total da comanda</span>
+          <span id="g-comanda-valor">R$ 0,00</span>
+        </div>
+      </div>
+
+      <button id="g-btn-fechar" class="btn btn-success btn-block" style="display:none" onclick="abrirFecharComanda()">
+        Fechar Comanda
+      </button>
+    </div>
+  </div>
+
+  <!-- ============= TELA: LISTA DE PRODUTOS (para adicionar a comanda) ============= -->
+  <div id="g-page-produtos" class="g-page">
+    <div class="g-container">
+      <h3 class="g-section-title">Adicionar Item</h3>
+      <div class="g-categorias" id="g-categorias"></div>
+      <div id="g-produtos-lista"></div>
+    </div>
+  </div>
+
+  <!-- ============= MODAL: QUANTIDADE E OBS DOS ITENS ============= -->
+  <div class="g-modal-overlay" id="g-modal-quant">
+    <div class="g-modal">
+      <div class="g-modal-header">
+        <h3 id="g-quant-produto-nome">Produto</h3>
+        <button class="g-modal-close" onclick="fecharModalQuant()">&times;</button>
+      </div>
+      <p id="g-quant-produto-preco" class="g-quant-preco"></p>
+
+      <div id="g-quant-adicionais" style="display:none">
+        <h4 class="g-modal-subtitle">Adicionais</h4>
+        <div id="g-quant-adicionais-list"></div>
+      </div>
+
+      <h4 class="g-modal-subtitle">Quantidade</h4>
+      <div class="g-qty-control">
+        <button class="g-qty-btn" onclick="alterarQuant(-1)">-</button>
+        <span id="g-quant-value" class="g-qty-value">1</span>
+        <button class="g-qty-btn" onclick="alterarQuant(1)">+</button>
+      </div>
+
+      <div class="g-form-group">
+        <label>Observação</label>
+        <textarea id="g-quant-obs" placeholder="Ex: sem cebola, bem passado..." rows="2"></textarea>
+      </div>
+
+      <button class="btn btn-primary btn-block" onclick="confirmarAdicionarItem()">
+        Adicionar - <span id="g-quant-total">R$ 0,00</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ============= MODAL: FECHAR COMANDA ============= -->
+  <div class="g-modal-overlay" id="g-modal-fechar">
+    <div class="g-modal">
+      <div class="g-modal-header">
+        <h3>Fechar Comanda</h3>
+        <button class="g-modal-close" onclick="fecharModalFechar()">&times;</button>
+      </div>
+
+      <div class="g-total-box" style="margin-bottom:16px">
+        <div class="g-total-row">
+          <span>Total</span>
+          <span id="g-fechar-total">R$ 0,00</span>
+        </div>
+      </div>
+
+      <h4 class="g-modal-subtitle">Como registrar?</h4>
+      <div class="g-opcoes-fechar">
+        <label class="g-opcao-fechar" onclick="selecionarTipoFechamento(this, 'com_pagamento')">
+          <input type="radio" name="tipo-fechamento" value="com_pagamento" checked>
+          <span class="g-opcao-icon">&#128179;</span>
+          <div>
+            <div class="g-opcao-titulo">Gerar Pedido com Pagamento</div>
+            <div class="g-opcao-desc">Envia para a cozinha e registra pagamento</div>
+          </div>
+        </label>
+        <label class="g-opcao-fechar" onclick="selecionarTipoFechamento(this, 'sem_pagamento')">
+          <input type="radio" name="tipo-fechamento" value="sem_pagamento">
+          <span class="g-opcao-icon">&#128203;</span>
+          <div>
+            <div class="g-opcao-titulo">Apenas Registrar Consumo</div>
+            <div class="g-opcao-desc">Libera a mesa sem gerar pedido</div>
+          </div>
+        </label>
+      </div>
+
+      <div id="g-fechar-dados-pagamento">
+        <h4 class="g-modal-subtitle">Dados do cliente</h4>
+        <div class="g-form-group">
+          <label>Nome do cliente</label>
+          <input type="text" id="g-fechar-cliente-nome" placeholder="Ex: João Silva">
+        </div>
+
+        <h4 class="g-modal-subtitle">Forma de pagamento</h4>
+        <div class="g-payment-options">
+          <label class="g-payment-opt" onclick="selecionarPagamento(this, 'pix')">
+            <input type="radio" name="forma-pag-g" value="pix" checked>
+            <span>&#9889; Pix</span>
+          </label>
+          <label class="g-payment-opt" onclick="selecionarPagamento(this, 'dinheiro')">
+            <input type="radio" name="forma-pag-g" value="dinheiro">
+            <span>&#128176; Dinheiro</span>
+          </label>
+          <label class="g-payment-opt" onclick="selecionarPagamento(this, 'cartao')">
+            <input type="radio" name="forma-pag-g" value="cartao">
+            <span>&#128179; Cartão</span>
+          </label>
+        </div>
+
+        <div id="g-troco-section" style="display:none">
+          <div class="g-form-group">
+            <label>Troco para quanto?</label>
+            <input type="number" id="g-troco-valor" placeholder="Ex: 50.00" step="0.01">
+          </div>
+        </div>
+      </div>
+
+      <button class="btn btn-success btn-block" onclick="confirmarFechamento()">
+        Confirmar Fechamento
+      </button>
+    </div>
+  </div>
+
+  <!-- ============= TELA: PEDIDO AVULSO ============= -->
+  <div id="g-page-avulso" class="g-page">
+    <div class="g-container">
+      <h3 class="g-section-title">Pedido Avulso (sem mesa)</h3>
+
+      <div class="g-form-group">
+        <label>Nome do cliente</label>
+        <input type="text" id="g-avulso-nome" placeholder="Ex: João Silva">
+      </div>
+
+      <div class="g-form-group">
+        <label>Telefone do cliente</label>
+        <input type="tel" id="g-avulso-telefone" placeholder="(00) 00000-0000" oninput="formatarTel(this)">
+      </div>
+
+      <div class="g-categorias" id="g-categorias-avulso"></div>
+      <div id="g-produtos-avulso"></div>
+
+      <div class="g-comanda-header" style="margin-top:20px">
+        <h3>Carrinho do avulso</h3>
+      </div>
+
+      <div id="g-avulso-carrinho"></div>
+      <div id="g-avulso-empty" class="g-empty" style="display:none">
+        <div class="g-empty-icon">&#128722;</div>
+        <p>Carrinho vazio</p>
+      </div>
+
+      <div id="g-avulso-total" class="g-total-box" style="display:none">
+        <div class="g-total-row">
+          <span>Total</span>
+          <span id="g-avulso-valor">R$ 0,00</span>
+        </div>
+      </div>
+
+      <div class="g-form-group" style="margin-top:12px">
+        <label>Forma de pagamento</label>
+        <select id="g-avulso-forma" class="g-select">
+          <option value="pix">Pix</option>
+          <option value="dinheiro">Dinheiro</option>
+          <option value="cartao">Cartão</option>
+        </select>
+      </div>
+
+      <button id="g-btn-enviar-avulso" class="btn btn-success btn-block" style="display:none" onclick="enviarPedidoAvulso()">
+        Enviar Pedido para Cozinha
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL: TROCA DE SENHA OBRIGATÓRIA -->
+  <div class="g-modal-overlay" id="g-modal-troca-senha" style="display:none">
+    <div class="g-modal">
+      <div class="g-modal-header">
+        <h3>Alterar Senha Obrigatória</h3>
+      </div>
+      <p style="color:var(--gray);margin-bottom:16px">Você precisa alterar sua senha antes de continuar.</p>
+      <form id="g-form-troca-senha">
+        <div class="g-form-group">
+          <label>Senha atual</label>
+          <input type="password" id="g-senha-atual" placeholder="1234" required>
+        </div>
+        <div class="g-form-group">
+          <label>Nova senha</label>
+          <input type="password" id="g-nova-senha" placeholder="Mínimo 4 caracteres" required minlength="4">
+        </div>
+        <div class="g-form-group">
+          <label>Confirmar nova senha</label>
+          <input type="password" id="g-confirma-senha" placeholder="Repita a nova senha" required minlength="4">
+        </div>
+        <button class="btn btn-primary btn-block" type="submit">Alterar e continuar</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/auth.js?v=3"></script>
+  <script src="/js/garcom.js?v=3"></script>
+</body>
+</html>

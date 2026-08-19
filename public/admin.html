@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel Admin - Lanchonete</title>
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+  <div class="auth-loader" id="auth-loader">
+    <div class="auth-loader-spin"></div>
+  </div>
+
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <h2>Admin</h2>
+      <button class="sidebar-close" onclick="toggleSidebar()">&#10005;</button>
+    </div>
+    <ul class="nav-list">
+      <li class="nav-item active" onclick="showSection('pedidos', this)">&#128203; Pedidos</li>
+      <li class="nav-item" onclick="showSection('produtos', this)">&#127828; Produtos</li>
+      <li class="nav-item" onclick="showSection('categorias', this)">&#128193; Categorias</li>
+      <li class="nav-item" onclick="showSection('adicionais', this)">&#10133; Adicionais</li>
+      <li class="nav-item" onclick="showSection('clientes', this)">&#128101; Clientes</li>
+      <li class="nav-item" onclick="showSection('bairros', this)">&#128205; Bairros/Taxas</li>
+      <li class="nav-item" onclick="showSection('mesas', this)">&#129309; Mesas</li>
+      <li class="nav-item" onclick="showSection('usuarios', this)">&#128100; Usuários</li>
+      <li class="nav-item" onclick="showSection('relatorios', this)">&#128200; Relatórios</li>
+      <li class="nav-item" onclick="showSection('config', this)">&#9881; Configurações</li>
+    </ul>
+  </nav>
+
+  <div class="main">
+<header class="topbar">
+        <button class="menu-btn" onclick="toggleSidebar()">&#9776;</button>
+        <h1 id="page-title">Pedidos</h1>
+        <div class="topbar-right" style="display:flex;align-items:center;gap:12px">
+          <span id="admin-user-info" style="font-size:0.85rem;color:var(--gray)"></span>
+          <button class="btn btn-danger btn-sm" onclick="logout()" style="padding:6px 12px">Sair</button>
+          <span class="badge" id="pedidos-count">0</span>
+        </div>
+      </header>
+
+    <div class="content">
+      <!-- PEDIDOS -->
+      <section id="sec-pedidos" class="section active">
+        <div class="pedidos-tabs">
+          <button class="pedido-tab active" onclick="trocarTabPedidos('ativos', this)">Ativos</button>
+          <button class="pedido-tab" onclick="trocarTabPedidos('historico', this)">Histórico</button>
+        </div>
+        <div class="filters">
+          <select class="filter-select" id="filtro-status" onchange="carregarPedidos()">
+            <option value="">Todos os status</option>
+            <option value="recebido">Recebido</option>
+            <option value="em_preparo">Em preparo</option>
+            <option value="saiu_entrega">Saiu p/ entrega</option>
+            <option value="entregue">Entregue</option>
+            <option value="cancelado">Cancelado</option>
+          </select>
+        </div>
+        <div id="pedidos-list" class="pedidos-grid"></div>
+      </section>
+
+      <!-- PRODUTOS -->
+      <section id="sec-produtos" class="section">
+        <button class="btn btn-primary" onclick="abrirFormProduto()">+ Novo Produto</button>
+        <div id="produtos-list" class="table-container"></div>
+
+        <div class="modal-overlay" id="modal-produto-admin">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h3 id="form-produto-title">Novo Produto</h3>
+              <button class="modal-close" onclick="fecharModalProduto()">&times;</button>
+            </div>
+            <form id="form-produto" onsubmit="salvarProduto(event)">
+              <input type="hidden" id="prod-id">
+              <div class="form-group">
+                <label>Nome *</label>
+                <input class="form-control" id="prod-nome" required>
+              </div>
+              <div class="form-group">
+                <label>Categoria *</label>
+                <select class="form-control" id="prod-categoria" required></select>
+              </div>
+              <div class="form-group">
+                <label>Descrição</label>
+                <textarea class="form-control" id="prod-descricao" rows="2"></textarea>
+              </div>
+              <div class="form-group">
+                <label>Preço *</label>
+                <input class="form-control" id="prod-preco" type="number" step="0.01" min="0" required>
+              </div>
+              <div class="form-group">
+                <label>Foto</label>
+                <input class="form-control" id="prod-foto" type="file" accept="image/*">
+              </div>
+              <div class="form-group">
+                <label>Adicionais disponíveis</label>
+                <div id="prod-adicionais-list"></div>
+              </div>
+              <div class="form-group">
+                <label>
+                  <input type="checkbox" id="prod-ativo" checked> Produto ativo
+                </label>
+              </div>
+              <button class="btn btn-primary" type="submit">Salvar</button>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <!-- CATEGORIAS -->
+      <section id="sec-categorias" class="section">
+        <div class="inline-form">
+          <input class="form-control" id="cat-nome" placeholder="Nome da categoria">
+          <input class="form-control" id="cat-ordem" type="number" placeholder="Ordem" style="width:100px">
+          <button class="btn btn-primary btn-sm" onclick="salvarCategoria()">Adicionar</button>
+        </div>
+        <div id="categorias-list" class="table-container"></div>
+      </section>
+
+      <!-- ADICIONAIS -->
+      <section id="sec-adicionais" class="section">
+        <div class="inline-form">
+          <input class="form-control" id="adic-nome" placeholder="Nome do adicional">
+          <input class="form-control" id="adic-preco" type="number" step="0.01" placeholder="Preço" style="width:100px">
+          <button class="btn btn-primary btn-sm" onclick="salvarAdicional()">Adicionar</button>
+        </div>
+        <div id="adicionais-list" class="table-container"></div>
+      </section>
+
+      <!-- CLIENTES -->
+      <section id="sec-clientes" class="section">
+        <div class="search-bar">
+          <input class="form-control" id="busca-cliente" placeholder="Buscar por nome ou telefone..." oninput="filtrarClientes()">
+        </div>
+        <div id="clientes-list" class="table-container"></div>
+
+        <div class="modal-overlay" id="modal-cliente-pedidos">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h3 id="cliente-pedidos-title">Pedidos do Cliente</h3>
+              <button class="modal-close" onclick="document.getElementById('modal-cliente-pedidos').classList.remove('active')">&times;</button>
+            </div>
+            <div id="cliente-pedidos-list"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- BAIRROS -->
+      <section id="sec-bairros" class="section">
+        <div class="inline-form">
+          <input class="form-control" id="bairro-nome" placeholder="Nome do bairro">
+          <input class="form-control" id="bairro-taxa" type="number" step="0.01" placeholder="Taxa (R$)" style="width:110px">
+          <button class="btn btn-primary btn-sm" onclick="salvarBairro()">Adicionar</button>
+        </div>
+        <div id="bairros-list" class="table-container"></div>
+      </section>
+
+      <!-- MESAS -->
+      <section id="sec-mesas" class="section">
+        <div class="inline-form">
+          <input class="form-control" id="mesa-numero" type="number" placeholder="Nº" style="width:80px">
+          <input class="form-control" id="mesa-nome" placeholder="Nome (opcional)">
+          <input class="form-control" id="mesa-capacidade" type="number" placeholder="Capacidade" style="width:120px">
+          <button class="btn btn-primary btn-sm" onclick="salvarMesa()">Adicionar</button>
+        </div>
+        <div id="mesas-list" class="table-container"></div>
+      </section>
+
+      <!-- USUÁRIOS -->
+      <section id="sec-usuarios" class="section">
+        <div class="inline-form">
+          <input class="form-control" id="usr-nome" placeholder="Nome completo">
+          <input class="form-control" id="usr-usuario" placeholder="Usuário (login)">
+          <input class="form-control" id="usr-senha" type="password" placeholder="Senha (inicial 1234)" style="width:140px">
+          <select class="form-control" id="usr-perfil" style="width:130px">
+            <option value="garcom">Garçom</option>
+            <option value="admin">Admin</option>
+          </select>
+          <button class="btn btn-primary btn-sm" onclick="salvarUsuario()">Adicionar</button>
+        </div>
+        <div id="usuarios-list" class="table-container"></div>
+
+        <div class="modal-overlay" id="modal-usuario-admin">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h3 id="form-usuario-title">Editar Usuário</h3>
+              <button class="modal-close" onclick="fecharModalUsuario()">&times;</button>
+            </div>
+            <form id="form-usuario" onsubmit="salvarEdicaoUsuario(event)">
+              <input type="hidden" id="usr-id">
+              <div class="form-group">
+                <label>Nome completo *</label>
+                <input class="form-control" id="usr-edit-nome" required>
+              </div>
+              <div class="form-group">
+                <label>Usuário (login) *</label>
+                <input class="form-control" id="usr-edit-usuario" required>
+              </div>
+              <div class="form-group">
+                <label>Perfil *</label>
+                <select class="form-control" id="usr-edit-perfil" required>
+                  <option value="garcom">Garçom</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>
+                  <input type="checkbox" id="usr-edit-ativo"> Usuário ativo
+                </label>
+              </div>
+              <p style="font-size:0.85rem;color:var(--gray);margin-top:8px">
+                Para alterar a senha, use o botão "Redefinir senha" na tabela.
+              </p>
+              <button class="btn btn-primary" type="submit">Salvar alterações</button>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <!-- RELATÓRIOS -->
+      <section id="sec-relatorios" class="section">
+        <div class="filters">
+          <select class="filter-select" id="periodo-relatorio" onchange="carregarRelatorios()">
+            <option value="hoje">Hoje</option>
+            <option value="semana">Última semana</option>
+            <option value="mes" selected>Último mês</option>
+          </select>
+        </div>
+        <div class="stats-grid" id="stats-grid"></div>
+        <div class="report-section">
+          <h3>Vendas por dia</h3>
+          <div id="vendas-dia" class="table-container"></div>
+        </div>
+        <div class="report-section">
+          <h3>Produtos mais vendidos</h3>
+          <div id="produtos-top" class="table-container"></div>
+        </div>
+        <div class="report-section">
+          <h3>Por forma de pagamento</h3>
+          <div id="vendas-pagamento" class="table-container"></div>
+        </div>
+      </section>
+
+      <!-- CONFIGURAÇÕES -->
+      <section id="sec-config" class="section">
+        <form id="form-config" onsubmit="salvarConfig(event)">
+          <h3>Dados da Loja</h3>
+          <div class="form-group">
+            <label>Nome da loja</label>
+            <input class="form-control" id="cfg-loja-nome">
+          </div>
+          <div class="form-group">
+            <label>Telefone da loja</label>
+            <input class="form-control" id="cfg-loja-telefone">
+          </div>
+          <h3 style="margin-top:20px">Configuração Pix</h3>
+          <div class="form-group">
+            <label>Tipo da chave</label>
+            <select class="form-control" id="cfg-pix-tipo">
+              <option value="cpf">CPF</option>
+              <option value="cnpj">CNPJ</option>
+              <option value="email">E-mail</option>
+              <option value="telefone">Telefone</option>
+              <option value="aleatoria">Chave aleatória</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Chave Pix</label>
+            <input class="form-control" id="cfg-pix-chave">
+          </div>
+<div class="form-group">
+              <label>Nome do recebedor</label>
+              <input class="form-control" id="cfg-pix-nome">
+            </div>
+            <h3 style="margin-top:20px">Notificações Sonoras</h3>
+            <div class="form-group">
+              <label>
+                <input type="checkbox" id="cfg-som-ativo" checked> Som ativo para novos pedidos
+              </label>
+            </div>
+            <div class="form-group">
+              <label>Som de notificação</label>
+              <select class="form-control" id="cfg-som-tipo">
+                <option value="classic">Clássico (beep suave)</option>
+                <option value="bell">Sino</option>
+                <option value="chime">Caramelo</option>
+                <option value="alert">Alerta</option>
+                <option value="notification">Notificação padrão</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Volume: <span id="cfg-volume-label">100%</span></label>
+              <input type="range" class="form-control" id="cfg-som-volume" min="0" max="100" value="100">
+            </div>
+            <div class="form-group" style="margin-top:8px">
+              <button type="button" class="btn btn-outline btn-sm" onclick="testarSom()">Testar som</button>
+            </div>
+            <button class="btn btn-primary" type="submit">Salvar Configurações</button>
+          </form>
+        </section>
+    </div>
+  </div>
+
+  <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+
+  <audio id="som-classic" preload="auto"><source src="/sounds/classic.wav" type="audio/wav"></audio>
+  <audio id="som-bell" preload="auto"><source src="/sounds/bell.wav" type="audio/wav"></audio>
+  <audio id="som-chime" preload="auto"><source src="/sounds/chime.wav" type="audio/wav"></audio>
+  <audio id="som-alert" preload="auto"><source src="/sounds/alert.wav" type="audio/wav"></audio>
+  <audio id="som-notification" preload="auto"><source src="/sounds/notification.wav" type="audio/wav"></audio>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/admin.js"></script>
+</body>
+</html>

@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Lanchonete</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <header class="header" id="header">
+    <div class="header-row">
+      <div>
+        <h1 id="loja-nome">Lanchonete</h1>
+        <div class="header-sub">Faça seu pedido</div>
+      </div>
+      <button class="header-btn" onclick="mostrarPagina('page-cadastro')">&#128100;</button>
+    </div>
+  </header>
+
+  <!-- CARDÁPIO -->
+  <div id="page-cardapio" class="page active">
+    <div class="categories" id="categories"></div>
+    <div class="container">
+      <div class="products-grid" id="products-grid"></div>
+    </div>
+  </div>
+
+  <!-- MODAL PRODUTO -->
+  <div class="modal-overlay" id="modal-produto">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="modal-nome"></h2>
+        <button class="modal-close" onclick="fecharModal()">&times;</button>
+      </div>
+      <img id="modal-img" class="modal-img" style="display:none">
+      <p id="modal-desc" style="color:var(--gray);margin-bottom:12px"></p>
+      <p id="modal-preco" style="font-size:1.2rem;font-weight:800;color:var(--primary);margin-bottom:16px"></p>
+      <div id="modal-adicionais" class="adicionais-section" style="display:none">
+        <h3>Adicionais</h3>
+        <div id="adicionais-list"></div>
+      </div>
+      <div class="qty-control">
+        <button class="qty-btn" onclick="alterarQtd(-1)">-</button>
+        <span class="qty-value" id="modal-qty">1</span>
+        <button class="qty-btn" onclick="alterarQtd(1)">+</button>
+      </div>
+      <div class="form-group">
+        <textarea class="obs-field" id="modal-obs" placeholder="Observações (ex: sem cebola)" rows="2"></textarea>
+      </div>
+      <button class="btn btn-primary" id="btn-add-cart" onclick="adicionarAoCarrinho()">
+        Adicionar ao carrinho
+      </button>
+    </div>
+  </div>
+
+  <!-- CARRINHO -->
+  <div id="page-carrinho" class="page">
+    <div class="container">
+      <div class="page-title">
+        <button class="back-btn" onclick="mostrarPagina('page-cardapio')">&#8592;</button>
+        <span>Meu Carrinho</span>
+      </div>
+      <div id="cart-items"></div>
+      <div id="cart-empty" class="empty-state" style="display:none">
+        <div class="empty-icon">&#128722;</div>
+        <p>Seu carrinho está vazio</p>
+      </div>
+      <div id="cart-summary" class="cart-summary" style="display:none">
+        <div class="summary-row">
+          <span>Subtotal</span>
+          <span id="cart-subtotal">R$ 0,00</span>
+        </div>
+        <div class="summary-row">
+          <span>Taxa de entrega</span>
+          <span id="cart-taxa">R$ 0,00</span>
+        </div>
+        <div class="summary-row summary-total">
+          <span>Total</span>
+          <span id="cart-total">R$ 0,00</span>
+        </div>
+      </div>
+      <button class="btn btn-primary" id="btn-checkout" style="margin-top:16px;display:none" onclick="mostrarPagina('page-dados')">
+        Continuar
+      </button>
+    </div>
+  </div>
+
+  <!-- DADOS DO CLIENTE -->
+  <div id="page-dados" class="page">
+    <div class="container">
+      <div class="page-title">
+        <button class="back-btn" onclick="mostrarPagina('page-carrinho')">&#8592;</button>
+        <span>Seus Dados</span>
+      </div>
+      <div class="form-group">
+        <label>Nome *</label>
+        <input class="form-control" id="cli-nome" placeholder="Seu nome" required>
+      </div>
+      <div class="form-group">
+        <label>Telefone *</label>
+        <input class="form-control" id="cli-telefone" placeholder="(00) 00000-0000" type="tel" required>
+      </div>
+      <div class="section-title">Endereço de entrega</div>
+      <div class="form-group">
+        <label>Bairro *</label>
+        <select class="form-control" id="cli-bairro" onchange="atualizarTaxaBairro()">
+          <option value="">Selecione o bairro</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="flex:3">
+          <label>Rua</label>
+          <input class="form-control" id="cli-rua" placeholder="Nome da rua">
+        </div>
+        <div class="form-group" style="flex:1">
+          <label>Nº</label>
+          <input class="form-control" id="cli-numero" placeholder="Nº">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Complemento</label>
+        <input class="form-control" id="cli-complemento" placeholder="Apto, bloco...">
+      </div>
+      <div class="form-group">
+        <label>Ponto de referência</label>
+        <input class="form-control" id="cli-referencia" placeholder="Próximo a...">
+      </div>
+      <button class="btn btn-primary" style="margin-top:8px" onclick="irParaPagamento()">
+        Ir para pagamento
+      </button>
+    </div>
+  </div>
+
+  <!-- PAGAMENTO -->
+  <div id="page-pagamento" class="page">
+    <div class="container">
+      <div class="page-title">
+        <button class="back-btn" onclick="mostrarPagina('page-dados')">&#8592;</button>
+        <span>Pagamento</span>
+      </div>
+      <div class="cart-summary" style="margin-bottom:16px">
+        <div class="summary-row summary-total">
+          <span>Total a pagar</span>
+          <span id="pay-total">R$ 0,00</span>
+        </div>
+      </div>
+      <div class="section-title">Forma de pagamento</div>
+      <div class="payment-options" id="payment-options">
+        <label class="payment-option selected" onclick="selecionarPagamento(this, 'pix')">
+          <input type="radio" name="pagamento" value="pix" checked>
+          <span class="payment-icon">&#9889;</span>
+          <span class="payment-label">Pix</span>
+        </label>
+        <label class="payment-option" onclick="selecionarPagamento(this, 'dinheiro')">
+          <input type="radio" name="pagamento" value="dinheiro">
+          <span class="payment-icon">&#128176;</span>
+          <span class="payment-label">Dinheiro</span>
+        </label>
+        <label class="payment-option" onclick="selecionarPagamento(this, 'cartao')">
+          <input type="radio" name="pagamento" value="cartao">
+          <span class="payment-icon">&#128179;</span>
+          <span class="payment-label">Cartão (na entrega)</span>
+        </label>
+      </div>
+      <div id="troco-section" style="display:none;margin-top:12px">
+        <div class="form-group">
+          <label>Precisa de troco para quanto?</label>
+          <input class="form-control" id="troco-valor" type="number" placeholder="Ex: 50.00">
+        </div>
+      </div>
+      <div class="form-group" style="margin-top:12px">
+        <label>Observações do pedido</label>
+        <textarea class="obs-field" id="pedido-obs" placeholder="Alguma observação?" rows="2"></textarea>
+      </div>
+      <button class="btn btn-success" style="margin-top:16px" onclick="finalizarPedido()">
+        Finalizar Pedido
+      </button>
+    </div>
+  </div>
+
+  <!-- PIX -->
+  <div id="page-pix" class="page">
+    <div class="container">
+      <div class="pix-section">
+        <h2>Pagamento via Pix</h2>
+        <div class="pix-qr" id="pix-qr"></div>
+        <div class="pix-key" id="pix-key"></div>
+        <button class="copy-btn" onclick="copiarPix()">Copiar chave Pix</button>
+        <div class="pix-aguardando" id="pix-aguardando">
+          <div class="pix-spinner"></div>
+          <p style="margin-top:16px;font-size:0.9rem;color:var(--gray);text-align:center">
+            Após pagar, aguarde a confirmação do estabelecimento.<br>
+            Você será avisado automaticamente.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUCESSO -->
+  <div id="page-sucesso" class="page">
+    <div class="container">
+      <div class="success-page">
+        <div class="success-icon">&#10004;</div>
+        <div class="success-title">Pedido Recebido!</div>
+        <p class="success-msg" id="success-msg">Seu pedido #0 foi recebido com sucesso!</p>
+        <p style="color:var(--gray);margin-bottom:24px">Acompanhe o status pelo seu telefone.</p>
+        <button class="btn btn-primary" onclick="novoPedido()">Fazer novo pedido</button>
+        <button class="btn btn-outline" style="margin-top:8px" onclick="acompanharPedido()">Acompanhar pedido</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ACOMPANHAR -->
+  <div id="page-acompanhar" class="page">
+    <div class="container">
+      <div class="page-title">
+        <button class="back-btn" onclick="mostrarPagina('page-cardapio')">&#8592;</button>
+        <span>Meus Pedidos</span>
+      </div>
+      <div class="form-group">
+        <label>Informe seu telefone</label>
+        <input class="form-control" id="acomp-telefone" placeholder="(00) 00000-0000" type="tel">
+      </div>
+      <button class="btn btn-primary" style="margin-bottom:16px" onclick="buscarPedidos()">Buscar pedidos</button>
+      <div id="meus-pedidos"></div>
+    </div>
+  </div>
+
+  <!-- CADASTRO DO CLIENTE -->
+  <div id="page-cadastro" class="page">
+    <div class="container">
+      <div class="page-title">
+        <button class="back-btn" onclick="mostrarPagina('page-cardapio')">&#8592;</button>
+        <span>Minha Conta</span>
+      </div>
+      <div id="cadastro-logged-out">
+        <div class="cadastro-tabs">
+          <button class="cad-tab active" onclick="switchTab('cad-tab-cadastrar', this)">Cadastrar</button>
+          <button class="cad-tab" onclick="switchTab('cad-tab-entrar', this)">Entrar</button>
+        </div>
+        <!-- Tab: Cadastrar -->
+        <div id="cad-tab-cadastrar" class="cad-tab-content active">
+          <div class="form-group">
+            <label>Nome *</label>
+            <input class="form-control" id="cad-nome" placeholder="Seu nome">
+          </div>
+          <div class="form-group">
+            <label>Telefone *</label>
+            <input class="form-control" id="cad-telefone" placeholder="(00) 00000-0000" type="tel">
+          </div>
+          <div class="section-title">Endereço de entrega</div>
+          <div class="form-group">
+            <label>Bairro</label>
+            <select class="form-control" id="cad-bairro">
+              <option value="">Selecione o bairro</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="flex:3">
+              <label>Rua</label>
+              <input class="form-control" id="cad-rua" placeholder="Nome da rua">
+            </div>
+            <div class="form-group" style="flex:1">
+              <label>Nº</label>
+              <input class="form-control" id="cad-numero" placeholder="Nº">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Complemento</label>
+            <input class="form-control" id="cad-complemento" placeholder="Apto, bloco...">
+          </div>
+          <div class="form-group">
+            <label>Ponto de referência</label>
+            <input class="form-control" id="cad-referencia" placeholder="Próximo a...">
+          </div>
+          <button class="btn btn-primary" onclick="cadastrarCliente()">Cadastrar</button>
+        </div>
+        <!-- Tab: Entrar -->
+        <div id="cad-tab-entrar" class="cad-tab-content" style="display:none">
+          <div class="form-group">
+            <label>Telefone</label>
+            <input class="form-control" id="login-telefone" placeholder="(00) 00000-0000" type="tel">
+          </div>
+          <button class="btn btn-primary" onclick="entrarCliente()">Entrar</button>
+        </div>
+        <p id="cad-error" style="color:var(--danger);margin-top:8px;font-size:0.85rem"></p>
+      </div>
+      <!-- Logado -->
+      <div id="cadastro-logged-in" style="display:none">
+        <div class="perfil-card">
+          <div class="perfil-icon">&#128100;</div>
+          <div class="perfil-nome" id="perfil-nome"></div>
+          <div class="perfil-tel" id="perfil-tel"></div>
+          <div class="perfil-end" id="perfil-end"></div>
+        </div>
+        <button class="btn btn-primary" style="margin-top:12px" onclick="mostrarPagina('page-editar-cadastro')">Editar dados</button>
+        <button class="btn btn-outline" style="margin-top:8px" onclick="verMeusPedidos()">Meus pedidos</button>
+        <button class="btn btn-outline" style="margin-top:8px;color:var(--danger);border-color:var(--danger)" onclick="sairCliente()">Sair da conta</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- EDITAR CADASTRO -->
+  <div id="page-editar-cadastro" class="page">
+    <div class="container">
+      <div class="page-title">
+        <button class="back-btn" onclick="mostrarPagina('page-cadastro')">&#8592;</button>
+        <span>Editar Dados</span>
+      </div>
+      <div class="form-group">
+        <label>Nome *</label>
+        <input class="form-control" id="edit-nome" placeholder="Seu nome">
+      </div>
+      <div class="form-group">
+        <label>Telefone *</label>
+        <input class="form-control" id="edit-telefone" placeholder="(00) 00000-0000" type="tel">
+      </div>
+      <div class="section-title">Endereço de entrega</div>
+      <div class="form-group">
+        <label>Bairro</label>
+        <select class="form-control" id="edit-bairro">
+          <option value="">Selecione o bairro</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="flex:3">
+          <label>Rua</label>
+          <input class="form-control" id="edit-rua" placeholder="Nome da rua">
+        </div>
+        <div class="form-group" style="flex:1">
+          <label>Nº</label>
+          <input class="form-control" id="edit-numero" placeholder="Nº">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Complemento</label>
+        <input class="form-control" id="edit-complemento" placeholder="Apto, bloco...">
+      </div>
+      <div class="form-group">
+        <label>Ponto de referência</label>
+        <input class="form-control" id="edit-referencia" placeholder="Próximo a...">
+      </div>
+      <button class="btn btn-primary" onclick="salvarEdicaoCliente()">Salvar alterações</button>
+    </div>
+  </div>
+
+  <!-- Cart FAB -->
+  <button class="cart-fab" id="cart-fab" onclick="mostrarPagina('page-carrinho')" style="display:none">
+    &#128722;
+    <span class="cart-badge" id="cart-badge">0</span>
+  </button>
+
+<script src="/socket.io/socket.io.js"></script>
+  <script src="/js/app.js"></script>
+  <script>
+    // Registrar Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
+  </script>
+</body>
+</html>

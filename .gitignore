@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+
+# Database
+lanchonete.db
+lanchonete.db-shm
+lanchonete.db-wal
+
+# Environment
+.env
+.env.local
+.env.production
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Build
+dist/
+build/
+
+# Temp
+tmp/
+temp/
+*.tmp
+
+# Uploads (if any)
+public/uploads/
