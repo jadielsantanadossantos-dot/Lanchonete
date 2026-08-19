@@ -36,3 +36,5 @@ temp/
 
 # Uploads (if any)
 public/uploads/
+.vercel
+.env*
