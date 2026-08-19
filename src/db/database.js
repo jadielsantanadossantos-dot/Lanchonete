@@ -3,7 +3,8 @@ const path = require('path');
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 
-const db = new Database(path.join(__dirname, '..', '..', 'lanchonete.db'));
+const dbPath = process.env.DB_PATH || path.join(__dirname, '..', '..', 'lanchonete.db');
+const db = new Database(dbPath);
 
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');

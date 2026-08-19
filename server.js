@@ -105,6 +105,11 @@ app.use('/api/mesas', require('./src/routes/mesas'));
 app.use('/api/comandas', require('./src/routes/comandas'));
 app.use('/api/config', require('./src/routes/config'));
 
+// Health check endpoint for Railway
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 app.get('/login-admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login-admin.html')));
 app.get('/login-garcom', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login-garcom.html')));
 app.get('/alterar-senha', (req, res) => res.sendFile(path.join(__dirname, 'public', 'alterar-senha.html')));

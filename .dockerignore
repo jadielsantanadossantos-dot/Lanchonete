@@ -1,0 +1,59 @@
+# Dependencies
+node_modules/
+
+# Database
+lanchonete.db
+lanchonete.db-shm
+lanchonete.db-wal
+
+# Environment
+.env
+.env.local
+.env.production
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose*.yml
+
+# Tests
+test/
+tests/
+*.test.js
+*.spec.js
+
+# Coverage
+coverage/
+
+# Temp
+tmp/
+temp/
+*.tmp
+
+# Uploads (if any)
+public/uploads/
+
+# Documentation
+*.md
+!README.md
+
+# Railway
+railway.toml
