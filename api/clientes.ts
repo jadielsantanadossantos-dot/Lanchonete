@@ -1,6 +1,6 @@
-import { createServerClient } from '../lib/supabase/server';
-import { getAuthContext, requireAuth } from '../lib/auth';
-import { clienteSchema } from '../lib/validation';
+import { createServerClient } from '../../lib/supabase/server';
+import { getAuthContext, requireAuth } from '../../lib/auth';
+import { clienteSchema } from '../../lib/validation';
 
 function getIdFromPath(pathname: string, prefix: string): string | null {
   const parts = pathname.split('/');

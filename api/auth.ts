@@ -1,7 +1,7 @@
-import { createServerClient } from '../lib/supabase/server';
-import { handleLegacyLogin } from '../lib/auth/supabase-auth';
-import { getAuthContext, requireAuth } from '../lib/auth';
-import { loginSchema, alterarSenhaSchema, criarUsuarioSchema, atualizarUsuarioSchema } from '../lib/validation';
+import { createServerClient } from '../../lib/supabase/server';
+import { handleLegacyLogin } from '../../lib/auth/supabase-auth';
+import { getAuthContext, requireAuth } from '../../lib/auth';
+import { loginSchema, alterarSenhaSchema, criarUsuarioSchema, atualizarUsuarioSchema } from '../../lib/validation';
 
 function gerarSenhaAleatoria(tamanho = 12) {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%';

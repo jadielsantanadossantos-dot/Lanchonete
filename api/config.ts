@@ -1,6 +1,6 @@
-import { createServerClient } from '../lib/supabase/server';
-import { getAuthContext, requireAuth } from '../lib/auth';
-import { configSchema } from '../lib/validation';
+import { createServerClient } from '../../lib/supabase/server';
+import { getAuthContext, requireAuth } from '../../lib/auth';
+import { configSchema } from '../../lib/validation';
 
 const SENSITIVE_KEYS = ['jwt_secret', 'auth_secret', 'webpush_private_key', 'webpush_public_key'];
 

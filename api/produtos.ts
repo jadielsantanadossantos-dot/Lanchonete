@@ -1,6 +1,6 @@
-import { createServerClient } from '../lib/supabase/server';
-import { getAuthContext, requireAuth } from '../lib/auth';
-import { produtoSchema } from '../lib/validation';
+import { createServerClient } from '../../lib/supabase/server';
+import { getAuthContext, requireAuth } from '../../lib/auth';
+import { produtoSchema } from '../../lib/validation';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
