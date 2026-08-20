@@ -1,7 +1,7 @@
-import { createServerClient } from '../lib/supabase/server';
-import { handleLegacyLogin } from '../lib/auth/supabase-auth';
-import { getAuthContext, requireAuth } from '../lib/auth';
-import { loginSchema, alterarSenhaSchema, criarUsuarioSchema, atualizarUsuarioSchema } from '../lib/validation';
+import { createServerClient } from './_shared.js';
+import { handleLegacyLogin } from './_shared.js';
+import { getAuthContext, requireAuth } from './_shared.js';
+import { loginSchema, alterarSenhaSchema, criarUsuarioSchema, atualizarUsuarioSchema } from './_shared.js';
 
 function gerarSenhaAleatoria(tamanho = 12) {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%';
@@ -432,3 +432,4 @@ export async function DELETE(request: Request) {
     return Response.json({ error: 'Erro interno' }, { status: 500 });
   }
 }
+

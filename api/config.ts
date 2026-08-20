@@ -1,6 +1,6 @@
-import { createServerClient } from '../lib/supabase/server';
-import { getAuthContext, requireAuth } from '../lib/auth';
-import { configSchema } from '../lib/validation';
+import { createServerClient } from './_shared.js';
+import { getAuthContext, requireAuth } from './_shared.js';
+import { configSchema } from './_shared.js';
 
 const SENSITIVE_KEYS = ['jwt_secret', 'auth_secret', 'webpush_private_key', 'webpush_public_key'];
 
@@ -68,3 +68,4 @@ export async function PUT(request: Request) {
     return Response.json({ error: 'Erro interno' }, { status: 500 });
   }
 }
+

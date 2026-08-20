@@ -1,6 +1,6 @@
-import { createServerClient } from '../lib/supabase/server';
-import { getAuthContext, requireAuth } from '../lib/auth';
-import { adicionalSchema } from '../lib/validation';
+import { createServerClient } from './_shared.js';
+import { getAuthContext, requireAuth } from './_shared.js';
+import { adicionalSchema } from './_shared.js';
 
 function getIdFromPath(pathname: string, prefix: string): string | null {
   const parts = pathname.split('/');
@@ -156,3 +156,4 @@ export async function DELETE(request: Request) {
     return Response.json({ error: 'Erro interno' }, { status: 500 });
   }
 }
+
