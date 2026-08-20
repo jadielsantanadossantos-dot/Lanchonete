@@ -18,11 +18,10 @@ function getIdFromPath(pathname: string, prefix: string): string | null {
 }
 
 export async function GET(request: Request) {
-  const url = new URL(request.url);
-  const segments = getPathSegments(url);
-  const ativos = url.searchParams.get('ativos') === 'true';
-  
   try {
+    const url = new URL(request.url);
+    const segments = getPathSegments(url);
+    const ativos = url.searchParams.get('ativos') === 'true';
     const supabase = createServerClient();
     
     // Público: lista produtos ativos para cardápio
