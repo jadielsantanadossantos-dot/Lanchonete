@@ -1,5 +1,8 @@
 import { createServerClient } from '@/lib/supabase/server';
 import { getAuthContext, requireAuth } from '@/lib/auth';
+import { configSchema } from '@/lib/validation';
+
+const SENSITIVE_KEYS = ['jwt_secret', 'auth_secret', 'webpush_private_key', 'webpush_public_key'];
 
 export async function GET(request: Request) {
   try {
@@ -11,41 +14,49 @@ export async function GET(request: Request) {
     }
     
     const { data, error } = await supabase
-      .from('adicionais')
-      .select('*')
-      .order('nome', { ascending: true });
+      .from('configuracoes')
+      .select('*');
     
     if (error) throw error;
     
-    return Response.json(data || []);
+    const config: Record<string, string> = {};
+    (data || []).forEach((row: any) => {
+      if (!SENSITIVE_KEYS.includes(row.chave)) {
+        config[row.chave] = row.valor;
+      }
+    });
+    
+    return Response.json(config);
   } catch (error) {
-    console.error('GET /api/adicionais error:', error);
+    console.error('GET /api/config error:', error);
     return Response.json({ error: 'Erro interno' }, { status: 500 });
   }
 }
 
-export async function POST(request: Request) {
+export async function PUT(request: Request) {
   try {
     const supabase = createServerClient();
     const context = await requireAuth(['admin'])(request);
     const { user, supabase: db } = context;
     
-    const body = await request.json();
-    const { nome, preco } = body as { nome: string; preco: number };
+    const body = await request.json() as Record<string, any>;
     
-    if (!nome || preco === undefined) {
-      return Response.json({ error: 'Nome e preço obrigatórios' }, { status: 400 });
+    const parsed = configSchema.safeParse(body);
+    if (!parsed.success) {
+      return Response.json({ error: 'Dados inválidos', detalhes: parsed.error.issues }, { status: 400 });
     }
     
-    const { data, error } = await db
-      .from('adicionais')
-      .insert({ nome, preco, ativo: true })
-      .select()
-      .single();
+    const updates = Object.entries(parsed.data).map(([chave, valor]) => ({
+      chave,
+      valor: String(valor),
+    }));
+    
+    const { error } = await db
+      .from('configuracoes')
+      .upsert(updates, { onConflict: 'chave' });
     
     if (error) throw error;
-    
-    return Response.json(data, { status: 201 });
+    return Response.json({ success: true });
   } catch (error) {
     if (error instanceof Error && error.message === 'UNAUTHORIZED') {
       return Response.json({ error: 'Não autorizado' }, { status: 401 });
@@ -53,7 +64,7 @@ export async function POST(request: Request) {
     if (error instanceof Error && error.message === 'FORBIDDEN') {
       return Response.json({ error: 'Acesso negado' }, { status: 403 });
     }
-    console.error('POST /api/adicionais error:', error);
+    console.error('PUT /api/config error:', error);
     return Response.json({ error: 'Erro interno' }, { status: 500 });
   }
 }
