@@ -25,6 +25,16 @@
     { "source": "/admin/(.*)", "destination": "/admin.html" },
     { "source": "/garcom", "destination": "/garcom.html" },
     { "source": "/garcom/(.*)", "destination": "/garcom.html" },
+    { "source": "/api/auth/(.*)", "destination": "/api/auth" },
+    { "source": "/api/produtos/(.*)", "destination": "/api/produtos" },
+    { "source": "/api/categorias/(.*)", "destination": "/api/categorias" },
+    { "source": "/api/adicionais/(.*)", "destination": "/api/adicionais" },
+    { "source": "/api/clientes/(.*)", "destination": "/api/clientes" },
+    { "source": "/api/bairros/(.*)", "destination": "/api/bairros" },
+    { "source": "/api/mesas/(.*)", "destination": "/api/mesas" },
+    { "source": "/api/comandas/(.*)", "destination": "/api/comandas" },
+    { "source": "/api/config/(.*)", "destination": "/api/config" },
+    { "source": "/api/pedidos/(.*)", "destination": "/api/pedidos" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [
