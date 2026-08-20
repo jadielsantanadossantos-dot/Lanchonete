@@ -24,8 +24,9 @@ export async function GET(request: Request) {
     const ativos = url.searchParams.get('ativos') === 'true';
     const supabase = createServerClient();
     
-    // Público: lista produtos ativos para cardápio
-    if (ativos && segments.length === 1) {
+    // Público: lista produtos ativos para cardápio (GET /api/produtos?ativos=true)
+    const isProdutosRoot = segments.length === 2 && segments[1] === 'produtos';
+    if (ativos && isProdutosRoot) {
       let query = supabase
         .from('produtos')
         .select(`
