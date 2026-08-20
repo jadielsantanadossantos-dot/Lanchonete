@@ -18,8 +18,14 @@
     "api/pedidos.ts": { "maxDuration": 30 }
   },
   "rewrites": [
+    { "source": "/login-admin", "destination": "/login-admin.html" },
+    { "source": "/login-garcom", "destination": "/login-garcom.html" },
+    { "source": "/alterar-senha", "destination": "/alterar-senha.html" },
+    { "source": "/admin", "destination": "/admin.html" },
     { "source": "/admin/(.*)", "destination": "/admin.html" },
+    { "source": "/garcom", "destination": "/garcom.html" },
     { "source": "/garcom/(.*)", "destination": "/garcom.html" },
+    { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [

@@ -1,6 +1,6 @@
-import { createServerClient } from '../lib/supabase/server';
-import { getAuthContext, requireAuth } from '../lib/auth';
-import { produtoSchema } from '../lib/validation';
+import { createServerClient } from './_shared.js';
+import { getAuthContext, requireAuth } from './_shared.js';
+import { produtoSchema } from './_shared.js';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
@@ -20,11 +20,37 @@ function getIdFromPath(pathname: string, prefix: string): string | null {
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const segments = getPathSegments(url);
+  const ativos = url.searchParams.get('ativos') === 'true';
   
   try {
     const supabase = createServerClient();
-    const { user } = await getAuthContext(request);
     
+    // Público: lista produtos ativos para cardápio
+    if (ativos && segments.length === 1) {
+      let query = supabase
+        .from('produtos')
+        .select(`
+          *,
+          categoria:categorias(nome),
+          produto_adicionais(adicional:adicionais(*))
+        `)
+        .eq('ativo', true)
+        .order('nome', { ascending: true });
+      
+      const { data, error } = await query;
+      if (error) throw error;
+      
+      const produtos = (data || []).map((p: any) => ({
+        ...p,
+        categoria_nome: p.categoria?.nome,
+        adicionais: p.produto_adicionais?.map((pa: any) => pa.adicional).filter(Boolean) || [],
+      }));
+      
+      return Response.json(produtos);
+    }
+    
+    // Privado: requer autenticação
+    const { user } = await getAuthContext(request);
     if (!user) {
       return Response.json({ error: 'Não autorizado' }, { status: 401 });
     }
@@ -364,3 +390,4 @@ export async function DELETE(request: Request) {
     return Response.json({ error: 'Erro interno' }, { status: 500 });
   }
 }
+
