@@ -34,9 +34,10 @@ export async function verifyToken(token) {
 
 export async function verifySupabaseToken(token) {
   const supabase = createServerClient();
+  const admin = createAdminClient();
   const { data: { user }, error } = await supabase.auth.getUser(token);
   if (error || !user) return null;
-  const { data: profile } = await supabase
+  const { data: profile } = await admin
     .from('usuarios')
     .select('id, nome, perfil, trocar_senha')
     .eq('usuario', user.email?.replace('@lanchonete.local', '') || '')
