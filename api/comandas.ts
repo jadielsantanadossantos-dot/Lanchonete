@@ -1,5 +1,5 @@
-import { createServerClient } from '../../lib/supabase/server';
-import { getAuthContext, requireAuth } from '../../lib/auth';
+import { createServerClient } from '../lib/supabase/server';
+import { getAuthContext, requireAuth } from '../lib/auth';
 
 function getIdFromPath(pathname: string, prefix: string): string | null {
   const parts = pathname.split('/');
