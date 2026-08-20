@@ -51,6 +51,7 @@ function mostrarUsuario(user) {
 }
 
 function logout() {
+  sessionStorage.removeItem('admin_logged_in');
   limparSessao();
   window.location.href = '/login-admin';
 }

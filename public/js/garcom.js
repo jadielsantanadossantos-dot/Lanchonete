@@ -61,6 +61,12 @@ function mostrarUsuarioGarcom(user) {
   if (el) el.textContent = user.nome;
 }
 
+function logout() {
+  sessionStorage.removeItem('garcom_logged_in');
+  limparSessao();
+  window.location.href = '/login-garcom';
+}
+
 function mostrarModalTrocaSenha() {
   console.log('Mostrando modal troca senha');
   const modal = document.getElementById('g-modal-troca-senha');

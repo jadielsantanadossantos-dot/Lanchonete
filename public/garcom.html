@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="/css/garcom.css">
   <script>
     // Redirect imediato para login se acessar /garcom diretamente
+    // A flag persiste até logout explícito (não é consumida no carregamento)
     (function() {
       const cameFromLogin = sessionStorage.getItem('garcom_logged_in');
       if (!cameFromLogin) {
@@ -15,9 +16,8 @@
         localStorage.removeItem('auth_perfil');
         localStorage.removeItem('auth_nome');
         window.location.href = '/login-garcom';
-      } else {
-        sessionStorage.removeItem('garcom_logged_in');
       }
+      // Flag NÃO é removida aqui - persiste até logout explícito
     })();
   </script>
 </head>

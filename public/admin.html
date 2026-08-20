@@ -8,6 +8,7 @@
   <script>
     // Redirect imediato para login se acessar /admin diretamente
     // Só permite acesso se veio de login bem-sucedido (flag no sessionStorage)
+    // A flag persiste até logout explícito (não é consumida no carregamento)
     (function() {
       const cameFromLogin = sessionStorage.getItem('admin_logged_in');
       if (!cameFromLogin) {
@@ -16,9 +17,8 @@
         localStorage.removeItem('auth_perfil');
         localStorage.removeItem('auth_nome');
         window.location.href = '/login-admin';
-      } else {
-        sessionStorage.removeItem('admin_logged_in');
       }
+      // Flag NÃO é removida aqui - persiste até logout explícito
     })();
   </script>
 <body>
