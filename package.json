@@ -4,7 +4,7 @@
   "description": "Lanchonete system - Supabase + Vercel",
   "type": "module",
   "scripts": {
-    "dev": "vercel dev",
+    "dev": "echo 'Run vercel dev directly'",
     "build": "echo 'Static build - no build step'",
     "lint": "eslint . --ext .ts,.js",
     "typecheck": "tsc --noEmit",
@@ -22,11 +22,9 @@
   "dependencies": {
     "@supabase/ssr": "^0.1.0",
     "@supabase/supabase-js": "^2.39.0",
-    "@types/better-sqlite3": "^9.6.0",
     "@upstash/ratelimit": "^1.1.0",
     "@upstash/redis": "^1.28.0",
     "bcryptjs": "^2.4.3",
-    "better-sqlite3": "^13.0.3",
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.29.0",
     "jsonwebtoken": "^9.0.2",
