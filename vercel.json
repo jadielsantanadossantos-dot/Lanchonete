@@ -6,16 +6,16 @@
   "devCommand": "echo 'Use vercel dev directly'",
   "regions": ["gru1"],
   "functions": {
-    "api/auth.ts": { "maxDuration": 30 },
-    "api/produtos.ts": { "maxDuration": 30 },
-    "api/categorias.ts": { "maxDuration": 30 },
-    "api/adicionais.ts": { "maxDuration": 30 },
-    "api/clientes.ts": { "maxDuration": 30 },
-    "api/bairros.ts": { "maxDuration": 30 },
-    "api/mesas.ts": { "maxDuration": 30 },
-    "api/comandas.ts": { "maxDuration": 30 },
-    "api/config.ts": { "maxDuration": 30 },
-    "api/pedidos.ts": { "maxDuration": 30 }
+    "api/auth.ts": { "maxDuration": 30, "includeFiles": ["lib/**/*"] },
+    "api/produtos.ts": { "maxDuration": 30, "includeFiles": ["lib/**/*"] },
+    "api/categorias.ts": { "maxDuration": 30, "includeFiles": ["lib/**/*"] },
+    "api/adicionais.ts": { "maxDuration": 30, "includeFiles": ["lib/**/*"] },
+    "api/clientes.ts": { "maxDuration": 30, "includeFiles": ["lib/**/*"] },
+    "api/bairros.ts": { "maxDuration": 30, "includeFiles": ["lib/**/*"] },
+    "api/mesas.ts": { "maxDuration": 30, "includeFiles": ["lib/**/*"] },
+    "api/comandas.ts": { "maxDuration": 30, "includeFiles": ["lib/**/*"] },
+    "api/config.ts": { "maxDuration": 30, "includeFiles": ["lib/**/*"] },
+    "api/pedidos.ts": { "maxDuration": 30, "includeFiles": ["lib/**/*"] }
   },
   "rewrites": [
     { "source": "/admin/(.*)", "destination": "/admin.html" },
