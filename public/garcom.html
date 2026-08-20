@@ -5,6 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Garçom - Atendimento</title>
   <link rel="stylesheet" href="/css/garcom.css">
+  <script>
+    // Redirect imediato para login se acessar /garcom diretamente
+    (function() {
+      const cameFromLogin = sessionStorage.getItem('garcom_logged_in');
+      if (!cameFromLogin) {
+        sessionStorage.removeItem('garcom_logged_in');
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('auth_perfil');
+        localStorage.removeItem('auth_nome');
+        window.location.href = '/login-garcom';
+      } else {
+        sessionStorage.removeItem('garcom_logged_in');
+      }
+    })();
+  </script>
 </head>
 <body>
   <div class="auth-loader" id="auth-loader">

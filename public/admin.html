@@ -5,7 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Painel Admin - Lanchonete</title>
   <link rel="stylesheet" href="/css/admin.css">
-</head>
+  <script>
+    // Redirect imediato para login se acessar /admin diretamente
+    // Só permite acesso se veio de login bem-sucedido (flag no sessionStorage)
+    (function() {
+      const cameFromLogin = sessionStorage.getItem('admin_logged_in');
+      if (!cameFromLogin) {
+        sessionStorage.removeItem('admin_logged_in');
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('auth_perfil');
+        localStorage.removeItem('auth_nome');
+        window.location.href = '/login-admin';
+      } else {
+        sessionStorage.removeItem('admin_logged_in');
+      }
+    })();
+  </script>
 <body>
   <div class="auth-loader" id="auth-loader">
     <div class="auth-loader-spin"></div>
