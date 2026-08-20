@@ -377,7 +377,7 @@ async function CarregarNomeLojaComanda(win) {
 
 // PRODUTOS
 async function carregarProdutosAdmin() {
-  const [prodRes, catRes] = await Promise.all([fetch('/api/produtos'), fetch('/api/categorias')]);
+  const [prodRes, catRes] = await Promise.all([authFetch('/api/produtos'), authFetch('/api/categorias')]);
   const produtos = await prodRes.json();
   const categorias = await catRes.json();
 
@@ -441,12 +441,13 @@ async function excluirCategoria(id) {
   showToast('Categoria excluída!');
 }
 
-function editarCategoria(id, nome, ordem) {
+async function editarCategoria(id, nome, ordem) {
   const novoNome = prompt('Novo nome:', nome);
   if (!novoNome) return;
   const novaOrdem = parseInt(prompt('Nova ordem:', ordem)) || 0;
-  fetch(`/api/categorias/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nome: novoNome, ordem: novaOrdem }) })
-    .then(() => { carregarCategoriasAdmin(); showToast('Categoria atualizada!'); });
+  await authFetch(`/api/categorias/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nome: novoNome, ordem: novaOrdem }) });
+  carregarCategoriasAdmin();
+  showToast('Categoria atualizada!');
 }
 
 async function abrirFormProduto() {
