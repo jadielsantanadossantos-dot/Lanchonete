@@ -18,6 +18,16 @@ let usuarioLogado = null;
 document.addEventListener('DOMContentLoaded', () => init());
 
 async function init() {
+  // Sempre redireciona para login se acessar /garcom diretamente
+  const cameFromLogin = sessionStorage.getItem('garcom_logged_in');
+  if (!cameFromLogin) {
+    sessionStorage.removeItem('garcom_logged_in');
+    limparSessao();
+    window.location.href = '/login-garcom';
+    return;
+  }
+  sessionStorage.removeItem('garcom_logged_in');
+
   if (!verificarAuth()) {
     console.log('Garcom: sem token, redirecionando para login');
     redirecionarSemAuth('/login-garcom');

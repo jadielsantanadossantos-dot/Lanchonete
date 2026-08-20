@@ -42,6 +42,11 @@ document.getElementById('login-form').addEventListener('submit', async function(
         window.location.href = '/alterar-senha';
       }
     } else {
+      if (window.LOGIN_PERFIL === 'admin') {
+        sessionStorage.setItem('admin_logged_in', '1');
+      } else {
+        sessionStorage.setItem('garcom_logged_in', '1');
+      }
       window.location.href = window.LOGIN_PERFIL === 'admin' ? '/admin' : '/garcom';
     }
   } catch (e) {

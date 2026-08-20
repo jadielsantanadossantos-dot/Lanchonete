@@ -3,6 +3,17 @@ let allClientes = [];
 let usuarioLogado = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
+  // Sempre redireciona para login se acessar /admin diretamente
+  // O login definirá uma flag no sessionStorage após login bem-sucedido
+  const cameFromLogin = sessionStorage.getItem('admin_logged_in');
+  if (!cameFromLogin) {
+    sessionStorage.removeItem('admin_logged_in');
+    limparSessao();
+    window.location.href = '/login-admin';
+    return;
+  }
+  sessionStorage.removeItem('admin_logged_in');
+
   if (!verificarAuth('admin')) {
     redirecionarSemAuth('/login-admin');
     return;
