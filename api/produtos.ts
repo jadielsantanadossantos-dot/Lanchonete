@@ -159,6 +159,24 @@ export async function GET(request: Request) {
   }
 }
 
+function parseFormData(formData: FormData) {
+  const body: Record<string, any> = {};
+  for (const [key, value] of formData.entries()) {
+    if (key === 'ativo') {
+      body[key] = value === '1' || value === 'true';
+    } else if (key === 'adicionais_ids') {
+      body[key] = JSON.parse(value);
+    } else if (key === 'preco' || key === 'categoria_id') {
+      body[key] = Number(value);
+    } else if (key === 'foto' && value instanceof File) {
+      body[key] = value;
+    } else {
+      body[key] = value;
+    }
+  }
+  return body;
+}
+
 export async function POST(request: Request) {
   const url = new URL(request.url);
   const segments = getPathSegments(url);
@@ -213,15 +231,16 @@ export async function POST(request: Request) {
     const context = await requireAuth(['admin'])(request);
     const { user, supabase: db } = context;
     
-    const body = await request.json() as { 
-      nome: string; 
-      categoria_id: number; 
-      descricao?: string; 
-      preco: number; 
-      ativo?: boolean; 
-      adicionais_ids?: number[]; 
-      foto?: string;
-    };
+    const contentType = request.headers.get('content-type') || '';
+    let body: Record<string, any>;
+    
+    if (contentType.includes('multipart/form-data')) {
+      const formData = await request.formData();
+      body = parseFormData(formData);
+    } else {
+      body = await request.json();
+    }
+    
     const { nome, categoria_id, descricao, preco, ativo, adicionais_ids, foto } = body;
     
     if (!nome || !categoria_id || preco === undefined) {
@@ -281,15 +300,16 @@ export async function PUT(request: Request) {
       const context = await requireAuth(['admin'])(request);
       const { user, supabase: db } = context;
       
-      const body = await request.json() as { 
-        nome?: string; 
-        categoria_id?: number; 
-        descricao?: string; 
-        preco?: number; 
-        ativo?: boolean; 
-        adicionais_ids?: number[]; 
-        foto?: string;
-      };
+      const contentType = request.headers.get('content-type') || '';
+      let body: Record<string, any>;
+      
+      if (contentType.includes('multipart/form-data')) {
+        const formData = await request.formData();
+        body = parseFormData(formData);
+      } else {
+        body = await request.json();
+      }
+      
       const { nome, categoria_id, descricao, preco, ativo, adicionais_ids, foto } = body;
       
       const updateData: Record<string, any> = {};
