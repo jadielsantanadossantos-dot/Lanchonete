@@ -125,9 +125,7 @@ export async function GET(request: Request) {
       return Response.json(produto);
     }
     
-    // /api/produtos (list)
-    const ativos = url.searchParams.get('ativos') === 'true';
-    
+    // /api/produtos (list) - requer autenticação
     let query = supabase
       .from('produtos')
       .select(`
@@ -136,10 +134,6 @@ export async function GET(request: Request) {
         produto_adicionais(adicional:adicionais(*))
       `)
       .order('nome', { ascending: true });
-    
-    if (ativos) {
-      query = query.eq('ativo', true);
-    }
     
     const { data, error } = await query;
     
