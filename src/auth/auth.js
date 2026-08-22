@@ -6,11 +6,26 @@ const db = require('../db/database');
 const TOKEN_EXPIRY = '2h';
 const REFRESH_EXPIRY = '7d';
 
-function getJwtSecret() {
-  const row = db.prepare('SELECT valor FROM configuracoes WHERE chave = ?').get('jwt_secret');
-  if (row && row.valor) return row.valor;
+let jwtSecretCache = null;
+
+async function getJwtSecret() {
+  if (jwtSecretCache) return jwtSecretCache;
+
+  const envSecret = process.env.JWT_SECRET;
+  if (envSecret && envSecret.length >= 32) {
+    jwtSecretCache = envSecret;
+    return jwtSecretCache;
+  }
+
+  const row = await db.get('SELECT valor FROM configuracoes WHERE chave = $1', 'jwt_secret');
+  if (row && row.valor) {
+    jwtSecretCache = row.valor;
+    return jwtSecretCache;
+  }
+
   const secret = crypto.randomBytes(64).toString('hex');
-  db.prepare('INSERT OR REPLACE INTO configuracoes (chave, valor) VALUES (?, ?)').run('jwt_secret', secret);
+  await db.run('INSERT INTO configuracoes (chave, valor) VALUES ($1, $2) ON CONFLICT (chave) DO UPDATE SET valor = $2', 'jwt_secret', secret);
+  jwtSecretCache = secret;
   return secret;
 }
 
@@ -22,29 +37,32 @@ function verificarSenha(senha, hash) {
   return bcrypt.compareSync(senha, hash);
 }
 
-function gerarToken(usuario) {
+async function gerarToken(usuario) {
+  const secret = await getJwtSecret();
   const payload = {
     id: usuario.id,
     usuario: usuario.usuario,
     nome: usuario.nome,
     perfil: usuario.perfil,
-    trocar_senha: usuario.trocar_senha === 1
+    trocar_senha: usuario.trocar_senha === true || usuario.trocar_senha === 1
   };
-  return jwt.sign(payload, getJwtSecret(), { expiresIn: TOKEN_EXPIRY });
+  return jwt.sign(payload, secret, { expiresIn: TOKEN_EXPIRY });
 }
 
-function gerarRefreshToken(usuario) {
+async function gerarRefreshToken(usuario) {
+  const secret = await getJwtSecret();
   const payload = {
     id: usuario.id,
     tipo: 'refresh'
   };
-  return jwt.sign(payload, getJwtSecret(), { expiresIn: REFRESH_EXPIRY });
+  return jwt.sign(payload, secret, { expiresIn: REFRESH_EXPIRY });
 }
 
-function verificarToken(token) {
+async function verificarToken(token) {
   if (!token) return null;
   try {
-    return jwt.verify(token, getJwtSecret());
+    const secret = await getJwtSecret();
+    return jwt.verify(token, secret);
   } catch (e) {
     return null;
   }
@@ -58,9 +76,9 @@ function extrairToken(req) {
   return null;
 }
 
-function middleware(req, res, next) {
+async function middleware(req, res, next) {
   const token = extrairToken(req);
-  const usuario = verificarToken(token);
+  const usuario = await verificarToken(token);
   if (!usuario) {
     return res.status(401).json({ error: 'Token inválido ou expirado' });
   }
@@ -68,8 +86,8 @@ function middleware(req, res, next) {
   next();
 }
 
-function middlewareAdmin(req, res, next) {
-  middleware(req, res, () => {
+async function middlewareAdmin(req, res, next) {
+  await middleware(req, res, () => {
     if (req.usuario.perfil !== 'admin') {
       return res.status(403).json({ error: 'Acesso restrito a administradores' });
     }
@@ -77,8 +95,8 @@ function middlewareAdmin(req, res, next) {
   });
 }
 
-function middlewareGarcom(req, res, next) {
-  middleware(req, res, () => {
+async function middlewareGarcom(req, res, next) {
+  await middleware(req, res, () => {
     if (req.usuario.perfil !== 'garcom' && req.usuario.perfil !== 'admin') {
       return res.status(403).json({ error: 'Acesso restrito a garçons e administradores' });
     }

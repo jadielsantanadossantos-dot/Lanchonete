@@ -4,8 +4,14 @@ const db = require('../db/database');
 const QRCode = require('qrcode');
 const { middlewareAdmin } = require('../auth/auth');
 
-router.get('/', middlewareAdmin, (req, res) => {
-  const rows = db.prepare('SELECT * FROM configuracoes').all();
+function wrapAsync(fn) {
+  return (req, res, next) => {
+    Promise.resolve(fn(req, res, next)).catch(next);
+  };
+}
+
+router.get('/', wrapAsync(async (req, res) => {
+  const rows = await db.all('SELECT * FROM configuracoes');
   const config = {};
   const sensitiveKeys = ['jwt_secret', 'auth_secret', 'webpush_private_key', 'webpush_public_key'];
   rows.forEach(r => {
@@ -14,18 +20,28 @@ router.get('/', middlewareAdmin, (req, res) => {
     }
   });
   res.json(config);
+}));
+
+router.get('/public', (req, res) => {
+  res.json({
+    supabaseUrl: process.env.SUPABASE_URL || '',
+    supabaseAnonKey: process.env.SUPABASE_ANON_KEY || ''
+  });
 });
 
-router.put('/', middlewareAdmin, (req, res) => {
-  const stmt = db.prepare('INSERT OR REPLACE INTO configuracoes (chave, valor) VALUES (?, ?)');
-  Object.entries(req.body).forEach(([chave, valor]) => stmt.run(chave, valor));
+router.put('/', middlewareAdmin, wrapAsync(async (req, res) => {
+  const stmt = db.prepare('INSERT INTO configuracoes (chave, valor) VALUES ($1, $2) ON CONFLICT (chave) DO UPDATE SET valor = $2, atualizado_em = NOW()');
+  for (const [chave, valor] of Object.entries(req.body)) {
+    await stmt.run(chave, valor);
+  }
   res.json({ success: true });
-});
+}));
 
-router.get('/pix/qrcode', async (req, res) => {
+router.get('/pix/qrcode', wrapAsync(async (req, res) => {
   const { valor } = req.query;
   const config = {};
-  db.prepare('SELECT * FROM configuracoes').all().forEach(r => { config[r.chave] = r.valor; });
+  const rows = await db.all('SELECT * FROM configuracoes');
+  rows.forEach(r => { config[r.chave] = r.valor; });
 
   if (!config.pix_chave) return res.status(400).json({ error: 'Chave Pix não configurada' });
 
@@ -37,54 +53,58 @@ router.get('/pix/qrcode', async (req, res) => {
   } catch (e) {
     res.status(500).json({ error: 'Erro ao gerar QR Code' });
   }
-});
+}));
 
-router.get('/relatorios/vendas', middlewareAdmin, (req, res) => {
+router.get('/relatorios/vendas', middlewareAdmin, wrapAsync(async (req, res) => {
   const { periodo } = req.query;
   let dateFilter = '';
+  const params = [];
+  let paramIndex = 1;
 
   if (periodo === 'hoje') {
-    dateFilter = "AND date(p.criado_em) = date('now', 'localtime')";
+    dateFilter = 'AND p.criado_em::date = CURRENT_DATE';
   } else if (periodo === 'semana') {
-    dateFilter = "AND p.criado_em >= date('now', '-7 days', 'localtime')";
+    dateFilter = 'AND p.criado_em >= NOW() - INTERVAL \'7 days\'';
   } else if (periodo === 'mes') {
-    dateFilter = "AND p.criado_em >= date('now', '-30 days', 'localtime')";
+    dateFilter = 'AND p.criado_em >= NOW() - INTERVAL \'30 days\'';
   }
 
-  const resumo = db.prepare(`
+
+
+  const resumo = await db.get(`
     SELECT
       COUNT(*) as total_pedidos,
       COALESCE(SUM(total), 0) as faturamento,
       COALESCE(AVG(total), 0) as ticket_medio
     FROM pedidos p WHERE p.status != 'cancelado' ${dateFilter}
-  `).get();
+  `, ...params);
 
-  const porFormaPagamento = db.prepare(`
+  const porFormaPagamento = await db.all(`
     SELECT forma_pagamento, COUNT(*) as qtd, SUM(total) as valor
     FROM pedidos p WHERE p.status != 'cancelado' ${dateFilter}
     GROUP BY forma_pagamento
-  `).all();
+  `, ...params);
 
-  const porDia = db.prepare(`
-    SELECT date(criado_em) as dia, COUNT(*) as qtd, SUM(total) as valor
+  const porDia = await db.all(`
+    SELECT p.criado_em::date as dia, COUNT(*) as qtd, SUM(total) as valor
     FROM pedidos p WHERE p.status != 'cancelado' ${dateFilter}
-    GROUP BY date(criado_em) ORDER BY dia DESC LIMIT 30
-  `).all();
+    GROUP BY p.criado_em::date ORDER BY dia DESC LIMIT 30
+  `, ...params);
 
-  const produtosMaisVendidos = db.prepare(`
+  const produtosMaisVendidos = await db.all(`
     SELECT pi.produto_nome, SUM(pi.quantidade) as qtd, SUM(pi.preco_unitario * pi.quantidade) as valor
     FROM pedido_itens pi
     JOIN pedidos p ON pi.pedido_id = p.id
     WHERE p.status != 'cancelado' ${dateFilter}
     GROUP BY pi.produto_nome ORDER BY qtd DESC LIMIT 10
-  `).all();
+  `, ...params);
 
-  const porStatus = db.prepare(`
+  const porStatus = await db.all(`
     SELECT status, COUNT(*) as qtd FROM pedidos p WHERE 1=1 ${dateFilter} GROUP BY status
-  `).all();
+  `, ...params);
 
   res.json({ resumo, porFormaPagamento, porDia, produtosMaisVendidos, porStatus });
-});
+}));
 
 function gerarPayloadPix(chave, nome, valor) {
   function tlv(id, value) {
@@ -101,9 +121,7 @@ function gerarPayloadPix(chave, nome, valor) {
   const valorStr = valor > 0 ? tlv('54', valor.toFixed(2)) : '';
   const country = tlv('58', 'BR');
   const merchantName = tlv('59', nome.substring(0, 25));
-  // City opcional - omitir se não tiver
   const city = tlv('60', '');
-  // TXID único: timestamp (base36) + random
   const txid = tlv('05', Date.now().toString(36) + Math.random().toString(36).substring(2, 7));
   const addData = tlv('62', txid);
 

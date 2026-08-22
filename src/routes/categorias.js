@@ -3,30 +3,36 @@ const router = express.Router();
 const db = require('../db/database');
 const { middlewareAdmin } = require('../auth/auth');
 
-router.get('/', (req, res) => {
-  const rows = db.prepare('SELECT * FROM categorias ORDER BY ordem').all();
-  res.json(rows);
-});
+function wrapAsync(fn) {
+  return (req, res, next) => {
+    Promise.resolve(fn(req, res, next)).catch(next);
+  };
+}
 
-router.post('/', middlewareAdmin, (req, res) => {
+router.get('/', wrapAsync(async (req, res) => {
+  const rows = await db.all('SELECT * FROM categorias ORDER BY ordem');
+  res.json(rows);
+}));
+
+router.post('/', middlewareAdmin, wrapAsync(async (req, res) => {
   const { nome, ordem } = req.body;
   try {
-    const info = db.prepare('INSERT INTO categorias (nome, ordem) VALUES (?, ?)').run(nome, ordem || 0);
+    const info = await db.run('INSERT INTO categorias (nome, ordem) VALUES ($1, $2) RETURNING id', nome, ordem || 0);
     res.json({ id: info.lastInsertRowid, nome, ordem: ordem || 0 });
   } catch (e) {
     res.status(400).json({ error: 'Categoria já existe' });
   }
-});
+}));
 
-router.put('/:id', middlewareAdmin, (req, res) => {
+router.put('/:id', middlewareAdmin, wrapAsync(async (req, res) => {
   const { nome, ordem } = req.body;
-  db.prepare('UPDATE categorias SET nome = ?, ordem = ? WHERE id = ?').run(nome, ordem || 0, req.params.id);
+  await db.run('UPDATE categorias SET nome = $1, ordem = $2 WHERE id = $3', nome, ordem || 0, req.params.id);
   res.json({ success: true });
-});
+}));
 
-router.delete('/:id', middlewareAdmin, (req, res) => {
-  db.prepare('DELETE FROM categorias WHERE id = ?').run(req.params.id);
+router.delete('/:id', middlewareAdmin, wrapAsync(async (req, res) => {
+  await db.run('DELETE FROM categorias WHERE id = $1', req.params.id);
   res.json({ success: true });
-});
+}));
 
 module.exports = router;

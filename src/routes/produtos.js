@@ -2,18 +2,50 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db/database');
 const multer = require('multer');
+const crypto = require('crypto');
 const path = require('path');
+const { createClient } = require('@supabase/supabase-js');
 const { middlewareAdmin } = require('../auth/auth');
 
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp', '.gif'];
 
-function sanitizeFilename(filename) {
-  return filename
-    .replace(/[^a-zA-Z0-9._-]/g, '_')
-    .replace(/\.{2,}/g, '_')
-    .replace(/^\.+/, '')
-    .substring(0, 100);
+let storageClient = null;
+function getStorage() {
+  if (!storageClient) {
+    const url = process.env.SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!url || !key) throw new Error('SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY não configurados para upload');
+    storageClient = createClient(url, key, { auth: { persistSession: false } });
+  }
+  return storageClient;
+}
+
+async function uploadFoto(file) {
+  const ext = path.extname(file.originalname).toLowerCase();
+  const nome = `${Date.now()}-${crypto.randomBytes(6).toString('hex')}${ext}`;
+  const supabase = getStorage();
+  try {
+    const { error } = await supabase.storage.from('produtos').upload(nome, file.buffer, {
+      contentType: file.mimetype,
+      cacheControl: '31536000'
+    });
+    if (error) throw error;
+  } catch (e) {
+    if (/Bucket not found/i.test(e.message)) {
+      const { error: createErr } = await supabase.storage.createBucket('produtos', { public: true });
+      if (createErr && !/already exists/i.test(createErr.message)) throw createErr;
+      const { error: retryErr } = await supabase.storage.from('produtos').upload(nome, file.buffer, {
+        contentType: file.mimetype,
+        cacheControl: '31536000'
+      });
+      if (retryErr) throw retryErr;
+    } else {
+      throw e;
+    }
+  }
+  const { data } = supabase.storage.from('produtos').getPublicUrl(nome);
+  return data.publicUrl;
 }
 
 function fileFilter(req, file, cb) {
@@ -27,28 +59,25 @@ function fileFilter(req, file, cb) {
   cb(null, true);
 }
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, path.join(__dirname, '..', '..', 'public', 'uploads')),
-  filename: (req, file, cb) => {
-    const sanitized = sanitizeFilename(file.originalname);
-    const ext = path.extname(sanitized).toLowerCase();
-    const base = path.basename(sanitized, ext).substring(0, 50);
-    cb(null, `${Date.now()}-${base}${ext}`);
-  }
-});
-const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 }, fileFilter });
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 }, fileFilter });
 
-router.get('/', (req, res) => {
-  const rows = db.prepare(`
+function wrapAsync(fn) {
+  return (req, res, next) => {
+    Promise.resolve(fn(req, res, next)).catch(next);
+  };
+}
+
+router.get('/', wrapAsync(async (req, res) => {
+  const rows = await db.all(`
     SELECT p.*, c.nome as categoria_nome FROM produtos p
     JOIN categorias c ON p.categoria_id = c.id
     ORDER BY c.ordem, p.nome
-  `).all();
+  `);
 
-  const adicionais = db.prepare(`
+  const adicionais = await db.all(`
     SELECT pa.produto_id, a.* FROM produto_adicionais pa
-    JOIN adicionais a ON pa.adicional_id = a.id WHERE a.ativo = 1
-  `).all();
+    JOIN adicionais a ON pa.adicional_id = a.id WHERE a.ativo = true
+  `);
 
   const produtos = rows.map(p => ({
     ...p,
@@ -56,19 +85,19 @@ router.get('/', (req, res) => {
   }));
 
   res.json(produtos);
-});
+}));
 
-router.get('/ativos', (req, res) => {
-  const rows = db.prepare(`
+router.get('/ativos', wrapAsync(async (req, res) => {
+  const rows = await db.all(`
     SELECT p.*, c.nome as categoria_nome FROM produtos p
     JOIN categorias c ON p.categoria_id = c.id
-    WHERE p.ativo = 1 ORDER BY c.ordem, p.nome
-  `).all();
+    WHERE p.ativo = true ORDER BY c.ordem, p.nome
+  `);
 
-  const adicionais = db.prepare(`
+  const adicionais = await db.all(`
     SELECT pa.produto_id, a.* FROM produto_adicionais pa
-    JOIN adicionais a ON pa.adicional_id = a.id WHERE a.ativo = 1
-  `).all();
+    JOIN adicionais a ON pa.adicional_id = a.id WHERE a.ativo = true
+  `);
 
   const produtos = rows.map(p => ({
     ...p,
@@ -76,62 +105,66 @@ router.get('/ativos', (req, res) => {
   }));
 
   res.json(produtos);
-});
+}));
 
-router.get('/:id', (req, res) => {
-  const row = db.prepare(`
+router.get('/:id', wrapAsync(async (req, res) => {
+  const row = await db.get(`
     SELECT p.*, c.nome as categoria_nome FROM produtos p
-    JOIN categorias c ON p.categoria_id = c.id WHERE p.id = ?
-  `).get(req.params.id);
+    JOIN categorias c ON p.categoria_id = c.id WHERE p.id = $1
+  `, req.params.id);
   if (!row) return res.status(404).json({ error: 'Produto não encontrado' });
 
-  const adicionais = db.prepare(`
+  const adicionais = await db.all(`
     SELECT a.* FROM produto_adicionais pa
-    JOIN adicionais a ON pa.adicional_id = a.id WHERE pa.produto_id = ?
-  `).all(req.params.id);
+    JOIN adicionais a ON pa.adicional_id = a.id WHERE pa.produto_id = $1
+  `, req.params.id);
 
   res.json({ ...row, adicionais });
-});
+}));
 
-router.post('/', middlewareAdmin, upload.single('foto'), (req, res) => {
+router.post('/', middlewareAdmin, upload.single('foto'), wrapAsync(async (req, res) => {
   const { nome, categoria_id, descricao, preco, ativo, adicionais_ids } = req.body;
-  const foto = req.file ? '/uploads/' + req.file.filename : null;
+  const foto = req.file ? await uploadFoto(req.file) : null;
 
-  const info = db.prepare(
-    'INSERT INTO produtos (nome, categoria_id, descricao, preco, foto, ativo) VALUES (?, ?, ?, ?, ?, ?)'
-  ).run(nome, categoria_id, descricao || '', parseFloat(preco), foto, ativo !== undefined ? parseInt(ativo) : 1);
+  const info = await db.run(
+    'INSERT INTO produtos (nome, categoria_id, descricao, preco, foto, ativo) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
+    nome, categoria_id, descricao || '', parseFloat(preco), foto, ativo !== undefined ? ativo : true
+  );
 
   if (adicionais_ids) {
     const ids = JSON.parse(adicionais_ids);
-    const stmt = db.prepare('INSERT INTO produto_adicionais (produto_id, adicional_id) VALUES (?, ?)');
-    ids.forEach(aid => stmt.run(info.lastInsertRowid, aid));
+    for (const aid of ids) {
+      await db.run('INSERT INTO produto_adicionais (produto_id, adicional_id) VALUES ($1, $2)', info.lastInsertRowid, aid);
+    }
   }
 
   res.json({ id: info.lastInsertRowid });
-});
+}));
 
-router.put('/:id', middlewareAdmin, upload.single('foto'), (req, res) => {
+router.put('/:id', middlewareAdmin, upload.single('foto'), wrapAsync(async (req, res) => {
   const { nome, categoria_id, descricao, preco, ativo, adicionais_ids } = req.body;
-  const existing = db.prepare('SELECT foto FROM produtos WHERE id = ?').get(req.params.id);
-  const foto = req.file ? '/uploads/' + req.file.filename : (existing ? existing.foto : null);
+  const existing = await db.get('SELECT foto FROM produtos WHERE id = $1', req.params.id);
+  const foto = req.file ? await uploadFoto(req.file) : (existing ? existing.foto : null);
 
-  db.prepare(
-    'UPDATE produtos SET nome=?, categoria_id=?, descricao=?, preco=?, foto=?, ativo=? WHERE id=?'
-  ).run(nome, categoria_id, descricao || '', parseFloat(preco), foto, ativo !== undefined ? parseInt(ativo) : 1, req.params.id);
+  await db.run(
+    'UPDATE produtos SET nome=$1, categoria_id=$2, descricao=$3, preco=$4, foto=$5, ativo=$6 WHERE id=$7',
+    nome, categoria_id, descricao || '', parseFloat(preco), foto, ativo !== undefined ? ativo : true, req.params.id
+  );
 
-  db.prepare('DELETE FROM produto_adicionais WHERE produto_id = ?').run(req.params.id);
+  await db.run('DELETE FROM produto_adicionais WHERE produto_id = $1', req.params.id);
   if (adicionais_ids) {
     const ids = JSON.parse(adicionais_ids);
-    const stmt = db.prepare('INSERT INTO produto_adicionais (produto_id, adicional_id) VALUES (?, ?)');
-    ids.forEach(aid => stmt.run(req.params.id, aid));
+    for (const aid of ids) {
+      await db.run('INSERT INTO produto_adicionais (produto_id, adicional_id) VALUES ($1, $2)', req.params.id, aid);
+    }
   }
 
   res.json({ success: true });
-});
+}));
 
-router.delete('/:id', middlewareAdmin, (req, res) => {
-  db.prepare('DELETE FROM produtos WHERE id = ?').run(req.params.id);
+router.delete('/:id', middlewareAdmin, wrapAsync(async (req, res) => {
+  await db.run('DELETE FROM produtos WHERE id = $1', req.params.id);
   res.json({ success: true });
-});
+}));
 
 module.exports = router;

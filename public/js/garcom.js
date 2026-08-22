@@ -105,14 +105,58 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function iniciarAppGarcom() {
-  if (typeof io !== 'undefined') {
-    const socket = io();
-    socket.on('comanda-atualizada', (data) => {
-      if (mesaAtual && data.mesaId === mesaAtual.id) carregarComanda();
+  // Inicializar Socket.io Realtime local
+  if (window.Realtime && window.Realtime.init) {
+    window.Realtime.init();
+    
+    // Escutar atualizações da comanda da mesa atual
+    let comandaUnsubscribe = null;
+    let mesasUnsubscribe = null;
+    let novoPedidoUnsubscribe = null;
+    
+    const originalMostrarTela = window.mostrarTela;
+    window.mostrarTela = function(pageId, titulo) {
+      // Cleanup subscriptions anteriores
+      if (comandaUnsubscribe) {
+        comandaUnsubscribe();
+        comandaUnsubscribe = null;
+      }
+      
+      originalMostrarTela(pageId, titulo);
+      
+      // Se entrou na página de comanda e tem mesaAtual, começar a escutar
+      if (pageId === 'g-page-comanda' && mesaAtual) {
+        comandaUnsubscribe = window.Realtime.subscribeComandaMesa(mesaAtual.id, (payload) => {
+          if (payload.eventType === 'UPDATE' || payload.eventType === 'INSERT' || payload.eventType === 'DELETE') {
+            carregarComanda();
+          }
+        });
+      }
+      
+      // Sempre escutar mesas quando na tela de mesas
+      if (pageId === 'g-page-mesas') {
+        if (mesasUnsubscribe) {
+          mesasUnsubscribe();
+        }
+        mesasUnsubscribe = window.Realtime.subscribeMesasStatus((mesa) => {
+          carregarMesas();
+        });
+      } else if (mesasUnsubscribe) {
+        mesasUnsubscribe();
+        mesasUnsubscribe = null;
+      }
+    };
+    
+    // Escutar novos pedidos globalmente
+    novoPedidoUnsubscribe = window.Realtime.subscribeNovoPedidoGarcom((pedido) => {
+      showToast('Novo pedido recebido! #' + pedido.id);
     });
-    socket.on('mesa-atualizada', () => carregarMesas());
-    socket.on('novo-pedido', () => {
-      showToast('Pedido enviado para a cozinha!');
+    
+    // Cleanup ao sair
+    window.addEventListener('beforeunload', () => {
+      if (comandaUnsubscribe) comandaUnsubscribe();
+      if (mesasUnsubscribe) mesasUnsubscribe();
+      if (novoPedidoUnsubscribe) novoPedidoUnsubscribe();
     });
   }
 

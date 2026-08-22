@@ -1,0 +1,2 @@
+# Ignore shared folder (contains utility code, not functions)
+api/shared

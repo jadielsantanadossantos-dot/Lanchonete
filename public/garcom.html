@@ -1,10 +1,11 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="garcom">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Garçom - Atendimento</title>
   <link rel="stylesheet" href="/css/garcom.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     // Redirect imediato para login se acessar /garcom diretamente
     // A flag persiste até logout explícito (não é consumida no carregamento)
@@ -28,11 +29,11 @@
 
   <!-- HEADER -->
   <header class="g-header">
-    <button class="g-header-btn" id="g-back-btn" onclick="voltarPagina()" style="display:none">&#8592;</button>
-    <h1 id="g-page-title">Mesas</h1>
-    <div style="display:flex;align-items:center;gap:8px">
-      <span id="garcom-user-info" style="font-size:0.8rem;color:var(--gray)"></span>
-      <button class="g-header-btn btn btn-danger btn-xs" onclick="logout()" style="padding:6px 10px;font-size:0.7rem">Sair</button>
+    <button class="g-header-btn" id="g-back-btn" onclick="voltarPagina()" style="display:none" aria-label="Voltar">&#8592;</button>
+    <h1 id="g-page-title" class="g-header-title">Mesas</h1>
+    <div class="g-header-actions">
+      <span id="garcom-user-info"></span>
+      <button class="g-header-btn btn btn-danger btn-sm" onclick="logout()">Sair</button>
     </div>
   </header>
 
@@ -280,7 +281,7 @@
     </div>
   </div>
 
-  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/realtime.js"></script>
   <script src="/js/auth.js?v=3"></script>
   <script src="/js/garcom.js?v=3"></script>
 </body>

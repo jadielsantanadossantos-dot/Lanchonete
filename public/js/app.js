@@ -10,6 +10,10 @@ let ultimoPedidoId = null;
 let config = {};
 let clienteLogado = null;
 
+// Supabase Realtime config (unused in local version)
+const SUPABASE_URL = '';
+const SUPABASE_ANON_KEY = '';
+
 document.addEventListener('DOMContentLoaded', init);
 
 async function init() {
@@ -18,19 +22,36 @@ async function init() {
   atualizarCartFab();
   carregarClienteLocal();
 
-  // Socket.io: ouvir confirmação de Pix
-  if (typeof io !== 'undefined') {
-    const socket = io();
-    socket.on('pix-confirmado', (data) => {
-      if (data.id === ultimoPedidoId) {
-        mostrarToast('Pagamento Pix confirmado!');
-        if (Notification.permission === 'granted') {
-          new Notification('Pagamento confirmado!', { body: `Seu pedido #${data.id} foi confirmado.` });
-        }
-        document.getElementById('success-msg').textContent = `Seu pedido #${data.id} foi recebido com sucesso!`;
-        mostrarPagina('page-sucesso');
+// Inicializar Socket.io Realtime local
+    if (window.Realtime && window.Realtime.init) {
+      window.Realtime.init();
+    
+    // Escutar confirmação de Pix quando estiver na página de pix
+    let pixUnsubscribe = null;
+    
+    // Observar quando entra na página de pix para começar a escutar
+    const originalMostrarPagina = window.mostrarPagina;
+    window.mostrarPagina = function(pageId) {
+      // Cleanup anterior
+      if (pixUnsubscribe) {
+        pixUnsubscribe();
+        pixUnsubscribe = null;
       }
-    });
+      
+      originalMostrarPagina(pageId);
+      
+      // Se entrou na página de pix e tem ultimoPedidoId, começar a escutar
+      if (pageId === 'page-pix' && ultimoPedidoId) {
+        pixUnsubscribe = window.Realtime.subscribePixConfirmado(ultimoPedidoId, (pedido) => {
+          mostrarToast('Pagamento Pix confirmado!');
+          if (Notification.permission === 'granted') {
+            new Notification('Pagamento confirmado!', { body: `Seu pedido #${pedido.id} foi confirmado.` });
+          }
+          document.getElementById('success-msg').textContent = `Seu pedido #${pedido.id} foi recebido com sucesso!`;
+          mostrarPagina('page-sucesso');
+        });
+      }
+    };
   }
 
   // Solicitar permissão para notificações

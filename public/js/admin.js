@@ -1,6 +1,6 @@
-const socket = io();
 let allClientes = [];
 let usuarioLogado = null;
+let realtimeUnsubscribes = [];
 
 document.addEventListener('DOMContentLoaded', async () => {
   if (!verificarAuth('admin')) {
@@ -21,12 +21,33 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   carregarPedidos();
   carregarSomPrefs();
-  socket.on('novo-pedido', (pedido) => {
-    showToast('Novo pedido recebido! #' + pedido.id);
-    carregarPedidos();
-    tocarSomNovoPedido();
-  });
-  socket.on('pedido-atualizado', () => carregarPedidos());
+  
+  // Inicializar Socket.io Realtime local
+  if (window.Realtime && window.Realtime.init) {
+    window.Realtime.init();
+    
+    // Escutar novos pedidos
+    const novoPedidoUnsub = window.Realtime.subscribeNovoPedidoAdmin((pedido) => {
+      showToast('Novo pedido recebido! #' + pedido.id);
+      carregarPedidos();
+      tocarSomNovoPedido();
+    });
+    realtimeUnsubscribes.push(novoPedidoUnsub);
+    
+    // Escutar atualizações de pedidos
+    const pedidosUnsub = window.Realtime.subscribePedidosAdmin((payload) => {
+      if (payload.eventType === 'UPDATE' || payload.eventType === 'INSERT' || payload.eventType === 'DELETE') {
+        carregarPedidos();
+      }
+    });
+    realtimeUnsubscribes.push(pedidosUnsub);
+    
+    // Cleanup ao sair
+    window.addEventListener('beforeunload', () => {
+      realtimeUnsubscribes.forEach(unsub => unsub());
+      realtimeUnsubscribes = [];
+    });
+  }
 
   const volSlider = document.getElementById('cfg-som-volume');
   if (volSlider) {

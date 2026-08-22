@@ -1,10 +1,11 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="admin">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Painel Admin - Lanchonete</title>
   <link rel="stylesheet" href="/css/admin.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     // Redirect imediato para login se acessar /admin diretamente
     // Só permite acesso se veio de login bem-sucedido (flag no sessionStorage)
@@ -21,40 +22,41 @@
       // Flag NÃO é removida aqui - persiste até logout explícito
     })();
   </script>
+</head>
 <body>
   <div class="auth-loader" id="auth-loader">
     <div class="auth-loader-spin"></div>
   </div>
 
-  <nav class="sidebar" id="sidebar">
+  <nav class="sidebar" id="sidebar" role="navigation" aria-label="Menu principal">
     <div class="sidebar-header">
-      <h2>Admin</h2>
-      <button class="sidebar-close" onclick="toggleSidebar()">&#10005;</button>
+      <h2 class="sidebar-title">Admin</h2>
+      <button class="sidebar-close" onclick="toggleSidebar()" aria-label="Fechar menu">&#10005;</button>
     </div>
     <ul class="nav-list">
-      <li class="nav-item active" onclick="showSection('pedidos', this)">&#128203; Pedidos</li>
-      <li class="nav-item" onclick="showSection('produtos', this)">&#127828; Produtos</li>
-      <li class="nav-item" onclick="showSection('categorias', this)">&#128193; Categorias</li>
-      <li class="nav-item" onclick="showSection('adicionais', this)">&#10133; Adicionais</li>
-      <li class="nav-item" onclick="showSection('clientes', this)">&#128101; Clientes</li>
-      <li class="nav-item" onclick="showSection('bairros', this)">&#128205; Bairros/Taxas</li>
-      <li class="nav-item" onclick="showSection('mesas', this)">&#129309; Mesas</li>
-      <li class="nav-item" onclick="showSection('usuarios', this)">&#128100; Usuários</li>
-      <li class="nav-item" onclick="showSection('relatorios', this)">&#128200; Relatórios</li>
-      <li class="nav-item" onclick="showSection('config', this)">&#9881; Configurações</li>
+      <li class="nav-item active" onclick="showSection('pedidos', this)"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> Pedidos</li>
+      <li class="nav-item" onclick="showSection('produtos', this)"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg> Produtos</li>
+      <li class="nav-item" onclick="showSection('categorias', this)"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> Categorias</li>
+      <li class="nav-item" onclick="showSection('adicionais', this)"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14"/><path d="M5 12h14"/></svg> Adicionais</li>
+      <li class="nav-item" onclick="showSection('clientes', this)"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> Clientes</li>
+      <li class="nav-item" onclick="showSection('bairros', this)"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> Bairros/Taxas</li>
+      <li class="nav-item" onclick="showSection('mesas', this)"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg> Mesas</li>
+      <li class="nav-item" onclick="showSection('usuarios', this)"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> Usuários</li>
+      <li class="nav-item" onclick="showSection('relatorios', this)"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg> Relatórios</li>
+      <li class="nav-item" onclick="showSection('config', this)"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> Configurações</li>
     </ul>
   </nav>
 
   <div class="main">
-<header class="topbar">
-        <button class="menu-btn" onclick="toggleSidebar()">&#9776;</button>
-        <h1 id="page-title">Pedidos</h1>
-        <div class="topbar-right" style="display:flex;align-items:center;gap:12px">
-          <span id="admin-user-info" style="font-size:0.85rem;color:var(--gray)"></span>
-          <button class="btn btn-danger btn-sm" onclick="logout()" style="padding:6px 12px">Sair</button>
-          <span class="badge" id="pedidos-count">0</span>
-        </div>
-      </header>
+    <header class="topbar">
+      <button class="menu-btn" onclick="toggleSidebar()" aria-label="Abrir menu">&#9776;</button>
+      <h1 id="page-title" class="topbar-title">Pedidos</h1>
+      <div class="topbar-right">
+        <span id="admin-user-info"></span>
+        <button class="btn btn-danger btn-sm" onclick="logout()">Sair</button>
+        <span class="badge" id="pedidos-count">0</span>
+      </div>
+    </header>
 
     <div class="content">
       <!-- PEDIDOS -->
@@ -82,7 +84,8 @@
         <div id="produtos-list" class="table-container"></div>
 
         <div class="modal-overlay" id="modal-produto-admin">
-          <div class="modal-content">
+          <div class="modal">
+           <div class="modal-content">
             <div class="modal-header">
               <h3 id="form-produto-title">Novo Produto</h3>
               <button class="modal-close" onclick="fecharModalProduto()">&times;</button>
@@ -120,6 +123,7 @@
               </div>
               <button class="btn btn-primary" type="submit">Salvar</button>
             </form>
+           </div>
           </div>
         </div>
       </section>
@@ -152,12 +156,14 @@
         <div id="clientes-list" class="table-container"></div>
 
         <div class="modal-overlay" id="modal-cliente-pedidos">
-          <div class="modal-content">
+          <div class="modal">
+           <div class="modal-content">
             <div class="modal-header">
               <h3 id="cliente-pedidos-title">Pedidos do Cliente</h3>
               <button class="modal-close" onclick="document.getElementById('modal-cliente-pedidos').classList.remove('active')">&times;</button>
             </div>
             <div id="cliente-pedidos-list"></div>
+           </div>
           </div>
         </div>
       </section>
@@ -198,7 +204,8 @@
         <div id="usuarios-list" class="table-container"></div>
 
         <div class="modal-overlay" id="modal-usuario-admin">
-          <div class="modal-content">
+          <div class="modal">
+           <div class="modal-content">
             <div class="modal-header">
               <h3 id="form-usuario-title">Editar Usuário</h3>
               <button class="modal-close" onclick="fecharModalUsuario()">&times;</button>
@@ -230,6 +237,7 @@
               </p>
               <button class="btn btn-primary" type="submit">Salvar alterações</button>
             </form>
+           </div>
           </div>
         </div>
       </section>
@@ -325,7 +333,7 @@
   <audio id="som-chime" preload="auto"><source src="/sounds/chime.wav" type="audio/wav"></audio>
   <audio id="som-alert" preload="auto"><source src="/sounds/alert.wav" type="audio/wav"></audio>
   <audio id="som-notification" preload="auto"><source src="/sounds/notification.wav" type="audio/wav"></audio>
-  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/realtime.js"></script>
   <script src="/js/auth.js"></script>
   <script src="/js/admin.js"></script>
 </body>

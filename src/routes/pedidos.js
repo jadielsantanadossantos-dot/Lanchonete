@@ -3,49 +3,58 @@ const router = express.Router();
 const db = require('../db/database');
 const { middlewareAdmin } = require('../auth/auth');
 
-router.get('/', middlewareAdmin, (req, res) => {
+function wrapAsync(fn) {
+  return (req, res, next) => {
+    Promise.resolve(fn(req, res, next)).catch(next);
+  };
+}
+
+router.get('/', middlewareAdmin, wrapAsync(async (req, res) => {
   const { status, data_inicio, data_fim, limite } = req.query;
   let sql = 'SELECT p.*, c.nome as cliente_nome, c.telefone as cliente_telefone FROM pedidos p JOIN clientes c ON p.cliente_id = c.id';
   const params = [];
   const conditions = [];
+  let paramIndex = 1;
 
-  if (status) { conditions.push('p.status = ?'); params.push(status); }
-  if (data_inicio) { conditions.push('p.criado_em >= ?'); params.push(data_inicio); }
-  if (data_fim) { conditions.push('p.criado_em <= ?'); params.push(data_fim + ' 23:59:59'); }
+  if (status) { conditions.push(`p.status = $${paramIndex++}`); params.push(status); }
+  if (data_inicio) { conditions.push(`p.criado_em >= $${paramIndex++}`); params.push(data_inicio); }
+  if (data_fim) { conditions.push(`p.criado_em <= $${paramIndex++}`); params.push(data_fim + ' 23:59:59'); }
   if (conditions.length) sql += ' WHERE ' + conditions.join(' AND ');
   sql += ' ORDER BY p.mesa_id IS NULL DESC, p.mesa_id ASC, p.comanda_id ASC, p.criado_em DESC';
-  if (limite) { sql += ' LIMIT ?'; params.push(parseInt(limite)); }
+  if (limite) { sql += ` LIMIT $${paramIndex}`; params.push(parseInt(limite)); }
 
-  const pedidos = db.prepare(sql).all(...params);
+  const pedidos = await db.all(sql, ...params);
 
-  const itensStmt = db.prepare('SELECT * FROM pedido_itens WHERE pedido_id = ?');
-  const adicionaisStmt = db.prepare('SELECT * FROM pedido_item_adicionais WHERE pedido_item_id = ?');
+  const itens = await db.all('SELECT * FROM pedido_itens WHERE pedido_id = ANY($1)', pedidos.map(p => p.id));
+  const adicionais = await db.all('SELECT * FROM pedido_item_adicionais WHERE pedido_item_id = ANY($1)', itens.map(i => i.id));
 
   const result = pedidos.map(p => {
-    const itens = itensStmt.all(p.id).map(item => ({
+    const pedidoItens = itens.filter(i => i.pedido_id === p.id).map(item => ({
       ...item,
-      adicionais: adicionaisStmt.all(item.id)
+      adicionais: adicionais.filter(a => a.pedido_item_id === item.id)
     }));
-    return { ...p, itens };
+    return { ...p, itens: pedidoItens };
   });
 
   res.json(result);
-});
+}));
 
-router.get('/:id', middlewareAdmin, (req, res) => {
-  const pedido = db.prepare(
-    'SELECT p.*, c.nome as cliente_nome, c.telefone as cliente_telefone FROM pedidos p JOIN clientes c ON p.cliente_id = c.id WHERE p.id = ?'
-  ).get(req.params.id);
+router.get('/:id', middlewareAdmin, wrapAsync(async (req, res) => {
+  const pedido = await db.get(
+    'SELECT p.*, c.nome as cliente_nome, c.telefone as cliente_telefone FROM pedidos p JOIN clientes c ON p.cliente_id = c.id WHERE p.id = $1',
+    req.params.id
+  );
   if (!pedido) return res.status(404).json({ error: 'Pedido não encontrado' });
 
-  const itens = db.prepare('SELECT * FROM pedido_itens WHERE pedido_id = ?').all(pedido.id);
-  const adicionaisStmt = db.prepare('SELECT * FROM pedido_item_adicionais WHERE pedido_item_id = ?');
-  pedido.itens = itens.map(item => ({ ...item, adicionais: adicionaisStmt.all(item.id) }));
+  const itens = await db.all('SELECT * FROM pedido_itens WHERE pedido_id = $1', pedido.id);
+  const adicionais = await db.all('SELECT * FROM pedido_item_adicionais WHERE pedido_item_id = ANY($1)', itens.map(i => i.id));
+
+  pedido.itens = itens.map(item => ({ ...item, adicionais: adicionais.filter(a => a.pedido_item_id === item.id) }));
 
   res.json(pedido);
-});
+}));
 
-router.post('/', (req, res) => {
+router.post('/', wrapAsync(async (req, res) => {
   const { cliente_id, itens, forma_pagamento, observacoes, endereco_entrega, bairro_entrega, taxa_entrega, mesa_id } = req.body;
 
   let subtotal = 0;
@@ -60,62 +69,74 @@ router.post('/', (req, res) => {
   const taxaEntrega = parseFloat(taxa_entrega) || 0;
   const total = subtotal + taxaEntrega;
 
-  const info = db.prepare(
-    'INSERT INTO pedidos (cliente_id, subtotal, taxa_entrega, total, forma_pagamento, observacoes, endereco_entrega, bairro_entrega, mesa_id) VALUES (?,?,?,?,?,?,?,?,?)'
-  ).run(cliente_id, subtotal, taxaEntrega, total, forma_pagamento, observacoes || '', endereco_entrega || '', bairro_entrega || '', mesa_id || null);
+  const info = await db.run(
+    'INSERT INTO pedidos (cliente_id, subtotal, taxa_entrega, total, forma_pagamento, observacoes, endereco_entrega, bairro_entrega, mesa_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id',
+    cliente_id, subtotal, taxaEntrega, total, forma_pagamento, observacoes || '', endereco_entrega || '', bairro_entrega || '', mesa_id || null
+  );
 
   const pedidoId = info.lastInsertRowid;
-  const itemStmt = db.prepare(
-    'INSERT INTO pedido_itens (pedido_id, produto_id, produto_nome, quantidade, preco_unitario, observacao) VALUES (?,?,?,?,?,?)'
-  );
-  const adicStmt = db.prepare(
-    'INSERT INTO pedido_item_adicionais (pedido_item_id, adicional_nome, preco) VALUES (?,?,?)'
-  );
+  const itemStmt = db.prepare('INSERT INTO pedido_itens (pedido_id, produto_id, produto_nome, quantidade, preco_unitario, observacao) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id');
+  const adicStmt = db.prepare('INSERT INTO pedido_item_adicionais (pedido_item_id, adicional_nome, preco) VALUES ($1,$2,$3)');
 
-  itens.forEach(item => {
-    const itemInfo = itemStmt.run(pedidoId, item.produto_id, item.produto_nome, item.quantidade, item.preco_unitario, item.observacao || '');
+  for (const item of itens) {
+    const itemInfo = await itemStmt.run(pedidoId, item.produto_id, item.produto_nome, item.quantidade, item.preco_unitario, item.observacao || '');
     if (item.adicionais) {
-      item.adicionais.forEach(a => adicStmt.run(itemInfo.lastInsertRowid, a.nome, a.preco));
+      for (const a of item.adicionais) {
+        await adicStmt.run(itemInfo.lastInsertRowid, a.nome, a.preco);
+      }
     }
-  });
+  }
 
-  const pedido = db.prepare(
-    'SELECT p.*, c.nome as cliente_nome, c.telefone as cliente_telefone FROM pedidos p JOIN clientes c ON p.cliente_id = c.id WHERE p.id = ?'
-  ).get(pedidoId);
-  const pedidoItens = db.prepare('SELECT * FROM pedido_itens WHERE pedido_id = ?').all(pedidoId);
-  const adicionaisStmt2 = db.prepare('SELECT * FROM pedido_item_adicionais WHERE pedido_item_id = ?');
-  pedido.itens = pedidoItens.map(i => ({ ...i, adicionais: adicionaisStmt2.all(i.id) }));
+  const pedido = await db.get(
+    'SELECT p.*, c.nome as cliente_nome, c.telefone as cliente_telefone FROM pedidos p JOIN clientes c ON p.cliente_id = c.id WHERE p.id = $1',
+    pedidoId
+  );
+  const pedidoItens = await db.all('SELECT * FROM pedido_itens WHERE pedido_id = $1', pedidoId);
+  const adicionaisStmt2 = db.prepare('SELECT * FROM pedido_item_adicionais WHERE pedido_item_id = $1');
+  pedido.itens = pedidoItens.map(i => ({ ...i, adicionais: [] }));
+  for (const item of pedido.itens) {
+    item.adicionais = await adicionaisStmt2.all(item.id);
+  }
 
-  if (req.app.get('io')) {
-    req.app.get('io').emit('novo-pedido', pedido);
+  if (req.emitToAdmin) {
+    req.emitToAdmin('novo-pedido', pedido);
+  }
+  if (req.emitToGarcom) {
+    req.emitToGarcom('novo-pedido', pedido);
   }
 
   res.json(pedido);
-});
+}));
 
-router.put('/:id/status', middlewareAdmin, (req, res) => {
+router.put('/:id/status', middlewareAdmin, wrapAsync(async (req, res) => {
   const { status } = req.body;
   const validStatuses = ['recebido', 'em_preparo', 'saiu_entrega', 'entregue', 'cancelado'];
   if (!validStatuses.includes(status)) return res.status(400).json({ error: 'Status inválido' });
 
-  db.prepare('UPDATE pedidos SET status = ?, atualizado_em = CURRENT_TIMESTAMP WHERE id = ?').run(status, req.params.id);
+  await db.run('UPDATE pedidos SET status = $1, atualizado_em = NOW() WHERE id = $2', status, req.params.id);
 
-  if (req.app.get('io')) {
-    req.app.get('io').emit('pedido-atualizado', { id: parseInt(req.params.id), status });
+  if (req.emitToAdmin) {
+    req.emitToAdmin('pedido-atualizado', { id: parseInt(req.params.id), status });
+  }
+  if (req.emitToGarcom) {
+    req.emitToGarcom('pedido-atualizado', { id: parseInt(req.params.id), status });
   }
 
   res.json({ success: true });
-});
+}));
 
-router.put('/:id/pix', middlewareAdmin, (req, res) => {
+router.put('/:id/pix', middlewareAdmin, wrapAsync(async (req, res) => {
   const { confirmado } = req.body;
-  db.prepare('UPDATE pedidos SET pix_confirmado = ? WHERE id = ?').run(confirmado ? 1 : 0, req.params.id);
+  await db.run('UPDATE pedidos SET pix_confirmado = $1 WHERE id = $2', confirmado ? true : false, req.params.id);
 
-  if (req.app.get('io') && confirmado) {
-    req.app.get('io').emit('pix-confirmado', { id: parseInt(req.params.id) });
+  if (req.emitToAdmin && confirmado) {
+    req.emitToAdmin('pix-confirmado', { id: parseInt(req.params.id) });
+  }
+  if (req.emitToGarcom && confirmado) {
+    req.emitToGarcom('pix-confirmado', { id: parseInt(req.params.id) });
   }
 
   res.json({ success: true });
-});
+}));
 
 module.exports = router;

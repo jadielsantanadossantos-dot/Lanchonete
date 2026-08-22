@@ -1,54 +1,13 @@
 {
-  "buildCommand": "npm run build",
-  "outputDirectory": "public",
-  "framework": null,
-  "installCommand": "npm ci",
-  "devCommand": "echo 'Use vercel dev directly'",
-  "regions": ["gru1"],
-  "functions": {
-    "api/auth.ts": { "maxDuration": 30 },
-    "api/produtos.ts": { "maxDuration": 30 },
-    "api/categorias.ts": { "maxDuration": 30 },
-    "api/adicionais.ts": { "maxDuration": 30 },
-    "api/clientes.ts": { "maxDuration": 30 },
-    "api/bairros.ts": { "maxDuration": 30 },
-    "api/mesas.ts": { "maxDuration": 30 },
-    "api/comandas.ts": { "maxDuration": 30 },
-    "api/config.ts": { "maxDuration": 30 },
-    "api/pedidos.ts": { "maxDuration": 30 }
-  },
-  "rewrites": [
-    { "source": "/login-admin", "destination": "/login-admin.html" },
-    { "source": "/login-garcom", "destination": "/login-garcom.html" },
-    { "source": "/alterar-senha", "destination": "/alterar-senha.html" },
-    { "source": "/admin", "destination": "/admin.html" },
-    { "source": "/admin/(.*)", "destination": "/admin.html" },
-    { "source": "/garcom", "destination": "/garcom.html" },
-    { "source": "/garcom/(.*)", "destination": "/garcom.html" },
-    { "source": "/api/auth/(.*)", "destination": "/api/auth" },
-    { "source": "/api/produtos/(.*)", "destination": "/api/produtos" },
-    { "source": "/api/categorias/(.*)", "destination": "/api/categorias" },
-    { "source": "/api/adicionais/(.*)", "destination": "/api/adicionais" },
-    { "source": "/api/clientes/(.*)", "destination": "/api/clientes" },
-    { "source": "/api/bairros/(.*)", "destination": "/api/bairros" },
-    { "source": "/api/mesas/(.*)", "destination": "/api/mesas" },
-    { "source": "/api/comandas/(.*)", "destination": "/api/comandas" },
-    { "source": "/api/config/(.*)", "destination": "/api/config" },
-    { "source": "/api/pedidos/(.*)", "destination": "/api/pedidos" },
-    { "source": "/(.*)", "destination": "/index.html" }
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "builds": [
+    { "src": "api/index.js", "use": "@vercel/node" },
+    { "src": "public/**", "use": "@vercel/static" }
   ],
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "X-Frame-Options", "value": "DENY" },
-        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
-      ]
-    },
-    {
-      "source": "/assets/(.*)",
-      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
-    }
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/api/index.js" },
+    { "src": "/(.*)", "dest": "/public/$1", "check": true },
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/api/index.js" }
   ]
 }

@@ -16,11 +16,9 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./*"],
-      "@/lib/*": ["lib/*"],
-      "@/drizzle/*": ["drizzle/*"],
-      "@/api/*": ["api/*"]
+      "@/src/*": ["src/*"]
     }
   },
-  "include": ["**/*.ts", "**/*.js"],
-  "exclude": ["node_modules", "dist", "public", "drizzle.config.ts", "lib/rate-limit.ts", "scripts/**/*"]
+  "include": ["src/**/*.js", "src/**/*.ts", "server.js"],
+  "exclude": ["node_modules", "dist", "public"]
 }

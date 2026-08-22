@@ -1,0 +1,40 @@
+{
+  "root": true,
+  "env": {
+    "node": true,
+    "es2021": true
+  },
+  "extends": [
+    "eslint:recommended"
+  ],
+  "parserOptions": {
+    "ecmaVersion": "latest",
+    "sourceType": "script"
+  },
+  "rules": {
+    "no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }],
+    "no-console": "off",
+    "no-empty": ["error", { "allowEmptyCatch": true }]
+  },
+  "overrides": [
+    {
+      "files": ["public/js/**/*.js"],
+      "env": {
+        "browser": true,
+        "es2021": true
+      },
+      "globals": {
+        "authFetch": "readonly",
+        "authPost": "readonly",
+        "authPut": "readonly",
+        "authDelete": "readonly",
+        "setSessao": "readonly",
+        "limparSessao": "readonly",
+        "verificarAuth": "readonly",
+        "redirecionarSemAuth": "readonly",
+        "mostrarModalTrocaSenha": "readonly",
+        "tocarSomNovoPedido": "readonly"
+      }
+    }
+  ]
+}

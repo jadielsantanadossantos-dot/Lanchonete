@@ -1,4 +1,4 @@
-# Dockerfile for Railway deployment
+# Dockerfile for Railway/Render deployment with Supabase
 FROM node:20-alpine
 
 # Install dumb-init for proper signal handling
@@ -21,9 +21,6 @@ RUN npm ci --only=production && \
 # Copy application code
 COPY --chown=nodejs:nodejs . .
 
-# Create data directory for SQLite (volume mount point)
-RUN mkdir -p /data && chown -R nodejs:nodejs /data
-
 # Switch to non-root user
 USER nodejs
 
@@ -32,7 +29,7 @@ EXPOSE 4000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:4000/ || exit 1
+  CMD wget --no-verbose --tries=1 --spider http://localhost:4000/health || exit 1
 
 # Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]

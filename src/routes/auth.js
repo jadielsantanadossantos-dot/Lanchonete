@@ -8,8 +8,8 @@ const { registrarAuditoria, AUDIT_ACTIONS } = require('../utils/audit');
 
 const isDev = process.env.NODE_ENV !== 'production';
 
-const loginLimiter = isDev 
-  ? (req, res, next) => next()  // Desabilitado em dev
+const loginLimiter = isDev
+  ? (req, res, next) => next()
   : rateLimit({
       windowMs: 15 * 60 * 1000,
       max: 5,
@@ -59,11 +59,17 @@ function validarSenhaForte(senha) {
   return null;
 }
 
+function wrapAsync(fn) {
+  return (req, res, next) => {
+    Promise.resolve(fn(req, res, next)).catch(next);
+  };
+}
+
 // LOGIN
-router.post('/login', loginLimiter, validarLogin, (req, res) => {
+router.post('/login', loginLimiter, validarLogin, wrapAsync(async (req, res) => {
   const { usuario, senha, perfil_esperado } = req.body;
 
-  const user = db.prepare('SELECT * FROM usuarios WHERE usuario = ? AND ativo = 1').get(usuario);
+  const user = await db.get('SELECT * FROM usuarios WHERE usuario = $1 AND ativo = true', usuario);
   if (!user || !verificarSenha(senha, user.senha_hash)) {
     registrarAuditoria({ usuarioNome: usuario, acao: AUDIT_ACTIONS.LOGIN_FAILED, detalhes: { motivo: 'credenciais_invalidas' }, req });
     return res.status(401).json({ error: 'Usuário ou senha inválidos' });
@@ -74,8 +80,8 @@ router.post('/login', loginLimiter, validarLogin, (req, res) => {
     return res.status(403).json({ error: 'Este usuário não tem permissão para acessar este sistema' });
   }
 
-  const token = gerarToken(user);
-  const refreshToken = gerarRefreshToken(user);
+  const token = await gerarToken(user);
+  const refreshToken = await gerarRefreshToken(user);
   registrarAuditoria({ usuarioId: user.id, usuarioNome: user.usuario, acao: AUDIT_ACTIONS.LOGIN_SUCCESS, req });
   res.json({
     token,
@@ -83,31 +89,31 @@ router.post('/login', loginLimiter, validarLogin, (req, res) => {
     perfil: user.perfil,
     nome: user.nome,
     usuario: user.usuario,
-    trocar_senha: user.trocar_senha === 1
+    trocar_senha: user.trocar_senha === true || user.trocar_senha === 1
   });
-});
+}));
 
 // REFRESH TOKEN
-router.post('/refresh', (req, res) => {
+router.post('/refresh', wrapAsync(async (req, res) => {
   const { refreshToken } = req.body;
   if (!refreshToken) return res.status(400).json({ error: 'Refresh token obrigatório' });
 
-  const payload = verificarToken(refreshToken);
+  const payload = await verificarToken(refreshToken);
   if (!payload || payload.tipo !== 'refresh') {
     return res.status(401).json({ error: 'Refresh token inválido ou expirado' });
   }
 
-  const user = db.prepare('SELECT * FROM usuarios WHERE id = ? AND ativo = 1').get(payload.id);
+  const user = await db.get('SELECT * FROM usuarios WHERE id = $1 AND ativo = true', payload.id);
   if (!user) return res.status(401).json({ error: 'Usuário não encontrado ou inativo' });
 
-  const token = gerarToken(user);
-  const novoRefreshToken = gerarRefreshToken(user);
+  const token = await gerarToken(user);
+  const novoRefreshToken = await gerarRefreshToken(user);
   registrarAuditoria({ usuarioId: user.id, usuarioNome: user.usuario, acao: AUDIT_ACTIONS.TOKEN_REFRESHED, req });
   res.json({ token, refreshToken: novoRefreshToken });
-});
+}));
 
 // ME (dados do usuário logado)
-router.get('/me', middleware, (req, res) => {
+router.get('/me', middleware, wrapAsync(async (req, res) => {
   res.json({
     id: req.usuario.id,
     nome: req.usuario.nome,
@@ -115,45 +121,45 @@ router.get('/me', middleware, (req, res) => {
     perfil: req.usuario.perfil,
     trocar_senha: req.usuario.trocar_senha
   });
-});
+}));
 
 // ALTERAR SENHA (qualquer usuário logado)
-router.post('/alterar-senha', middleware, validarAlterarSenha, (req, res) => {
+router.post('/alterar-senha', middleware, validarAlterarSenha, wrapAsync(async (req, res) => {
   const { senha_atual, nova_senha } = req.body;
 
   const erroSenha = validarSenhaForte(nova_senha);
   if (erroSenha) return res.status(400).json({ error: erroSenha });
 
-  const user = db.prepare('SELECT * FROM usuarios WHERE id = ?').get(req.usuario.id);
+  const user = await db.get('SELECT * FROM usuarios WHERE id = $1', req.usuario.id);
   if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
   if (!verificarSenha(senha_atual, user.senha_hash)) {
     return res.status(401).json({ error: 'Senha atual incorreta' });
   }
 
   const novoHash = gerarHash(nova_senha);
-  db.prepare('UPDATE usuarios SET senha_hash = ?, trocar_senha = 0 WHERE id = ?').run(novoHash, user.id);
+  await db.run('UPDATE usuarios SET senha_hash = $1, trocar_senha = false WHERE id = $2', novoHash, user.id);
 
-  const userAtualizado = { ...user, senha_hash: novoHash, trocar_senha: 0 };
-  const novoToken = gerarToken(userAtualizado);
-  const novoRefreshToken = gerarRefreshToken(userAtualizado);
+  const userAtualizado = { ...user, senha_hash: novoHash, trocar_senha: false };
+  const novoToken = await gerarToken(userAtualizado);
+  const novoRefreshToken = await gerarRefreshToken(userAtualizado);
 
   registrarAuditoria({ usuarioId: user.id, usuarioNome: user.usuario, acao: AUDIT_ACTIONS.PASSWORD_CHANGED, req });
   res.json({ success: true, token: novoToken, refreshToken: novoRefreshToken });
-});
+}));
 
 // ===== GESTÃO DE USUÁRIOS (somente admin) =====
 
 // Listar usuários
-router.get('/usuarios', middlewareAdmin, (req, res) => {
-  const usuarios = db.prepare('SELECT id, nome, usuario, perfil, ativo, trocar_senha, criado_em FROM usuarios ORDER BY nome').all();
+router.get('/usuarios', middlewareAdmin, wrapAsync(async (req, res) => {
+  const usuarios = await db.all('SELECT id, nome, usuario, perfil, ativo, trocar_senha, criado_em FROM usuarios ORDER BY nome');
   res.json(usuarios);
-});
+}));
 
 // Criar usuário
-router.post('/usuarios', middlewareAdmin, validarCriarUsuario, (req, res) => {
+router.post('/usuarios', middlewareAdmin, validarCriarUsuario, wrapAsync(async (req, res) => {
   const { nome, usuario, senha, perfil } = req.body;
 
-  const existente = db.prepare('SELECT id FROM usuarios WHERE usuario = ?').get(usuario);
+  const existente = await db.get('SELECT id FROM usuarios WHERE usuario = $1', usuario);
   if (existente) return res.status(400).json({ error: 'Nome de usuário já existe' });
 
   const senhaFinal = senha || SENHA_PADRAO_GARCOM;
@@ -163,24 +169,25 @@ router.post('/usuarios', middlewareAdmin, validarCriarUsuario, (req, res) => {
   const hash = gerarHash(senhaFinal);
 
   try {
-    const info = db.prepare(
-      'INSERT INTO usuarios (nome, usuario, senha_hash, perfil, ativo, trocar_senha) VALUES (?, ?, ?, ?, 1, ?)'
-    ).run(nome, usuario, hash, perfil, 1);
+    const info = await db.run(
+      'INSERT INTO usuarios (nome, usuario, senha_hash, perfil, ativo, trocar_senha) VALUES ($1, $2, $3, $4, true, true) RETURNING id',
+      nome, usuario, hash, perfil
+    );
     registrarAuditoria({ usuarioId: req.usuario.id, usuarioNome: req.usuario.usuario, acao: AUDIT_ACTIONS.USER_CREATED, detalhes: { novoUsuario: usuario, perfil }, req });
     res.json({ id: info.lastInsertRowid, senha_inicial: senhaFinal });
   } catch (e) {
     res.status(400).json({ error: 'Erro ao criar usuário' });
   }
-});
+}));
 
 // Atualizar usuário (nome, usuario, perfil, ativo)
-router.put('/usuarios/:id', middlewareAdmin, validarAtualizarUsuario, (req, res) => {
+router.put('/usuarios/:id', middlewareAdmin, validarAtualizarUsuario, wrapAsync(async (req, res) => {
   const { nome, usuario, perfil, ativo } = req.body;
-  const user = db.prepare('SELECT * FROM usuarios WHERE id = ?').get(req.params.id);
+  const user = await db.get('SELECT * FROM usuarios WHERE id = $1', req.params.id);
   if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
 
   if (usuario !== undefined && usuario !== user.usuario) {
-    const duplicado = db.prepare('SELECT id FROM usuarios WHERE usuario = ? AND id != ?').get(usuario, req.params.id);
+    const duplicado = await db.get('SELECT id FROM usuarios WHERE usuario = $1 AND id != $2', usuario, req.params.id);
     if (duplicado) return res.status(400).json({ error: 'Nome de usuário já está em uso' });
   }
 
@@ -190,50 +197,50 @@ router.put('/usuarios/:id', middlewareAdmin, validarAtualizarUsuario, (req, res)
   if (perfil !== undefined && perfil !== user.perfil) alteracoes.perfil = { antes: user.perfil, depois: perfil };
   if (ativo !== undefined && ativo !== user.ativo) alteracoes.ativo = { antes: user.ativo ? 1 : 0, depois: ativo ? 1 : 0 };
 
-  db.prepare('UPDATE usuarios SET nome = ?, usuario = ?, perfil = ?, ativo = ? WHERE id = ?')
-    .run(nome || user.nome, usuario || user.usuario, perfil || user.perfil, ativo !== undefined ? (ativo ? 1 : 0) : user.ativo, req.params.id);
+  await db.run('UPDATE usuarios SET nome = $1, usuario = $2, perfil = $3, ativo = $4 WHERE id = $5',
+    nome || user.nome, usuario || user.usuario, perfil || user.perfil, ativo !== undefined ? ativo : user.ativo, req.params.id);
 
   if (Object.keys(alteracoes).length > 0) {
     registrarAuditoria({ usuarioId: req.usuario.id, usuarioNome: req.usuario.usuario, acao: AUDIT_ACTIONS.USER_UPDATED, detalhes: { usuarioAlvo: user.usuario, alteracoes }, req });
   }
 
   res.json({ success: true });
-});
+}));
 
 // Redefinir senha do garçom (gera senha forte + flag trocar_senha)
-router.post('/usuarios/:id/redefinir-senha', middlewareAdmin, (req, res) => {
-  const user = db.prepare('SELECT * FROM usuarios WHERE id = ?').get(req.params.id);
+router.post('/usuarios/:id/redefinir-senha', middlewareAdmin, wrapAsync(async (req, res) => {
+  const user = await db.get('SELECT * FROM usuarios WHERE id = $1', req.params.id);
   if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
   if (user.id === req.usuario.id) return res.status(400).json({ error: 'Use a página de alterar senha para sua própria conta' });
 
   const novaSenha = gerarSenhaAleatoria();
   const hash = gerarHash(novaSenha);
-  db.prepare('UPDATE usuarios SET senha_hash = ?, trocar_senha = 1 WHERE id = ?').run(hash, req.params.id);
+  await db.run('UPDATE usuarios SET senha_hash = $1, trocar_senha = true WHERE id = $2', hash, req.params.id);
 
   registrarAuditoria({ usuarioId: req.usuario.id, usuarioNome: req.usuario.usuario, acao: AUDIT_ACTIONS.PASSWORD_RESET, detalhes: { usuarioAlvo: user.usuario }, req });
   res.json({ success: true, senha_inicial: novaSenha });
-});
+}));
 
 // Desativar usuário (manter histórico)
-router.delete('/usuarios/:id', middlewareAdmin, (req, res) => {
-  const user = db.prepare('SELECT * FROM usuarios WHERE id = ?').get(req.params.id);
+router.delete('/usuarios/:id', middlewareAdmin, wrapAsync(async (req, res) => {
+  const user = await db.get('SELECT * FROM usuarios WHERE id = $1', req.params.id);
   if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
   if (user.id === req.usuario.id) return res.status(400).json({ error: 'Você não pode desativar sua própria conta' });
 
   if (user.perfil === 'admin') {
-    const adminCount = db.prepare("SELECT COUNT(*) as total FROM usuarios WHERE perfil = 'admin' AND ativo = 1").get();
+    const adminCount = await db.get("SELECT COUNT(*) as total FROM usuarios WHERE perfil = 'admin' AND ativo = true");
     if (adminCount.total <= 1) {
       return res.status(400).json({ error: 'Não é possível desativar o último administrador ativo' });
     }
   }
 
-  db.prepare('UPDATE usuarios SET ativo = 0 WHERE id = ?').run(req.params.id);
+  await db.run('UPDATE usuarios SET ativo = false WHERE id = $1', req.params.id);
   registrarAuditoria({ usuarioId: req.usuario.id, usuarioNome: req.usuario.usuario, acao: AUDIT_ACTIONS.USER_DEACTIVATED, detalhes: { usuarioAlvo: user.usuario }, req });
   res.json({ success: true });
-});
+}));
 
 // Auditoria (somente admin)
-router.get('/auditoria', middlewareAdmin, (req, res) => {
+router.get('/auditoria', middlewareAdmin, wrapAsync(async (req, res) => {
   const { usuario_id, acao, data_inicio, data_fim, limite } = req.query;
   const auditoria = require('../utils/audit');
   const resultados = auditoria.getAuditoria({
@@ -244,6 +251,6 @@ router.get('/auditoria', middlewareAdmin, (req, res) => {
     limite: limite ? parseInt(limite) : 100
   });
   res.json(resultados);
-});
+}));
 
 module.exports = router;

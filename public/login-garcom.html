@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="garcom">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,9 +7,18 @@
   <link rel="stylesheet" href="/css/auth.css">
 </head>
 <body>
+  <div class="auth-loader" id="auth-loader">
+    <div class="auth-loader-spin"></div>
+  </div>
+
   <div class="auth-container auth-garcom-theme">
     <div class="auth-header">
-      <div class="auth-icon">&#128081;</div>
+      <div class="auth-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+      </div>
       <h1 class="auth-title">Painel do Garçom</h1>
       <p class="auth-subtitle">Digite suas credenciais para acessar</p>
     </div>
@@ -37,6 +46,7 @@
   <script src="/js/login.js"></script>
   <script>
     window.LOGIN_PERFIL = 'garcom';
+    document.getElementById('auth-loader').style.display = 'none';
   </script>
 </body>
 </html>
