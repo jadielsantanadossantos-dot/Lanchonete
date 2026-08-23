@@ -10,30 +10,50 @@ function wrapAsync(fn) {
 }
 
 router.get('/', wrapAsync(async (req, res) => {
-  const rows = await db.all(`
+  const categoriaId = req.query.categoria_id ? parseInt(req.query.categoria_id) : null;
+  const produtoId = req.query.produto_id ? parseInt(req.query.produto_id) : null;
+  
+  let sql = `
     SELECT a.*, c.nome AS categoria_nome FROM adicionais a
     LEFT JOIN categorias c ON a.categoria_id = c.id
-    ORDER BY a.tipo DESC, c.ordem NULLS FIRST, a.nome
-  `);
+    WHERE a.ativo = true
+  `;
+  const params = [];
+  
+  if (categoriaId) {
+    sql += ` AND (a.categoria_id = $${params.length + 1} OR a.categoria_id IS NULL)`;
+    params.push(categoriaId);
+  }
+  
+  if (produtoId) {
+    sql += ` AND (a.produto_id = $${params.length + 1} OR a.produto_id IS NULL)`;
+    params.push(produtoId);
+  }
+  
+  sql += ` ORDER BY a.tipo DESC, c.ordem NULLS FIRST, a.nome`;
+  
+  const rows = await db.all(sql, ...params);
   res.json(rows);
 }));
 
 router.post('/', middlewareAdmin, wrapAsync(async (req, res) => {
-  const { nome, preco, categoria_id, tipo, descricao } = req.body;
+  const { nome, preco, categoria_id, tipo, descricao, produto_id } = req.body;
   const catId = categoria_id ? parseInt(categoria_id) : null;
+  const prodId = produto_id ? parseInt(produto_id) : null;
   const tipoAd = tipo && ['adicional', 'sabor'].includes(tipo) ? tipo : 'adicional';
-  const info = await db.run('INSERT INTO adicionais (nome, preco, categoria_id, tipo, descricao) VALUES ($1, $2, $3, $4, $5) RETURNING id',
-    nome, parseFloat(preco), catId, tipoAd, descricao || null);
-  res.json({ id: info.lastInsertRowid, nome, preco: parseFloat(preco), categoria_id: catId, tipo: tipoAd, descricao: descricao || null });
+  const info = await db.run('INSERT INTO adicionais (nome, preco, categoria_id, tipo, descricao, produto_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
+    nome, parseFloat(preco), catId, tipoAd, descricao || null, prodId);
+  res.json({ id: info.lastInsertRowid, nome, preco: parseFloat(preco), categoria_id: catId, tipo: tipoAd, descricao: descricao || null, produto_id: prodId });
 }));
 
 router.put('/:id', middlewareAdmin, wrapAsync(async (req, res) => {
-  const { nome, preco, ativo, categoria_id, tipo, descricao } = req.body;
-  const atual = await db.get('SELECT categoria_id FROM adicionais WHERE id = $1', req.params.id);
+  const { nome, preco, ativo, categoria_id, tipo, descricao, produto_id } = req.body;
+  const atual = await db.get('SELECT categoria_id, produto_id FROM adicionais WHERE id = $1', req.params.id);
   const catId = categoria_id !== undefined ? (categoria_id ? parseInt(categoria_id) : null) : (atual ? atual.categoria_id : null);
+  const prodId = produto_id !== undefined ? (produto_id ? parseInt(produto_id) : null) : (atual ? atual.produto_id : null);
   const tipoAd = tipo && ['adicional', 'sabor'].includes(tipo) ? tipo : 'adicional';
-  await db.run('UPDATE adicionais SET nome=$1, preco=$2, ativo=$3, categoria_id=$4, tipo=$5, descricao=$6 WHERE id=$7',
-    nome, parseFloat(preco), ativo !== undefined ? ativo : true, catId, tipoAd, descricao || null, req.params.id);
+  await db.run('UPDATE adicionais SET nome=$1, preco=$2, ativo=$3, categoria_id=$4, tipo=$5, descricao=$6, produto_id=$7 WHERE id=$8',
+    nome, parseFloat(preco), ativo !== undefined ? ativo : true, catId, tipoAd, descricao || null, prodId, req.params.id);
   res.json({ success: true });
 }));
 
