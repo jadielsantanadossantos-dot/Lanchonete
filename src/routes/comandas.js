@@ -384,10 +384,14 @@ router.post('/mesa/:mesaId/fechar', wrapAsync(async (req, res) => {
   if (registrar_apenas) {
     await db.run('UPDATE comandas SET status = $1, fechada_em = $2 WHERE id = $3', 'fechada', agora, comanda.id);
     await db.run('UPDATE mesas SET status = $1 WHERE id = $2', 'livre', mesaId);
+    const pedidosAtualizados = await db.all('SELECT id FROM pedidos WHERE comanda_id = $1 AND status != $2', comanda.id, 'entregue');
     await db.run('UPDATE pedidos SET status = $1, atualizado_em = NOW() WHERE comanda_id = $2 AND status != $3', 'entregue', comanda.id, 'entregue');
 
     if (req.app.get('io')) {
       req.app.get('io').emit('mesa-atualizada', { mesaId: parseInt(mesaId), status: 'livre' });
+      pedidosAtualizados.forEach(p => {
+        req.app.get('io').emit('pedido-atualizado', { id: p.id, status: 'entregue' });
+      });
     }
 
     return res.json({ success: true, mensagem: 'Comanda registrada sem pagamento' });
@@ -548,6 +552,7 @@ router.post('/mesa/:mesaId/liberar', wrapAsync(async (req, res) => {
   await db.run('UPDATE comandas SET status = $1, fechada_em = $2 WHERE id = $3', 'fechada', agora, comanda.id);
 
   // Atualiza pedidos vinculados para 'entregue'
+  const pedidosAtualizados = await db.all('SELECT id FROM pedidos WHERE comanda_id = $1 AND status != $2', comanda.id, 'entregue');
   await db.run('UPDATE pedidos SET status = $1, atualizado_em = NOW() WHERE comanda_id = $2 AND status != $3', 'entregue', comanda.id, 'entregue');
 
   // Libera mesa
@@ -555,6 +560,9 @@ router.post('/mesa/:mesaId/liberar', wrapAsync(async (req, res) => {
 
   if (req.emitToAdmin) {
     await req.emitToAdmin('mesa-atualizada', { mesaId: parseInt(mesaId), status: 'livre' });
+    pedidosAtualizados.forEach(p => {
+      req.emitToAdmin('pedido-atualizado', { id: p.id, status: 'entregue' });
+    });
   }
   if (req.emitToGarcom) {
     await req.emitToGarcom('mesa-atualizada', { mesaId: parseInt(mesaId), status: 'livre' });

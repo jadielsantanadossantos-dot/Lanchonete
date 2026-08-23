@@ -127,6 +127,13 @@ router.put('/:id/status', middlewareAdmin, wrapAsync(async (req, res) => {
   const validStatuses = ['recebido', 'em_preparo', 'saiu_entrega', 'entregue', 'cancelado'];
   if (!validStatuses.includes(status)) return res.status(400).json({ error: 'Status inválido' });
 
+  const pedido = await db.get('SELECT mesa_id FROM pedidos WHERE id = $1', req.params.id);
+  if (!pedido) return res.status(404).json({ error: 'Pedido não encontrado' });
+  
+  if (pedido.mesa_id) {
+    return res.status(403).json({ error: 'Pedidos de mesa só podem ser finalizados pelo garçom ao fechar a comanda' });
+  }
+
   await db.run('UPDATE pedidos SET status = $1, atualizado_em = NOW() WHERE id = $2', status, req.params.id);
 
   if (req.emitToAdmin) {
