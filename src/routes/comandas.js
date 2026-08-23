@@ -384,6 +384,7 @@ router.post('/mesa/:mesaId/fechar', wrapAsync(async (req, res) => {
   if (registrar_apenas) {
     await db.run('UPDATE comandas SET status = $1, fechada_em = $2 WHERE id = $3', 'fechada', agora, comanda.id);
     await db.run('UPDATE mesas SET status = $1 WHERE id = $2', 'livre', mesaId);
+    await db.run('UPDATE pedidos SET status = $1, atualizado_em = NOW() WHERE comanda_id = $2 AND status != $3', 'entregue', comanda.id, 'entregue');
 
     if (req.app.get('io')) {
       req.app.get('io').emit('mesa-atualizada', { mesaId: parseInt(mesaId), status: 'livre' });
@@ -545,6 +546,9 @@ router.post('/mesa/:mesaId/liberar', wrapAsync(async (req, res) => {
   // Fecha comanda
   const agora = new Date().toISOString().replace('T', ' ').substring(0, 19);
   await db.run('UPDATE comandas SET status = $1, fechada_em = $2 WHERE id = $3', 'fechada', agora, comanda.id);
+
+  // Atualiza pedidos vinculados para 'entregue'
+  await db.run('UPDATE pedidos SET status = $1, atualizado_em = NOW() WHERE comanda_id = $2 AND status != $3', 'entregue', comanda.id, 'entregue');
 
   // Libera mesa
   await db.run('UPDATE mesas SET status = $1 WHERE id = $2', 'livre', mesaId);
