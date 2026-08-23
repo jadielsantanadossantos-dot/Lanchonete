@@ -158,14 +158,32 @@
           <input class="form-control" id="adic-nome" placeholder="Nome do adicional">
           <textarea class="form-control" id="adic-descricao" placeholder="Descrição (opcional)" style="width:250px; height:40px; resize:vertical;"></textarea>
           <input class="form-control" id="adic-preco" type="number" step="0.01" placeholder="Preço (0 para sabor)" style="width:130px" value="0">
-          <select class="form-control" id="adic-categoria" style="width:170px" multiple title="Selecione uma ou mais categorias"></select>
           <select class="form-control" id="adic-tipo" style="width:120px">
             <option value="adicional">Adicional</option>
             <option value="sabor">Sabor</option>
           </select>
+          <button class="btn btn-primary btn-sm" onclick="abrirSeletorCategorias()">Selecionar Categorias</button>
           <button class="btn btn-primary btn-sm" onclick="salvarAdicional()" id="btn-salvar-adic">Adicionar</button>
           <button class="btn btn-secondary btn-sm" onclick="cancelarEdicaoAdicional()" id="btn-cancelar-adic" style="display:none;">Cancelar</button>
         </div>
+        
+        <!-- Modal de seleção de categorias -->
+        <div class="modal-overlay" id="modal-categorias-adic" style="display:none;">
+          <div class="modal">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h3>Selecionar Categorias</h3>
+                <button class="modal-close" onclick="fecharSeletorCategorias()">&times;</button>
+              </div>
+              <div class="modal-body" id="categorias-checkboxes" style="max-height: 400px; overflow-y: auto;">
+              </div>
+              <div class="modal-footer">
+                <button class="btn btn-primary" onclick="fecharSeletorCategorias()">Pronto</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="filters" style="margin-top: 16px; margin-bottom: 16px;">
           <select class="filter-select" id="filtro-categoria-adicionais" onchange="filtrarAdicionaisPorCategoria()">
             <option value="">Todas as categorias</option>

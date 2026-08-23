@@ -3,6 +3,8 @@ let usuarioLogado = null;
 let realtimeUnsubscribes = [];
 let adicionalEmEdicao = null;
 let adicionaisAdmin = [];
+let categoriasAdmin = [];
+let categoriasAdicionaisSelecionadas = [];
 
 document.addEventListener('DOMContentLoaded', async () => {
   if (!verificarAuth('admin')) {
@@ -596,22 +598,16 @@ async function carregarAdicionais() {
   try {
     const [adcRes, catRes] = await Promise.all([authFetch('/api/adicionais'), authFetch('/api/categorias')]);
     adicionaisAdmin = await adcRes.json();
-    const categorias = await catRes.json();
+    categoriasAdmin = await catRes.json();
 
-    console.log('Categorias carregadas:', categorias);
+    console.log('Categorias carregadas:', categoriasAdmin);
     console.log('Adicionais carregados:', adicionaisAdmin);
-
-    const select = document.getElementById('adic-categoria');
-    if (select) {
-      select.innerHTML = categorias.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
-      console.log('Select preenchido com', categorias.length, 'categorias');
-    }
 
     // Popular filtro de categorias
     const filtroSelect = document.getElementById('filtro-categoria-adicionais');
     if (filtroSelect) {
       filtroSelect.innerHTML = '<option value="">Todas as categorias</option>' +
-        categorias.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+        categoriasAdmin.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
     }
 
     renderizarAdicionais(adicionaisAdmin);
@@ -619,6 +615,32 @@ async function carregarAdicionais() {
     console.error('Erro ao carregar adicionais:', e);
     showToast('Erro ao carregar adicionais: ' + e.message);
   }
+}
+
+function abrirSeletorCategorias() {
+  const modal = document.getElementById('modal-categorias-adic');
+  const container = document.getElementById('categorias-checkboxes');
+  
+  container.innerHTML = categoriasAdmin.map(c => `
+    <div style="padding: 8px; border-bottom: 1px solid #e5e5e5;">
+      <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; min-height: 40px;">
+        <input type="checkbox" value="${c.id}" class="cat-checkbox-adic" ${categoriasAdicionaisSelecionadas.includes(c.id) ? 'checked' : ''}>
+        <span>${c.nome}</span>
+      </label>
+    </div>
+  `).join('');
+  
+  modal.style.display = 'flex';
+}
+
+function fecharSeletorCategorias() {
+  const modal = document.getElementById('modal-categorias-adic');
+  // Atualizar categorias selecionadas
+  categoriasAdicionaisSelecionadas = Array.from(
+    document.querySelectorAll('.cat-checkbox-adic:checked')
+  ).map(cb => parseInt(cb.value));
+  
+  modal.style.display = 'none';
 }
 
 function renderizarAdicionais(adicionais) {
@@ -659,12 +681,7 @@ function editarAdicional(id, nome, descricao, preco, categoria_id, tipo) {
   document.getElementById('adic-descricao').value = descricao;
   document.getElementById('adic-preco').value = preco;
   document.getElementById('adic-tipo').value = tipo;
-  
-  // Selecionar categoria no multi-select
-  const select = document.getElementById('adic-categoria');
-  Array.from(select.options).forEach(opt => {
-    opt.selected = categoria_id && opt.value == categoria_id;
-  });
+  categoriasAdicionaisSelecionadas = categoria_id !== null ? [categoria_id] : [];
   
   document.getElementById('btn-salvar-adic').textContent = 'Atualizar';
   document.getElementById('btn-cancelar-adic').style.display = 'inline-block';
@@ -677,8 +694,7 @@ function cancelarEdicaoAdicional() {
   document.getElementById('adic-descricao').value = '';
   document.getElementById('adic-preco').value = '0';
   document.getElementById('adic-tipo').value = 'adicional';
-  const select = document.getElementById('adic-categoria');
-  Array.from(select.options).forEach(opt => opt.selected = false);
+  categoriasAdicionaisSelecionadas = [];
   document.getElementById('btn-salvar-adic').textContent = 'Adicionar';
   document.getElementById('btn-cancelar-adic').style.display = 'none';
 }
@@ -687,31 +703,27 @@ async function salvarAdicional() {
   const nome = document.getElementById('adic-nome').value.trim();
   const descricao = document.getElementById('adic-descricao').value.trim();
   const precoVal = document.getElementById('adic-preco').value;
-  const select = document.getElementById('adic-categoria');
   const tipo = document.getElementById('adic-tipo').value;
-  
-  // Obter múltiplas categorias selecionadas
-  const categoriaSelecionadas = Array.from(select.selectedOptions).map(opt => parseInt(opt.value));
   
   if (!nome) { showToast('Preencha o nome'); return; }
   if (precoVal === '' || precoVal === null) { showToast('Informe o preço (use 0 para sabor grátis)'); return; }
-  if (categoriaSelecionadas.length === 0) { showToast('Selecione pelo menos uma categoria'); return; }
+  if (categoriasAdicionaisSelecionadas.length === 0) { showToast('Selecione pelo menos uma categoria'); return; }
   
   try {
     const preco = parseFloat(precoVal);
     
     if (adicionalEmEdicao) {
-      // Atualizar - usar primeira categoria selecionada (compatibilidade com banco)
+      // Atualizar - usar primeira categoria selecionada
       await authFetch(`/api/adicionais/${adicionalEmEdicao}`, { 
         method: 'PUT', 
         headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify({ nome, preco, categoria_id: categoriaSelecionadas[0] || null, tipo, descricao: descricao || null }) 
+        body: JSON.stringify({ nome, preco, categoria_id: categoriasAdicionaisSelecionadas[0], tipo, descricao: descricao || null }) 
       });
-      showToast('Sabor atualizado!');
+      showToast('Item atualizado!');
       cancelarEdicaoAdicional();
     } else {
       // Criar novo - para cada categoria selecionada
-      for (const cat_id of categoriaSelecionadas) {
+      for (const cat_id of categoriasAdicionaisSelecionadas) {
         const res = await authFetch('/api/adicionais', { 
           method: 'POST', 
           headers: { 'Content-Type': 'application/json' }, 
@@ -719,14 +731,14 @@ async function salvarAdicional() {
         });
         await verificarResposta(res);
       }
-      showToast(tipo === 'sabor' ? `Sabor cadastrado em ${categoriaSelecionadas.length} categoria(s)!` : `Adicional cadastrado em ${categoriaSelecionadas.length} categoria(s)!`);
+      showToast(`Item cadastrado em ${categoriasAdicionaisSelecionadas.length} categoria(s)!`);
     }
     
     document.getElementById('adic-nome').value = '';
     document.getElementById('adic-descricao').value = '';
     document.getElementById('adic-preco').value = '0';
     document.getElementById('adic-tipo').value = 'adicional';
-    Array.from(select.options).forEach(opt => opt.selected = false);
+    categoriasAdicionaisSelecionadas = [];
     carregarAdicionais();
   } catch (e) { 
     console.error('Erro ao salvar adicional:', e);
