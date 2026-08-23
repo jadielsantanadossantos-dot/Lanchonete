@@ -196,8 +196,8 @@ function abrirProduto(id) {
   const dica = document.getElementById('modal-kg-dica');
   if (porKg) {
     dica.style.display = 'block';
-    dica.textContent = `Digite quanto quer, em gramas. Preço: R$ ${produtoAtual.preco.toFixed(2)} por kg`;
-    document.getElementById('modal-kg-gramas').value = 500;
+    dica.textContent = `Digite quanto quer gastar. Preço: R$ ${produtoAtual.preco.toFixed(2)} por kg`;
+    document.getElementById('modal-kg-valor').value = 15;
   } else {
     dica.style.display = 'none';
   }
@@ -237,20 +237,27 @@ function alterarQtd(delta) {
   atualizarBtnAdd();
 }
 
-function lerGramasKg() {
-  const g = parseInt(document.getElementById('modal-kg-gramas').value, 10);
-  return isNaN(g) ? 0 : g;
+function lerValorKg() {
+  const v = parseFloat(document.getElementById('modal-kg-valor').value);
+  return isNaN(v) ? 0 : v;
+}
+
+// Converte o valor em reais escolhido em quantidade (kg)
+function atualizarQtdKg() {
+  const valor = lerValorKg();
+  modalQtd = valor > 0 ? valor / produtoAtual.preco : 0;
+  return valor;
 }
 
 function atualizarBtnAdd() {
   const porKg = produtoAtual && produtoAtual.unidade === 'kg';
-  if (porKg) modalQtd = lerGramasKg() / 1000;
+  if (porKg) atualizarQtdKg();
   let total = produtoAtual.preco * modalQtd;
   const checks = document.querySelectorAll('#adicionais-list input:checked');
   checks.forEach(c => { total += parseFloat(c.dataset.preco) * modalQtd; });
   const btn = document.getElementById('btn-add-cart');
   if (porKg) {
-    if (!modalQtd || modalQtd <= 0) { btn.textContent = 'Informe o peso em gramas'; return; }
+    if (!modalQtd || modalQtd <= 0) { btn.textContent = 'Informe o valor desejado'; return; }
     btn.textContent = `Adicionar ${formatarPeso(modalQtd)} - R$ ${total.toFixed(2)}`;
   } else {
     btn.textContent = `Adicionar - R$ ${total.toFixed(2)}`;
@@ -264,9 +271,9 @@ document.addEventListener('change', (e) => {
 function adicionarAoCarrinho() {
   const porKg = produtoAtual.unidade === 'kg';
   if (porKg) {
-    modalQtd = lerGramasKg() / 1000;
-    if (!modalQtd || modalQtd <= 0) { mostrarToast('Informe o peso em gramas'); return; }
-    if (modalQtd > 10) { mostrarToast('Peso máximo: 10 kg'); return; }
+    atualizarQtdKg();
+    if (!modalQtd || modalQtd <= 0) { mostrarToast('Informe o valor desejado'); return; }
+    if (modalQtd > 10) { mostrarToast('Valor máximo: R$ 450,00 (10 kg)'); return; }
   }
 
   const adicionais = [];
