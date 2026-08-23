@@ -94,19 +94,19 @@ router.get('/ativos', wrapAsync(async (req, res) => {
   const adicionais = await db.all('SELECT * FROM adicionais WHERE ativo = true');
 
   const produtos = rows.map(p => {
-    // Verificar se é pizza
-    const isPizza = p.categoria_nome && ['Pizza', 'Tradicional', 'Especial', 'Doce'].some(
+    // Verificar se é pizza ou suco (produtos que recebem sabores)
+    const isPizza = p.categoria_nome && ['pizza', 'suco', 'bebida'].some(
       cat => p.categoria_nome.toLowerCase().includes(cat.toLowerCase())
     );
     
-    // Para pizzas: retornar sabores + adicionais. Para outros: apenas adicionais
+    // Para pizzas/sucos: retornar sabores + adicionais. Para outros: apenas adicionais
     const adicionaisFiltrados = adicionais.filter(a => {
       const mesmaCategoria = !a.categoria_id || a.categoria_id === p.categoria_id;
       if (isPizza) {
-        // Pizzas recebem os sabores E adicionais desta categoria
+        // Pizzas/sucos recebem sabores (tipo='sabor') E adicionais com preço
         return mesmaCategoria && (a.tipo === 'sabor' || (a.tipo === 'adicional' && a.preco > 0));
       } else {
-        // Não-pizzas recebem apenas adicionais
+        // Não-pizzas recebem apenas adicionais sem tipo ou tipo='adicional'
         return mesmaCategoria && (!a.tipo || a.tipo === 'adicional');
       }
     });
