@@ -277,30 +277,36 @@ textarea.form-control { min-height: 100px; resize: vertical; }
 
 /* Tablet (768px - 1023px) */
 @media (min-width: 768px) and (max-width: 1023px) {
-  .products-grid, .page-dados, .page-pagamento, .page-pix, .page-sucesso, .page-acompanhar, .page-cadastro, .page-editar-cadastro { max-width: 600px; }
-  .header-row { max-width: 600px; }
-  .product-media { width: 140px; height: 140px; }
+  .products-grid, .page-dados, .page-pagamento, .page-pix, .page-sucesso, .page-acompanhar, .page-cadastro, .page-editar-cadastro { max-width: 1000px; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--space-4); }
+  .header-row { max-width: 1000px; }
+  .product-card { flex-direction: column; margin-bottom: 0; }
+  .product-media { width: 100%; height: 200px; }
+  .product-info { padding: var(--space-4); }
+  .product-footer { flex-direction: column; align-items: stretch; }
+  .btn-add { width: 100%; border-radius: var(--radius); min-height: 48px; }
   .modal { max-width: 560px; }
   .cart-fab { width: 64px; height: 64px; font-size: var(--text-3xl); bottom: var(--space-6); right: var(--space-6); }
   .header { padding: var(--space-4) var(--space-5); }
   .loja-nome { font-size: var(--text-2xl); }
   .categories { padding: var(--space-3) var(--space-5); }
   .modal-overlay { align-items: center; padding: var(--space-4); }
-  .modal { max-width: 560px; max-height: 85vh; border-radius: var(--radius-xl); }
 }
 
 /* Desktop (1024px+) */
 @media (min-width: 1024px) {
-  .products-grid, .page-dados, .page-pagamento, .page-pix, .page-sucesso, .page-acompanhar, .page-cadastro, .page-editar-cadastro { max-width: 720px; }
-  .header-row { max-width: 720px; }
-  .product-media { width: 160px; height: 160px; }
+  .products-grid, .page-dados, .page-pagamento, .page-pix, .page-sucesso, .page-acompanhar, .page-cadastro, .page-editar-cadastro { max-width: 1400px; display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: var(--space-4); }
+  .header-row { max-width: 1400px; }
+  .product-card { flex-direction: column; margin-bottom: 0; }
+  .product-media { width: 100%; height: 220px; }
+  .product-info { padding: var(--space-4); }
+  .product-footer { flex-direction: column; align-items: stretch; }
+  .btn-add { width: 100%; border-radius: var(--radius); min-height: 48px; }
   .modal { max-width: 640px; }
   .cart-fab { width: 72px; height: 72px; font-size: var(--text-4xl); bottom: var(--space-8); right: var(--space-8); }
   .header { padding: var(--space-4) var(--space-6); }
   .loja-nome { font-size: var(--text-2xl); }
   .categories { padding: var(--space-3) var(--space-6); }
   .modal-overlay { align-items: center; padding: var(--space-4); }
-  .modal { max-width: 640px; max-height: 85vh; border-radius: var(--radius-xl); }
 }
 
 /* Mobile (480px - 767px) - OVERRIDES base to column layout */
