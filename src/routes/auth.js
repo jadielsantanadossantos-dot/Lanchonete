@@ -75,9 +75,15 @@ router.post('/login', loginLimiter, validarLogin, wrapAsync(async (req, res) => 
     return res.status(401).json({ error: 'Usuário ou senha inválidos' });
   }
 
-  if (perfil_esperado && user.perfil !== perfil_esperado) {
-    registrarAuditoria({ usuarioId: user.id, usuarioNome: user.usuario, acao: AUDIT_ACTIONS.LOGIN_FAILED, detalhes: { motivo: 'perfil_incompativel' }, req });
-    return res.status(403).json({ error: 'Este usuário não tem permissão para acessar este sistema' });
+  if (perfil_esperado) {
+    const permissaoValida = perfil_esperado === 'garcom'
+      ? (user.perfil === 'garcom' || user.perfil === 'admin')
+      : (user.perfil === perfil_esperado);
+
+    if (!permissaoValida) {
+      registrarAuditoria({ usuarioId: user.id, usuarioNome: user.usuario, acao: AUDIT_ACTIONS.LOGIN_FAILED, detalhes: { motivo: 'perfil_incompativel' }, req });
+      return res.status(403).json({ error: 'Este usuário não tem permissão para acessar este sistema' });
+    }
   }
 
   const token = await gerarToken(user);
