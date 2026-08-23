@@ -731,9 +731,16 @@ async function salvarAdicional() {
     if (adicionalEmEdicao) {
       console.log('Atualizando adicional ID:', adicionalEmEdicao);
       
-      // Se múltiplas categorias selecionadas, cria cópias em todas
+      // Se múltiplas categorias selecionadas, deleta o original e cria cópias em todas
       if (categoriasAdicionaisSelecionadas.length > 1) {
-        console.log('Criando cópias em', categoriasAdicionaisSelecionadas.length, 'categorias');
+        console.log('Deletando original e criando cópias em', categoriasAdicionaisSelecionadas.length, 'categorias');
+        
+        // Deletar o item original
+        await authFetch(`/api/adicionais/${adicionalEmEdicao}`, { 
+          method: 'DELETE'
+        });
+        
+        // Criar cópias em todas as categorias selecionadas
         for (const cat_id of categoriasAdicionaisSelecionadas) {
           const res = await authFetch('/api/adicionais', { 
             method: 'POST', 
@@ -742,7 +749,7 @@ async function salvarAdicional() {
           });
           await verificarResposta(res);
         }
-        showToast(`Item copiado para ${categoriasAdicionaisSelecionadas.length} categoria(s)!`);
+        showToast(`Item movido para ${categoriasAdicionaisSelecionadas.length} categoria(s)!`);
       } else {
         // Se uma única categoria, atualiza normalmente
         const catId = categoriasAdicionaisSelecionadas.length > 0 ? categoriasAdicionaisSelecionadas[0] : null;
