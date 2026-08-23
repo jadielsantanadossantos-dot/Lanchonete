@@ -35,18 +35,13 @@ document.getElementById('login-form').addEventListener('submit', async function(
 
     setSessao(data.token, data.perfil, data.nome);
 
+    // Sessao autenticada em ambos os casos - sem a flag o painel
+    // devolve para o login antes mesmo do modal de troca de senha
+    sessionStorage.setItem(window.LOGIN_PERFIL === 'admin' ? 'admin_logged_in' : 'garcom_logged_in', '1');
+
     if (data.trocar_senha) {
-      if (window.LOGIN_PERFIL === 'garcom') {
-        window.location.href = '/garcom?trocar_senha=1';
-      } else {
-        window.location.href = '/alterar-senha';
-      }
+      window.location.href = window.LOGIN_PERFIL === 'garcom' ? '/garcom' : '/alterar-senha';
     } else {
-      if (window.LOGIN_PERFIL === 'admin') {
-        sessionStorage.setItem('admin_logged_in', '1');
-      } else {
-        sessionStorage.setItem('garcom_logged_in', '1');
-      }
       window.location.href = window.LOGIN_PERFIL === 'admin' ? '/admin' : '/garcom';
     }
   } catch (e) {
