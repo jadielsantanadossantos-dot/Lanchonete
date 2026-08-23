@@ -82,11 +82,11 @@ router.post('/', wrapAsync(async (req, res) => {
   );
 
   const pedidoId = info.lastInsertRowid;
-  const itemStmt = db.prepare('INSERT INTO pedido_itens (pedido_id, produto_id, produto_nome, quantidade, preco_unitario, observacao) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id');
+  const itemStmt = db.prepare('INSERT INTO pedido_itens (pedido_id, produto_id, produto_nome, quantidade, preco_unitario, observacao, unidade) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id');
   const adicStmt = db.prepare('INSERT INTO pedido_item_adicionais (pedido_item_id, adicional_nome, preco) VALUES ($1,$2,$3)');
 
   for (const item of itens) {
-    const itemInfo = await itemStmt.run(pedidoId, item.produto_id, item.produto_nome, item.quantidade, item.preco_unitario, item.observacao || '');
+    const itemInfo = await itemStmt.run(pedidoId, item.produto_id, item.produto_nome, item.quantidade, item.preco_unitario, item.observacao || '', item.unidade === 'kg' ? 'kg' : 'un');
     if (item.adicionais) {
       for (const a of item.adicionais) {
         await adicStmt.run(itemInfo.lastInsertRowid, a.nome, a.preco);

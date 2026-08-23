@@ -114,12 +114,12 @@ router.get('/:id', wrapAsync(async (req, res) => {
 }));
 
 router.post('/', middlewareAdmin, upload.single('foto'), wrapAsync(async (req, res) => {
-  const { nome, categoria_id, descricao, preco, ativo, adicionais_ids } = req.body;
+  const { nome, categoria_id, descricao, preco, ativo, adicionais_ids, unidade } = req.body;
   const foto = req.file ? await uploadFoto(req.file) : null;
 
   const info = await db.run(
-    'INSERT INTO produtos (nome, categoria_id, descricao, preco, foto, ativo) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
-    nome, categoria_id, descricao || '', parseFloat(preco), foto, ativo !== undefined ? ativo : true
+    'INSERT INTO produtos (nome, categoria_id, descricao, preco, foto, ativo, unidade) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
+    nome, categoria_id, descricao || '', parseFloat(preco), foto, ativo !== undefined ? ativo : true, unidade === 'kg' ? 'kg' : 'un'
   );
 
   if (adicionais_ids) {
@@ -133,13 +133,13 @@ router.post('/', middlewareAdmin, upload.single('foto'), wrapAsync(async (req, r
 }));
 
 router.put('/:id', middlewareAdmin, upload.single('foto'), wrapAsync(async (req, res) => {
-  const { nome, categoria_id, descricao, preco, ativo, adicionais_ids } = req.body;
+  const { nome, categoria_id, descricao, preco, ativo, adicionais_ids, unidade } = req.body;
   const existing = await db.get('SELECT foto FROM produtos WHERE id = $1', req.params.id);
   const foto = req.file ? await uploadFoto(req.file) : (existing ? existing.foto : null);
 
   await db.run(
-    'UPDATE produtos SET nome=$1, categoria_id=$2, descricao=$3, preco=$4, foto=$5, ativo=$6 WHERE id=$7',
-    nome, categoria_id, descricao || '', parseFloat(preco), foto, ativo !== undefined ? ativo : true, req.params.id
+    'UPDATE produtos SET nome=$1, categoria_id=$2, descricao=$3, preco=$4, foto=$5, ativo=$6, unidade=$7 WHERE id=$8',
+    nome, categoria_id, descricao || '', parseFloat(preco), foto, ativo !== undefined ? ativo : true, unidade === 'kg' ? 'kg' : 'un', req.params.id
   );
 
   await db.run('DELETE FROM produto_adicionais WHERE produto_id = $1', req.params.id);

@@ -49,7 +49,12 @@
           <h3>Adicionais</h3>
           <div id="adicionais-list"></div>
         </div>
-        <div class="qty-control">
+        <div class="qty-control" id="modal-kg-control" style="display:none">
+          <input class="form-control" id="modal-kg-gramas" type="number" min="50" step="50" value="500" style="width:110px" inputmode="numeric" aria-label="Peso em gramas" oninput="atualizarBtnAdd()">
+          <span class="qty-value" style="font-weight:600">g</span>
+        </div>
+        <p id="modal-kg-dica" style="display:none;font-size:var(--text-sm);color:var(--color-text-secondary);margin-top:4px"></p>
+        <div class="qty-control" id="modal-qtd-control">
           <button class="qty-btn" onclick="alterarQtd(-1)" aria-label="Diminuir quantidade">-</button>
           <span class="qty-value" id="modal-qty">1</span>
           <button class="qty-btn" onclick="alterarQtd(1)" aria-label="Aumentar quantidade">+</button>

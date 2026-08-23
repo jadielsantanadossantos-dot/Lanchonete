@@ -87,9 +87,10 @@ CREATE TABLE pedido_itens (
     pedido_id BIGINT NOT NULL REFERENCES pedidos(id) ON DELETE CASCADE,
     produto_id BIGINT NOT NULL REFERENCES produtos(id),
     produto_nome TEXT NOT NULL,
-    quantidade INTEGER NOT NULL DEFAULT 1,
+    quantidade NUMERIC(6,3) NOT NULL DEFAULT 1,
     preco_unitario NUMERIC(10,2) NOT NULL,
     observacao TEXT,
+    unidade TEXT NOT NULL DEFAULT 'un',
     criado_em TIMESTAMPTZ DEFAULT NOW()
 );
 

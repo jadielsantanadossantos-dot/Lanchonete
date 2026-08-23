@@ -176,16 +176,31 @@ function renderProdutos(lista) {
   `).join('');
 }
 
+function formatarPeso(qtd) {
+  return qtd >= 1 ? `${qtd} kg` : `${Math.round(qtd * 1000)} g`;
+}
+
 function abrirProduto(id) {
   produtoAtual = produtos.find(p => p.id === id);
   if (!produtoAtual) return;
 
+  const porKg = produtoAtual.unidade === 'kg';
   modalQtd = 1;
   document.getElementById('modal-nome').textContent = produtoAtual.nome;
   document.getElementById('modal-desc').textContent = produtoAtual.descricao || '';
-  document.getElementById('modal-preco').textContent = `R$ ${produtoAtual.preco.toFixed(2)}`;
+  document.getElementById('modal-preco').textContent = `R$ ${produtoAtual.preco.toFixed(2)}${porKg ? ' /kg' : ''}`;
   document.getElementById('modal-qty').textContent = '1';
   document.getElementById('modal-obs').value = '';
+  document.getElementById('modal-kg-control').style.display = porKg ? 'flex' : 'none';
+  document.getElementById('modal-qtd-control').style.display = porKg ? 'none' : 'flex';
+  const dica = document.getElementById('modal-kg-dica');
+  if (porKg) {
+    dica.style.display = 'block';
+    dica.textContent = `Digite quanto quer, em gramas. Preço: R$ ${produtoAtual.preco.toFixed(2)} por kg`;
+    document.getElementById('modal-kg-gramas').value = 500;
+  } else {
+    dica.style.display = 'none';
+  }
 
   const img = document.getElementById('modal-img');
   if (produtoAtual.foto) { img.src = produtoAtual.foto; img.style.display = 'block'; }
@@ -222,11 +237,24 @@ function alterarQtd(delta) {
   atualizarBtnAdd();
 }
 
+function lerGramasKg() {
+  const g = parseInt(document.getElementById('modal-kg-gramas').value, 10);
+  return isNaN(g) ? 0 : g;
+}
+
 function atualizarBtnAdd() {
+  const porKg = produtoAtual && produtoAtual.unidade === 'kg';
+  if (porKg) modalQtd = lerGramasKg() / 1000;
   let total = produtoAtual.preco * modalQtd;
   const checks = document.querySelectorAll('#adicionais-list input:checked');
   checks.forEach(c => { total += parseFloat(c.dataset.preco) * modalQtd; });
-  document.getElementById('btn-add-cart').textContent = `Adicionar - R$ ${total.toFixed(2)}`;
+  const btn = document.getElementById('btn-add-cart');
+  if (porKg) {
+    if (!modalQtd || modalQtd <= 0) { btn.textContent = 'Informe o peso em gramas'; return; }
+    btn.textContent = `Adicionar ${formatarPeso(modalQtd)} - R$ ${total.toFixed(2)}`;
+  } else {
+    btn.textContent = `Adicionar - R$ ${total.toFixed(2)}`;
+  }
 }
 
 document.addEventListener('change', (e) => {
@@ -234,6 +262,13 @@ document.addEventListener('change', (e) => {
 });
 
 function adicionarAoCarrinho() {
+  const porKg = produtoAtual.unidade === 'kg';
+  if (porKg) {
+    modalQtd = lerGramasKg() / 1000;
+    if (!modalQtd || modalQtd <= 0) { mostrarToast('Informe o peso em gramas'); return; }
+    if (modalQtd > 10) { mostrarToast('Peso máximo: 10 kg'); return; }
+  }
+
   const adicionais = [];
   document.querySelectorAll('#adicionais-list input:checked').forEach(c => {
     adicionais.push({ id: parseInt(c.value), nome: c.dataset.nome, preco: parseFloat(c.dataset.preco) });
@@ -244,6 +279,7 @@ function adicionarAoCarrinho() {
     produto_nome: produtoAtual.nome,
     preco_unitario: produtoAtual.preco,
     quantidade: modalQtd,
+    unidade: porKg ? 'kg' : 'un',
     observacao: document.getElementById('modal-obs').value,
     adicionais
   });
@@ -290,6 +326,7 @@ function renderCarrinho() {
 
   container.innerHTML = carrinho.map((item, i) => {
     let itemTotal = item.preco_unitario * item.quantidade;
+    const qtdTexto = item.unidade === 'kg' ? formatarPeso(item.quantidade) : `${item.quantidade}x`;
     const adcTexto = item.adicionais.map(a => {
       itemTotal += a.preco * item.quantidade;
       return `+ ${a.nome} (R$ ${a.preco.toFixed(2)})`;
@@ -299,7 +336,7 @@ function renderCarrinho() {
       <div class="cart-item">
         <div class="cart-item-header">
           <div>
-            <div class="cart-item-name">${item.quantidade}x ${item.produto_nome}</div>
+            <div class="cart-item-name">${qtdTexto} ${item.produto_nome}</div>
             ${adcTexto ? `<div class="cart-item-details">${adcTexto}</div>` : ''}
             ${item.observacao ? `<div class="cart-item-details">Obs: ${item.observacao}</div>` : ''}
           </div>
@@ -344,7 +381,8 @@ function renderResumoPagamento() {
 
   container.innerHTML = carrinho.map(item => {
     let itemTotal = item.preco_unitario * item.quantidade;
-    const adcTexto = item.adicionais.map(a => {
+    const qtdTexto = item.unidade === 'kg' ? formatarPeso(item.quantidade) : `${item.quantidade}x`;
+    const adcHtml = item.adicionais.map(a => {
       itemTotal += a.preco * item.quantidade;
       return `<div class="pedido-item-adicional" style="padding-left:12px">+ ${a.nome} (R$ ${a.preco.toFixed(2)})</div>`;
     }).join('');
@@ -352,10 +390,10 @@ function renderResumoPagamento() {
     return `
       <div class="cart-item">
         <div class="cart-item-header">
-          <div class="cart-item-name">${item.quantidade}x ${item.produto_nome}</div>
+          <div class="cart-item-name">${qtdTexto} ${item.produto_nome}</div>
           <div class="cart-item-price">R$ ${itemTotal.toFixed(2)}</div>
         </div>
-        ${adcTexto ? `<div>${adcTexto}</div>` : ''}
+        ${adcHtml ? `<div>${adcHtml}</div>` : ''}
         ${item.observacao ? `<div class="cart-item-details">Obs: ${item.observacao}</div>` : ''}
       </div>
     `;
@@ -590,7 +628,8 @@ async function carregarDetalhesPedido(pedidoId) {
     const payLabels = { pix: 'Pix', dinheiro: 'Dinheiro', cartao: 'Cartão (na entrega)' };
 
     const itensHtml = p.itens.map(item => {
-      let line = `<div class="pedido-item-line">${item.quantidade}x ${item.produto_nome} - R$ ${(item.preco_unitario * item.quantidade).toFixed(2)}</div>`;
+      const qtdTexto = item.unidade === 'kg' ? formatarPeso(Number(item.quantidade)) : `${item.quantidade}x`;
+      let line = `<div class="pedido-item-line">${qtdTexto} ${item.produto_nome} - R$ ${(item.preco_unitario * item.quantidade).toFixed(2)}</div>`;
       if (item.adicionais && item.adicionais.length) {
         line += item.adicionais.map(a => `<div class="pedido-item-adicional">+ ${a.adicional_nome} (R$ ${a.preco.toFixed(2)})</div>`).join('');
       }

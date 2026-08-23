@@ -419,7 +419,7 @@ async function carregarProdutosAdmin() {
         <td>${p.foto ? `<img src="${p.foto}" style="width:50px;height:50px;object-fit:cover;border-radius:6px">` : '-'}</td>
         <td><strong>${p.nome}</strong><br><small style="color:var(--gray)">${p.descricao || ''}</small></td>
         <td>${p.categoria_nome}</td>
-        <td>R$ ${p.preco.toFixed(2)}</td>
+        <td>R$ ${p.preco.toFixed(2)}${p.unidade === 'kg' ? '/kg' : ''}</td>
         <td>${p.ativo ? '<span style="color:var(--success)">Ativo</span>' : '<span style="color:var(--danger)">Inativo</span>'}</td>
         <td>
           <button class="btn btn-sm btn-primary" onclick='editarProduto(${JSON.stringify(p).replace(/'/g, "\\'")})'>Editar</button>
@@ -495,6 +495,7 @@ async function abrirFormProduto() {
   document.getElementById('prod-id').value = '';
   document.getElementById('form-produto').reset();
   document.getElementById('prod-ativo').checked = true;
+  document.getElementById('prod-unidade').value = 'un';
   document.getElementById('form-produto-title').textContent = 'Novo Produto';
   document.getElementById('modal-produto-admin').classList.add('active');
 }
@@ -504,6 +505,7 @@ function editarProduto(p) {
   document.getElementById('prod-nome').value = p.nome;
   document.getElementById('prod-descricao').value = p.descricao || '';
   document.getElementById('prod-preco').value = p.preco;
+  document.getElementById('prod-unidade').value = p.unidade === 'kg' ? 'kg' : 'un';
   document.getElementById('prod-ativo').checked = !!p.ativo;
   document.getElementById('form-produto-title').textContent = 'Editar Produto';
 
@@ -525,6 +527,7 @@ async function salvarProduto(e) {
   formData.append('categoria_id', document.getElementById('prod-categoria').value);
   formData.append('descricao', document.getElementById('prod-descricao').value);
   formData.append('preco', document.getElementById('prod-preco').value);
+  formData.append('unidade', document.getElementById('prod-unidade').value);
   formData.append('ativo', document.getElementById('prod-ativo').checked ? '1' : '0');
 
   const foto = document.getElementById('prod-foto').files[0];
