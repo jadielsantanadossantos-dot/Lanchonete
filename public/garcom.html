@@ -117,10 +117,15 @@
       </div>
 
       <h4 class="g-modal-subtitle">Quantidade</h4>
-      <div class="g-qty-control">
+      <div class="g-qty-control" id="g-quant-unit-control">
         <button class="g-qty-btn" onclick="alterarQuant(-1)">-</button>
         <span id="g-quant-value" class="g-qty-value">1</span>
         <button class="g-qty-btn" onclick="alterarQuant(1)">+</button>
+      </div>
+
+      <div class="g-form-group" id="g-quant-kg-control" style="display:none">
+        <label>Valor desejado (R$)</label>
+        <input class="form-control" id="g-quant-kg-valor" type="number" min="1" step="0.50" value="15" inputmode="decimal">
       </div>
 
       <div class="g-form-group">

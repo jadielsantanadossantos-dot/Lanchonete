@@ -483,13 +483,20 @@ async function abrirModalQuant(produtoId) {
   produtoSelecionado = produtos.find(p => p.id === produtoId);
   if (!produtoSelecionado) return;
 
+  const porKg = produtoSelecionado.unidade === 'kg';
   quantAtual = 1;
   adicionaisSelecionados = [];
 
   document.getElementById('g-quant-produto-nome').textContent = produtoSelecionado.nome;
-  document.getElementById('g-quant-produto-preco').textContent = `R$ ${produtoSelecionado.preco.toFixed(2)}`;
+  document.getElementById('g-quant-produto-preco').textContent = `R$ ${produtoSelecionado.preco.toFixed(2)}${porKg ? ' /kg' : ''}`;
   document.getElementById('g-quant-value').textContent = '1';
   document.getElementById('g-quant-obs').value = '';
+
+  document.getElementById('g-quant-unit-control').style.display = porKg ? 'none' : 'flex';
+  document.getElementById('g-quant-kg-control').style.display = porKg ? 'block' : 'none';
+  if (porKg) {
+    document.getElementById('g-quant-kg-valor').value = 15;
+  }
 
   const adcSection = document.getElementById('g-quant-adicionais');
   const adcList = document.getElementById('g-quant-adicionais-list');
@@ -524,9 +531,18 @@ function alterarQuant(delta) {
 }
 
 function atualizarTotalQuant() {
-  let total = produtoSelecionado.preco * quantAtual;
+  const porKg = produtoSelecionado.unidade === 'kg';
+  let total = 0;
+  
+  if (porKg) {
+    const valor = parseFloat(document.getElementById('g-quant-kg-valor').value) || 0;
+    total = valor;
+  } else {
+    total = produtoSelecionado.preco * quantAtual;
+  }
+  
   document.querySelectorAll('#g-quant-adicionais-list input:checked').forEach(c => {
-    total += parseFloat(c.dataset.preco) * quantAtual;
+    total += parseFloat(c.dataset.preco) * (porKg ? 1 : quantAtual);
   });
   document.getElementById('g-quant-total').textContent = `R$ ${total.toFixed(2)}`;
 }
@@ -540,6 +556,9 @@ async function confirmarAdicionarItem() {
   });
 
   const observacao = document.getElementById('g-quant-obs').value.trim();
+  
+  const porKg = produtoSelecionado.unidade === 'kg';
+  const quantidade = porKg ? parseFloat(document.getElementById('g-quant-kg-valor').value) || 1 : quantAtual;
 
   try {
     const res = await authFetch(`/api/comandas/mesa/${mesaAtual.id}/item`, {
@@ -547,7 +566,7 @@ async function confirmarAdicionarItem() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         produto_id: produtoSelecionado.id,
-        quantidade: quantAtual,
+        quantidade: quantidade,
         observacao,
         adicionais
       })
