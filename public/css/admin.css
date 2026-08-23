@@ -458,7 +458,7 @@ textarea.form-control { min-height: 100px; resize: vertical; }
 /* Mobile (480px - 767px) - OVERRIDES */
 @media (max-width: 767px) {
   :root { --sidebar-w: 100vw; }
-  .sidebar { width: 100vw; left: -100vw; }
+  .sidebar { width: 100vw; }
   .content { padding: var(--space-4); }
   .topbar { padding: var(--space-2) var(--space-3); min-height: 56px; height: auto; }
   .topbar-title { font-size: var(--text-base); }

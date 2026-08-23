@@ -4,7 +4,7 @@
 // Requer: @supabase/supabase-js carregado globalmente
 // ============================================
 
-let supabase = null;
+let supabaseClient = null;
 let initPromise = null;
 const listeners = new Map();
 const channels = new Map();
@@ -30,8 +30,8 @@ function notifyListeners(event, data) {
 }
 
 function ensureTopic(topic) {
-  if (!supabase || channels.has(topic)) return;
-  const ch = supabase.channel(topic, { config: { broadcast: { self: false } } });
+  if (!supabaseClient || channels.has(topic)) return;
+  const ch = supabaseClient.channel(topic, { config: { broadcast: { self: false } } });
   EVENTS.forEach(ev => {
     ch.on('broadcast', { event: ev }, ({ payload }) => notifyListeners(ev, payload));
   });
@@ -47,7 +47,7 @@ function initRealtime() {
   if (!initPromise) {
     initPromise = (async () => {
       const cfg = await loadConfig();
-      supabase = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey, {
+      supabaseClient = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey, {
         realtime: { params: { eventsPerSecond: 10 } }
       });
       ensureTopic('admin');
@@ -84,8 +84,8 @@ function joinMesa(mesaId) {
 function leaveMesa(mesaId) {
   const topic = `mesa-${mesaId}`;
   const ch = channels.get(topic);
-  if (ch && supabase) {
-    supabase.removeChannel(ch);
+  if (ch && supabaseClient) {
+    supabaseClient.removeChannel(ch);
     channels.delete(topic);
   }
 }
@@ -169,10 +169,10 @@ function subscribePedidosAdmin(callback) {
 // ============================================
 
 function cleanupRealtime() {
-  if (supabase) {
-    channels.forEach(ch => supabase.removeChannel(ch));
+  if (supabaseClient) {
+    channels.forEach(ch => supabaseClient.removeChannel(ch));
     channels.clear();
-    supabase = null;
+    supabaseClient = null;
     initPromise = null;
   }
   listeners.clear();

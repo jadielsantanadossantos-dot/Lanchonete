@@ -1,6 +1,11 @@
-const { Pool } = require('pg');
+const { Pool, types } = require('pg');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
+
+// NUMERIC/BIGINT chegam como string por padrao no pg;
+// converte para numero para manter compatibilidade com o codigo legado (SQLite)
+types.setTypeParser(types.builtins.NUMERIC, v => (v === null ? null : parseFloat(v)));
+types.setTypeParser(20, v => (v === null ? null : parseInt(v, 10)));
 
 let pool = null;
 let isInitialized = false;
@@ -51,14 +56,24 @@ class PgStatement {
     this.params = params;
   }
 
+  // Um unico argumento em array = parametro array (para ANY($1));
+  // caso contrario, achata listas de argumentos variadicos
+  static normalizeParams(args) {
+    if (args.length === 1 && Array.isArray(args[0])) {
+      const inner = args[0];
+      return inner.length === 1 && Array.isArray(inner[0]) ? inner : [inner];
+    }
+    return args.flat();
+  }
+
   bind(...params) {
-    this.params = params.flat();
+    this.params = PgStatement.normalizeParams(params);
     return this;
   }
 
   _mergeParams(params) {
     if (params && params.length > 0) {
-      this.params = params.flat();
+      this.params = PgStatement.normalizeParams(params);
     }
     return this.params;
   }
@@ -100,17 +115,20 @@ const dbWrapper = {
   },
 
   async run(sql, ...params) {
-    const stmt = new PgStatement(sql, params.flat());
+    const stmt = new PgStatement(sql);
+    stmt.bind(...params);
     return stmt.run();
   },
 
   async get(sql, ...params) {
-    const stmt = new PgStatement(sql, params.flat());
+    const stmt = new PgStatement(sql);
+    stmt.bind(...params);
     return stmt.get();
   },
 
   async all(sql, ...params) {
-    const stmt = new PgStatement(sql, params.flat());
+    const stmt = new PgStatement(sql);
+    stmt.bind(...params);
     return stmt.all();
   },
 
