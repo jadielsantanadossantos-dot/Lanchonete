@@ -634,21 +634,32 @@ async function carregarAdicionais() {
 async function salvarAdicional() {
   const nome = document.getElementById('adic-nome').value.trim();
   const descricao = document.getElementById('adic-descricao').value.trim();
-  const preco = document.getElementById('adic-preco').value;
+  const precoVal = document.getElementById('adic-preco').value;
   const categoria = document.getElementById('adic-categoria');
   const tipo = document.getElementById('adic-tipo').value;
   const categoria_id = categoria && categoria.value ? parseInt(categoria.value) : null;
-  if (!nome || !preco) { showToast('Preencha nome e preço'); return; }
+  
+  if (!nome) { showToast('Preencha o nome'); return; }
+  if (precoVal === '' || precoVal === null) { showToast('Informe o preço (use 0 para sabor grátis)'); return; }
+  
   try {
-    const res = await authFetch('/api/adicionais', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nome, preco, categoria_id, tipo, descricao: descricao || null }) });
+    const preco = parseFloat(precoVal);
+    const res = await authFetch('/api/adicionais', { 
+      method: 'POST', 
+      headers: { 'Content-Type': 'application/json' }, 
+      body: JSON.stringify({ nome, preco, categoria_id, tipo, descricao: descricao || null }) 
+    });
     await verificarResposta(res);
     document.getElementById('adic-nome').value = '';
     document.getElementById('adic-descricao').value = '';
-    document.getElementById('adic-preco').value = '';
+    document.getElementById('adic-preco').value = '0';
     document.getElementById('adic-tipo').value = 'adicional';
     carregarAdicionais();
     showToast(tipo === 'sabor' ? 'Sabor cadastrado!' : (categoria_id ? 'Adicional cadastrado na categoria!' : 'Adicional cadastrado para todas as categorias!'));
-  } catch (e) { showToast(e.message); }
+  } catch (e) { 
+    console.error('Erro ao salvar adicional:', e);
+    showToast(e.message); 
+  }
 }
 
 async function toggleAdicional(id, nome, preco, ativo, categoria_id, tipo, descricao) {
