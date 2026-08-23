@@ -477,9 +477,14 @@ async function salvarCategoria() {
 
 async function excluirCategoria(id) {
   if (!confirm('Excluir esta categoria? Produtos vinculados ficarão sem categoria.')) return;
-  await authFetch(`/api/categorias/${id}`, { method: 'DELETE' });
-  carregarCategoriasAdmin();
-  showToast('Categoria excluída!');
+  try {
+    const res = await authFetch(`/api/categorias/${id}`, { method: 'DELETE' });
+    await verificarResposta(res);
+    carregarCategoriasAdmin();
+    showToast('Categoria excluída!');
+  } catch (e) {
+    showToast(e.message === 'Failed to fetch' ? 'Erro de conexão com o servidor' : e.message);
+  }
 }
 
 async function editarCategoria(id, nome, ordem) {
@@ -548,8 +553,14 @@ async function salvarProduto(e) {
 
 async function excluirProduto(id) {
   if (!confirm('Excluir este produto?')) return;
-  await authFetch(`/api/produtos/${id}`, { method: 'DELETE' });
-  carregarProdutosAdmin();
+  try {
+    const res = await authFetch(`/api/produtos/${id}`, { method: 'DELETE' });
+    await verificarResposta(res);
+    carregarProdutosAdmin();
+    showToast('Produto excluído!');
+  } catch (e) {
+    showToast(e.message === 'Failed to fetch' ? 'Erro de conexão com o servidor' : e.message);
+  }
 }
 
 // ADICIONAIS

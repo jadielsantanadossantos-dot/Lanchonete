@@ -154,8 +154,12 @@ router.put('/:id', middlewareAdmin, upload.single('foto'), wrapAsync(async (req,
 }));
 
 router.delete('/:id', middlewareAdmin, wrapAsync(async (req, res) => {
-  await db.run('DELETE FROM produtos WHERE id = $1', req.params.id);
-  res.json({ success: true });
+  try {
+    await db.run('DELETE FROM produtos WHERE id = $1', req.params.id);
+    res.json({ success: true });
+  } catch (e) {
+    res.status(409).json({ error: 'Não foi possível excluir este produto.' });
+  }
 }));
 
 module.exports = router;

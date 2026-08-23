@@ -31,8 +31,12 @@ router.put('/:id', middlewareAdmin, wrapAsync(async (req, res) => {
 }));
 
 router.delete('/:id', middlewareAdmin, wrapAsync(async (req, res) => {
-  await db.run('DELETE FROM categorias WHERE id = $1', req.params.id);
-  res.json({ success: true });
+  try {
+    await db.run('DELETE FROM categorias WHERE id = $1', req.params.id);
+    res.json({ success: true });
+  } catch (e) {
+    res.status(409).json({ error: 'Não foi possível excluir esta categoria.' });
+  }
 }));
 
 module.exports = router;
