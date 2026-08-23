@@ -169,7 +169,7 @@ function renderProdutos(lista) {
         </div>
         <div class="product-bottom">
           <span class="product-price">R$ ${p.preco.toFixed(2)}</span>
-          <button class="btn-add" onclick="event.stopPropagation(); abrirProduto(${p.id})">+</button>
+          <button class="btn-add" onclick="event.stopPropagation(); abrirProduto(${p.id})">Adicionar ao carrinho</button>
         </div>
       </div>
     </div>
