@@ -99,10 +99,10 @@ router.post('/', wrapAsync(async (req, res) => {
   }
 
   if (req.emitToAdmin) {
-    req.emitToAdmin('novo-pedido', pedido);
+    await req.emitToAdmin('novo-pedido', pedido);
   }
   if (req.emitToGarcom) {
-    req.emitToGarcom('novo-pedido', pedido);
+    await req.emitToGarcom('novo-pedido', pedido);
   }
 
   res.json(pedido);
@@ -116,10 +116,10 @@ router.put('/:id/status', middlewareAdmin, wrapAsync(async (req, res) => {
   await db.run('UPDATE pedidos SET status = $1, atualizado_em = NOW() WHERE id = $2', status, req.params.id);
 
   if (req.emitToAdmin) {
-    req.emitToAdmin('pedido-atualizado', { id: parseInt(req.params.id), status });
+    await req.emitToAdmin('pedido-atualizado', { id: parseInt(req.params.id), status });
   }
   if (req.emitToGarcom) {
-    req.emitToGarcom('pedido-atualizado', { id: parseInt(req.params.id), status });
+    await req.emitToGarcom('pedido-atualizado', { id: parseInt(req.params.id), status });
   }
 
   res.json({ success: true });
@@ -130,10 +130,10 @@ router.put('/:id/pix', middlewareAdmin, wrapAsync(async (req, res) => {
   await db.run('UPDATE pedidos SET pix_confirmado = $1 WHERE id = $2', confirmado ? true : false, req.params.id);
 
   if (req.emitToAdmin && confirmado) {
-    req.emitToAdmin('pix-confirmado', { id: parseInt(req.params.id) });
+    await req.emitToAdmin('pix-confirmado', { id: parseInt(req.params.id) });
   }
   if (req.emitToGarcom && confirmado) {
-    req.emitToGarcom('pix-confirmado', { id: parseInt(req.params.id) });
+    await req.emitToGarcom('pix-confirmado', { id: parseInt(req.params.id) });
   }
 
   res.json({ success: true });

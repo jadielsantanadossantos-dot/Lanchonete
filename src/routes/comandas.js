@@ -139,10 +139,10 @@ router.post('/mesa/:mesaId/item', wrapAsync(async (req, res) => {
   await itemStmt.run(comanda.id, produto_id, produto.nome, quantidade || 1, produto.preco, observacao || '', adicJson);
 
   if (req.emitToMesa) {
-    req.emitToMesa(mesaId, 'comanda-atualizada', { mesaId: parseInt(mesaId) });
+    await req.emitToMesa(mesaId, 'comanda-atualizada', { mesaId: parseInt(mesaId) });
   }
   if (req.emitToGarcom) {
-    req.emitToGarcom('comanda-atualizada', { mesaId: parseInt(mesaId) });
+    await req.emitToGarcom('comanda-atualizada', { mesaId: parseInt(mesaId) });
   }
 
   res.json({ success: true, comandaId: comanda.id });
@@ -161,10 +161,10 @@ router.put('/mesa/:mesaId/item/:itemId', wrapAsync(async (req, res) => {
   `, quantidade || 1, observacao || '', adicJson, itemId, comanda.id);
 
   if (req.emitToMesa) {
-    req.emitToMesa(mesaId, 'comanda-atualizada', { mesaId: parseInt(mesaId) });
+    await req.emitToMesa(mesaId, 'comanda-atualizada', { mesaId: parseInt(mesaId) });
   }
   if (req.emitToGarcom) {
-    req.emitToGarcom('comanda-atualizada', { mesaId: parseInt(mesaId) });
+    await req.emitToGarcom('comanda-atualizada', { mesaId: parseInt(mesaId) });
   }
 
   res.json({ success: true });
@@ -178,10 +178,10 @@ router.delete('/mesa/:mesaId/item/:itemId', wrapAsync(async (req, res) => {
   await db.run('DELETE FROM comanda_itens WHERE id = $1 AND comanda_id = $2', itemId, comanda.id);
 
   if (req.emitToMesa) {
-    req.emitToMesa(mesaId, 'comanda-atualizada', { mesaId: parseInt(mesaId) });
+    await req.emitToMesa(mesaId, 'comanda-atualizada', { mesaId: parseInt(mesaId) });
   }
   if (req.emitToGarcom) {
-    req.emitToGarcom('comanda-atualizada', { mesaId: parseInt(mesaId) });
+    await req.emitToGarcom('comanda-atualizada', { mesaId: parseInt(mesaId) });
   }
 
   res.json({ success: true });
@@ -195,10 +195,10 @@ router.put('/mesa/:mesaId/cliente-nome', wrapAsync(async (req, res) => {
   await db.run('UPDATE comandas SET cliente_nome = $1 WHERE id = $2', cliente_nome || null, comanda.id);
 
   if (req.emitToMesa) {
-    req.emitToMesa(mesaId, 'comanda-atualizada', { mesaId: parseInt(mesaId) });
+    await req.emitToMesa(mesaId, 'comanda-atualizada', { mesaId: parseInt(mesaId) });
   }
   if (req.emitToGarcom) {
-    req.emitToGarcom('comanda-atualizada', { mesaId: parseInt(mesaId) });
+    await req.emitToGarcom('comanda-atualizada', { mesaId: parseInt(mesaId) });
   }
 
   res.json({ success: true });
@@ -323,13 +323,13 @@ router.post('/mesa/:mesaId/enviar-cozinha', wrapAsync(async (req, res) => {
   }
 
   if (req.emitToAdmin) {
-    req.emitToAdmin('novo-pedido', pedido);
+    await req.emitToAdmin('novo-pedido', pedido);
   }
   if (req.emitToGarcom) {
-    req.emitToGarcom('novo-pedido', pedido);
+    await req.emitToGarcom('novo-pedido', pedido);
   }
   if (req.emitToMesa) {
-    req.emitToMesa(mesaId, 'comanda-atualizada', { mesaId: parseInt(mesaId) });
+    await req.emitToMesa(mesaId, 'comanda-atualizada', { mesaId: parseInt(mesaId) });
   }
 
   res.json({ success: true, pedido, itensEnviados: itensComAdicionais.length });
@@ -531,10 +531,10 @@ router.post('/mesa/:mesaId/liberar', wrapAsync(async (req, res) => {
   await db.run('UPDATE mesas SET status = $1 WHERE id = $2', 'livre', mesaId);
 
   if (req.emitToAdmin) {
-    req.emitToAdmin('mesa-atualizada', { mesaId: parseInt(mesaId), status: 'livre' });
+    await req.emitToAdmin('mesa-atualizada', { mesaId: parseInt(mesaId), status: 'livre' });
   }
   if (req.emitToGarcom) {
-    req.emitToGarcom('mesa-atualizada', { mesaId: parseInt(mesaId), status: 'livre' });
+    await req.emitToGarcom('mesa-atualizada', { mesaId: parseInt(mesaId), status: 'livre' });
   }
 
   res.json({ success: true, mensagem: 'Mesa liberada com sucesso' });
