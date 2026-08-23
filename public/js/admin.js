@@ -2,6 +2,7 @@ let allClientes = [];
 let usuarioLogado = null;
 let realtimeUnsubscribes = [];
 let adicionalEmEdicao = null;
+let adicionaisAdmin = [];
 
 document.addEventListener('DOMContentLoaded', async () => {
   if (!verificarAuth('admin')) {
@@ -594,42 +595,62 @@ async function excluirProduto(id) {
 async function carregarAdicionais() {
   try {
     const [adcRes, catRes] = await Promise.all([authFetch('/api/adicionais'), authFetch('/api/categorias')]);
-    const adicionais = await adcRes.json();
+    adicionaisAdmin = await adcRes.json();
     const categorias = await catRes.json();
 
     console.log('Categorias carregadas:', categorias);
-    console.log('Adicionais carregados:', adicionais);
+    console.log('Adicionais carregados:', adicionaisAdmin);
 
     const select = document.getElementById('adic-categoria');
     if (select) {
       select.innerHTML = categorias.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
       console.log('Select preenchido com', categorias.length, 'categorias');
-    } else {
-      console.error('Elemento adic-categoria não encontrado');
     }
 
-    document.getElementById('adicionais-list').innerHTML = `<table>
-      <thead><tr><th>Nome</th><th>Descrição</th><th>Tipo</th><th>Categoria</th><th>Preço</th><th>Status</th><th>Ações</th></tr></thead>
-      <tbody>${adicionais.map(a => `
-        <tr>
-          <td><strong>${a.nome}</strong></td>
-          <td><small style="color:var(--color-text-secondary)">${a.descricao || '-'}</small></td>
-          <td><span style="background: ${a.tipo === 'sabor' ? '#e8f5e9' : '#fff3e0'}; padding: 2px 8px; border-radius: 4px; font-size: 12px;">${a.tipo === 'sabor' ? '🍕 Sabor' : 'Adicional'}</span></td>
-          <td>${a.categoria_nome || 'Todas'}</td>
-          <td>R$ ${a.preco.toFixed(2)}</td>
-          <td>${a.ativo ? '<span style="color:var(--success)">Ativo</span>' : '<span style="color:var(--danger)">Inativo</span>'}</td>
-          <td>
-            <button class="btn btn-xs btn-primary" onclick="editarAdicional(${a.id}, '${a.nome}', '${(a.descricao || '').replace(/'/g, "\\'")}', ${a.preco}, ${a.categoria_id || 'null'}, '${a.tipo}')">Editar</button>
-            <button class="btn btn-xs ${a.ativo ? 'btn-warning' : 'btn-success'}" onclick="toggleAdicional(${a.id}, '${a.nome}', ${a.preco}, ${a.ativo ? 0 : 1}, ${a.categoria_id || 'null'}, '${a.tipo}', '${(a.descricao || '').replace(/'/g, "\\'")}')">${a.ativo ? 'Desativar' : 'Ativar'}</button>
-            <button class="btn btn-xs btn-danger" onclick="excluirAdicional(${a.id})">Excluir</button>
-          </td>
-        </tr>
-      `).join('')}</tbody>
-    </table>`;
+    // Popular filtro de categorias
+    const filtroSelect = document.getElementById('filtro-categoria-adicionais');
+    if (filtroSelect) {
+      filtroSelect.innerHTML = '<option value="">Todas as categorias</option>' +
+        categorias.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+    }
+
+    renderizarAdicionais(adicionaisAdmin);
   } catch (e) {
     console.error('Erro ao carregar adicionais:', e);
     showToast('Erro ao carregar adicionais: ' + e.message);
   }
+}
+
+function renderizarAdicionais(adicionais) {
+  document.getElementById('adicionais-list').innerHTML = `<table>
+    <thead><tr><th>Nome</th><th>Descrição</th><th>Tipo</th><th>Categoria</th><th>Preço</th><th>Status</th><th>Ações</th></tr></thead>
+    <tbody>${adicionais.map(a => `
+      <tr>
+        <td><strong>${a.nome}</strong></td>
+        <td><small style="color:var(--color-text-secondary)">${a.descricao || '-'}</small></td>
+        <td><span style="background: ${a.tipo === 'sabor' ? '#e8f5e9' : '#fff3e0'}; padding: 2px 8px; border-radius: 4px; font-size: 12px;">${a.tipo === 'sabor' ? '🍕 Sabor' : 'Adicional'}</span></td>
+        <td>${a.categoria_nome || 'Todas'}</td>
+        <td>R$ ${a.preco.toFixed(2)}</td>
+        <td>${a.ativo ? '<span style="color:var(--success)">Ativo</span>' : '<span style="color:var(--danger)">Inativo</span>'}</td>
+        <td>
+          <button class="btn btn-xs btn-primary" onclick="editarAdicional(${a.id}, '${a.nome}', '${(a.descricao || '').replace(/'/g, "\\'")}', ${a.preco}, ${a.categoria_id || 'null'}, '${a.tipo}')">Editar</button>
+          <button class="btn btn-xs ${a.ativo ? 'btn-warning' : 'btn-success'}" onclick="toggleAdicional(${a.id}, '${a.nome}', ${a.preco}, ${a.ativo ? 0 : 1}, ${a.categoria_id || 'null'}, '${a.tipo}', '${(a.descricao || '').replace(/'/g, "\\'")}')">${a.ativo ? 'Desativar' : 'Ativar'}</button>
+          <button class="btn btn-xs btn-danger" onclick="excluirAdicional(${a.id})">Excluir</button>
+        </td>
+      </tr>
+    `).join('')}</tbody>
+  </table>`;
+}
+
+function filtrarAdicionaisPorCategoria() {
+  const categoriaId = document.getElementById('filtro-categoria-adicionais').value;
+  let adicionaisFiltrados = adicionaisAdmin;
+  
+  if (categoriaId) {
+    adicionaisFiltrados = adicionaisFiltrados.filter(a => a.categoria_id == categoriaId);
+  }
+  
+  renderizarAdicionais(adicionaisFiltrados);
 }
 
 function editarAdicional(id, nome, descricao, preco, categoria_id, tipo) {

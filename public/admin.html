@@ -166,6 +166,11 @@
           <button class="btn btn-primary btn-sm" onclick="salvarAdicional()" id="btn-salvar-adic">Adicionar</button>
           <button class="btn btn-secondary btn-sm" onclick="cancelarEdicaoAdicional()" id="btn-cancelar-adic" style="display:none;">Cancelar</button>
         </div>
+        <div class="filters" style="margin-top: 16px; margin-bottom: 16px;">
+          <select class="filter-select" id="filtro-categoria-adicionais" onchange="filtrarAdicionaisPorCategoria()">
+            <option value="">Todas as categorias</option>
+          </select>
+        </div>
         <div id="adicionais-list" class="table-container"></div>
       </section>
 
