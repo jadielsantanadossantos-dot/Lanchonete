@@ -74,14 +74,11 @@ router.get('/', wrapAsync(async (req, res) => {
     ORDER BY c.ordem, p.nome
   `);
 
-  const adicionais = await db.all(`
-    SELECT pa.produto_id, a.* FROM produto_adicionais pa
-    JOIN adicionais a ON pa.adicional_id = a.id WHERE a.ativo = true
-  `);
+  const adicionais = await db.all('SELECT * FROM adicionais WHERE ativo = true');
 
   const produtos = rows.map(p => ({
     ...p,
-    adicionais: adicionais.filter(a => a.produto_id === p.id)
+    adicionais: adicionais.filter(a => !a.categoria_id || a.categoria_id === p.categoria_id)
   }));
 
   res.json(produtos);
@@ -94,14 +91,11 @@ router.get('/ativos', wrapAsync(async (req, res) => {
     WHERE p.ativo = true ORDER BY c.ordem, p.nome
   `);
 
-  const adicionais = await db.all(`
-    SELECT pa.produto_id, a.* FROM produto_adicionais pa
-    JOIN adicionais a ON pa.adicional_id = a.id WHERE a.ativo = true
-  `);
+  const adicionais = await db.all('SELECT * FROM adicionais WHERE ativo = true');
 
   const produtos = rows.map(p => ({
     ...p,
-    adicionais: adicionais.filter(a => a.produto_id === p.id)
+    adicionais: adicionais.filter(a => !a.categoria_id || a.categoria_id === p.categoria_id)
   }));
 
   res.json(produtos);
@@ -114,10 +108,7 @@ router.get('/:id', wrapAsync(async (req, res) => {
   `, req.params.id);
   if (!row) return res.status(404).json({ error: 'Produto não encontrado' });
 
-  const adicionais = await db.all(`
-    SELECT a.* FROM produto_adicionais pa
-    JOIN adicionais a ON pa.adicional_id = a.id WHERE pa.produto_id = $1
-  `, req.params.id);
+  const adicionais = await db.all('SELECT * FROM adicionais WHERE ativo = true AND (categoria_id IS NULL OR categoria_id = $1)', row.categoria_id);
 
   res.json({ ...row, adicionais });
 }));

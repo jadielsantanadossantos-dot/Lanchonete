@@ -116,10 +116,7 @@
                 <label>Foto</label>
                 <input class="form-control" id="prod-foto" type="file" accept="image/*">
               </div>
-              <div class="form-group">
-                <label>Adicionais disponíveis</label>
-                <div id="prod-adicionais-list"></div>
-              </div>
+              <p style="font-size:var(--text-sm);color:var(--color-text-muted)">Os adicionais são definidos por categoria, no menu "Adicionais".</p>
               <div class="form-group">
                 <label>
                   <input type="checkbox" id="prod-ativo" checked> Produto ativo
@@ -146,7 +143,8 @@
       <section id="sec-adicionais" class="section">
         <div class="inline-form">
           <input class="form-control" id="adic-nome" placeholder="Nome do adicional">
-          <input class="form-control" id="adic-preco" type="number" step="0.01" placeholder="Preço" style="width:100px">
+          <input class="form-control" id="adic-preco" type="number" step="0.01" placeholder="Preço" style="width:110px">
+          <select class="form-control" id="adic-categoria" style="width:170px"></select>
           <button class="btn btn-primary btn-sm" onclick="salvarAdicional()">Adicionar</button>
         </div>
         <div id="adicionais-list" class="table-container"></div>

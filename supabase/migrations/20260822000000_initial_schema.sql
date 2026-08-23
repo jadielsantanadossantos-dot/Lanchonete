@@ -28,6 +28,7 @@ CREATE TABLE adicionais (
     id BIGSERIAL PRIMARY KEY,
     nome TEXT NOT NULL,
     preco NUMERIC(10,2) NOT NULL,
+    categoria_id BIGINT REFERENCES categorias(id),
     ativo BOOLEAN DEFAULT true,
     criado_em TIMESTAMPTZ DEFAULT NOW()
 );
