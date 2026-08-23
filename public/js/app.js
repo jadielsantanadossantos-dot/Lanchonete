@@ -186,7 +186,9 @@ function abrirProduto(id) {
 
   const porKg = produtoAtual.unidade === 'kg';
   const isPizza = produtoAtual.categoria_nome && ['Pizza', 'Tradicional', 'Especial', 'Doce'].some(cat => produtoAtual.categoria_nome.toLowerCase().includes(cat.toLowerCase()));
-  modalQtd = 1;
+  const isSuco = produtoAtual.categoria_nome && ['suco', 'suco', 'bebida'].some(cat => produtoAtual.categoria_nome.toLowerCase().includes(cat.toLowerCase()));
+  const isProdutoComSabores = isPizza || isSuco;
+  const maxSabores = isProdutoComSabores ? (produtoAtual.categoria_nome && produtoAtual.categoria_nome.toLowerCase().includes('pizza') ? 3 : 1) : 999;
   document.getElementById('modal-nome').textContent = produtoAtual.nome;
   document.getElementById('modal-desc').textContent = produtoAtual.descricao || '';
   document.getElementById('modal-preco').textContent = `R$ ${produtoAtual.preco.toFixed(2)}${porKg ? ' /kg' : ''}`;
@@ -211,18 +213,18 @@ function abrirProduto(id) {
   const adcList = document.getElementById('adicionais-list');
   
   if (produtoAtual.adicionais && produtoAtual.adicionais.length) {
-    // Separar sabores de adicionais para pizzas
-    if (isPizza) {
+    // Separar sabores de adicionais para pizzas e sucos
+    if (isProdutoComSabores) {
       const sabores = produtoAtual.adicionais.filter(a => a.tipo === 'sabor');
-      const adicionaisExtras = produtoAtual.adicionais.filter(a => a.tipo === 'adicional' && a.preco > 0);
+      const adicionaisExtras = produtoAtual.adicionais.filter(a => a.tipo === 'adicional' && a.preco > 0 && a.tipo !== 'sabor');
       
       let htmlSabores = '';
       let htmlAdicionais = '';
       
       if (sabores.length) {
-        const maxSabores = 3;
+        const titulo = isPizza ? `Escolha até ${maxSabores} sabores` : `Escolha ${maxSabores} sabor`;
         htmlSabores = `<div style="margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--color-border);">
-          <div style="font-size: 0.85rem; color: var(--color-text-secondary) margin-bottom: 8px;">Escolha até ${maxSabores} sabores</div>
+          <div style="font-size: 0.85rem; color: var(--color-text-secondary); margin-bottom: 8px;">${titulo}</div>
           ${sabores.map(a => `
             <div class="adicional-item">
               <label>
@@ -237,14 +239,14 @@ function abrirProduto(id) {
           `).join('')}
         </div>`;
         
-        // Limitar seleção de sabores a 3
+        // Limitar seleção de sabores
         setTimeout(() => {
           document.querySelectorAll('.sabor-checkbox').forEach(cb => {
             cb.addEventListener('change', function() {
               const checked = document.querySelectorAll('.sabor-checkbox:checked').length;
               if (checked > maxSabores) {
                 this.checked = false;
-                mostrarToast(`Máximo ${maxSabores} sabores permitidos`);
+                mostrarToast(`Máximo ${maxSabores} sabor(es) permitido(s)`);
               }
             });
           });
@@ -268,6 +270,39 @@ function abrirProduto(id) {
           `).join('')}
         </div>`;
       }
+      
+      if (htmlSabores || htmlAdicionais) {
+        adcSection.style.display = 'block';
+        adcList.innerHTML = htmlSabores + htmlAdicionais;
+      } else {
+        adcSection.style.display = 'none';
+      }
+    } else {
+      // Para não-pizzas/não-sucos, mostrar todos os adicionais normalmente
+      const adicionaisFiltrados = produtoAtual.adicionais.filter(a => !a.tipo || a.tipo === 'adicional');
+      
+      if (adicionaisFiltrados.length) {
+        adcSection.style.display = 'block';
+        adcList.innerHTML = `<div style="margin-bottom: 8px; font-size: 0.85rem; color: var(--color-text-secondary);">Adicionais</div>` +
+          adicionaisFiltrados.map(a => `
+            <div class="adicional-item">
+              <label>
+                <input type="checkbox" value="${a.id}" data-nome="${a.nome}" data-preco="${a.preco}" data-tipo="adicional">
+                <div>
+                  <span>${a.nome}</span>
+                  ${a.descricao ? `<br><small style="color: var(--color-text-secondary); display: block; margin-top: 2px;">${a.descricao}</small>` : ''}
+                </div>
+              </label>
+              <span class="adicional-price">${a.preco > 0 ? '+ R$ ' + a.preco.toFixed(2) : 'Incluído'}</span>
+            </div>
+          `).join('');
+      } else {
+        adcSection.style.display = 'none';
+      }
+    }
+  } else {
+    adcSection.style.display = 'none';
+  }
       
       if (htmlSabores || htmlAdicionais) {
         adcSection.style.display = 'block';
