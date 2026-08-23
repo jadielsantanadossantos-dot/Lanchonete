@@ -209,21 +209,82 @@ function abrirProduto(id) {
 
   const adcSection = document.getElementById('modal-adicionais');
   const adcList = document.getElementById('adicionais-list');
+  
   if (produtoAtual.adicionais && produtoAtual.adicionais.length) {
-    // Filtrar apenas adicionais do tipo "sabor" para pizzas
-    const adicionaisFiltrados = isPizza 
-      ? produtoAtual.adicionais.filter(a => a.tipo === 'sabor')
-      : produtoAtual.adicionais.filter(a => a.tipo !== 'sabor');
-    
-    if (adicionaisFiltrados.length) {
-      adcSection.style.display = 'block';
-      const maxSabores = isPizza ? 3 : 999;
-      const titulo = isPizza ? `Escolha até ${maxSabores} sabores` : 'Adicionais';
-      adcList.innerHTML = `<div style="margin-bottom: 8px; font-size: 0.85rem; color: var(--color-text-secondary);">${titulo}</div>` + 
-        adicionaisFiltrados.map(a => `
+    // Separar sabores de adicionais para pizzas
+    if (isPizza) {
+      const sabores = produtoAtual.adicionais.filter(a => a.tipo === 'sabor');
+      const adicionaisExtras = produtoAtual.adicionais.filter(a => a.tipo === 'adicional' && a.preco > 0);
+      
+      let htmlSabores = '';
+      let htmlAdicionais = '';
+      
+      if (sabores.length) {
+        const maxSabores = 3;
+        htmlSabores = `<div style="margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--color-border);">
+          <div style="font-size: 0.85rem; color: var(--color-text-secondary) margin-bottom: 8px;">Escolha até ${maxSabores} sabores</div>
+          ${sabores.map(a => `
+            <div class="adicional-item">
+              <label>
+                <input type="checkbox" value="${a.id}" data-nome="${a.nome}" data-preco="${a.preco}" data-tipo="sabor" class="sabor-checkbox" data-max="${maxSabores}">
+                <div>
+                  <span>${a.nome}</span>
+                  ${a.descricao ? `<br><small style="color: var(--color-text-secondary); display: block; margin-top: 2px;">${a.descricao}</small>` : ''}
+                </div>
+              </label>
+              <span class="adicional-price">${a.preco > 0 ? '+ R$ ' + a.preco.toFixed(2) : 'Incluído'}</span>
+            </div>
+          `).join('')}
+        </div>`;
+        
+        // Limitar seleção de sabores a 3
+        setTimeout(() => {
+          document.querySelectorAll('.sabor-checkbox').forEach(cb => {
+            cb.addEventListener('change', function() {
+              const checked = document.querySelectorAll('.sabor-checkbox:checked').length;
+              if (checked > maxSabores) {
+                this.checked = false;
+                mostrarToast(`Máximo ${maxSabores} sabores permitidos`);
+              }
+            });
+          });
+        }, 10);
+      }
+      
+      if (adicionaisExtras.length) {
+        htmlAdicionais = `<div style="margin-top: 12px;">
+          <div style="font-size: 0.85rem; color: var(--color-text-secondary); margin-bottom: 8px;">Adicionais extras</div>
+          ${adicionaisExtras.map(a => `
+            <div class="adicional-item">
+              <label>
+                <input type="checkbox" value="${a.id}" data-nome="${a.nome}" data-preco="${a.preco}" data-tipo="adicional">
+                <div>
+                  <span>${a.nome}</span>
+                  ${a.descricao ? `<br><small style="color: var(--color-text-secondary); display: block; margin-top: 2px;">${a.descricao}</small>` : ''}
+                </div>
+              </label>
+              <span class="adicional-price">+ R$ ${a.preco.toFixed(2)}</span>
+            </div>
+          `).join('')}
+        </div>`;
+      }
+      
+      if (htmlSabores || htmlAdicionais) {
+        adcSection.style.display = 'block';
+        adcList.innerHTML = htmlSabores + htmlAdicionais;
+      } else {
+        adcSection.style.display = 'none';
+      }
+    } else {
+      // Para não-pizzas, mostrar todos os adicionais normalmente
+      const adicionaisFiltrados = produtoAtual.adicionais.filter(a => !a.tipo || a.tipo === 'adicional');
+      
+      if (adicionaisFiltrados.length) {
+        adcSection.style.display = 'block';
+        adcList.innerHTML = adicionaisFiltrados.map(a => `
           <div class="adicional-item">
             <label>
-              <input type="checkbox" value="${a.id}" data-nome="${a.nome}" data-preco="${a.preco}" class="sabor-checkbox" data-max="${maxSabores}">
+              <input type="checkbox" value="${a.id}" data-nome="${a.nome}" data-preco="${a.preco}" data-tipo="adicional">
               <div>
                 <span>${a.nome}</span>
                 ${a.descricao ? `<br><small style="color: var(--color-text-secondary); display: block; margin-top: 2px;">${a.descricao}</small>` : ''}
@@ -232,21 +293,9 @@ function abrirProduto(id) {
             <span class="adicional-price">${a.preco > 0 ? '+ R$ ' + a.preco.toFixed(2) : 'Incluído'}</span>
           </div>
         `).join('');
-      
-      // Adicionar listener para limitar seleção de sabores
-      if (isPizza) {
-        document.querySelectorAll('.sabor-checkbox').forEach(cb => {
-          cb.addEventListener('change', function() {
-            const checked = document.querySelectorAll('.sabor-checkbox:checked').length;
-            if (checked > maxSabores) {
-              this.checked = false;
-              mostrarToast(`Máximo ${maxSabores} sabores permitidos`);
-            }
-          });
-        });
+      } else {
+        adcSection.style.display = 'none';
       }
-    } else {
-      adcSection.style.display = 'none';
     }
   } else {
     adcSection.style.display = 'none';
