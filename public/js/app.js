@@ -303,38 +303,6 @@ function abrirProduto(id) {
   } else {
     adcSection.style.display = 'none';
   }
-      
-      if (htmlSabores || htmlAdicionais) {
-        adcSection.style.display = 'block';
-        adcList.innerHTML = htmlSabores + htmlAdicionais;
-      } else {
-        adcSection.style.display = 'none';
-      }
-    } else {
-      // Para não-pizzas, mostrar todos os adicionais normalmente
-      const adicionaisFiltrados = produtoAtual.adicionais.filter(a => !a.tipo || a.tipo === 'adicional');
-      
-      if (adicionaisFiltrados.length) {
-        adcSection.style.display = 'block';
-        adcList.innerHTML = adicionaisFiltrados.map(a => `
-          <div class="adicional-item">
-            <label>
-              <input type="checkbox" value="${a.id}" data-nome="${a.nome}" data-preco="${a.preco}" data-tipo="adicional">
-              <div>
-                <span>${a.nome}</span>
-                ${a.descricao ? `<br><small style="color: var(--color-text-secondary); display: block; margin-top: 2px;">${a.descricao}</small>` : ''}
-              </div>
-            </label>
-            <span class="adicional-price">${a.preco > 0 ? '+ R$ ' + a.preco.toFixed(2) : 'Incluído'}</span>
-          </div>
-        `).join('');
-      } else {
-        adcSection.style.display = 'none';
-      }
-    }
-  } else {
-    adcSection.style.display = 'none';
-  }
 
   atualizarBtnAdd();
   document.getElementById('modal-produto').classList.add('active');
