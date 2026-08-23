@@ -26,6 +26,24 @@ router.get('/telefone/:telefone', wrapAsync(async (req, res) => {
   res.json(cliente);
 }));
 
+// Publico: cliente acompanha os proprios pedidos pelo telefone
+router.get('/telefone/:telefone/pedidos', wrapAsync(async (req, res) => {
+  const cliente = await db.get('SELECT id FROM clientes WHERE telefone = $1', req.params.telefone);
+  if (!cliente) return res.json([]);
+
+  const pedidos = await db.all('SELECT * FROM pedidos WHERE cliente_id = $1 ORDER BY criado_em DESC', cliente.id);
+  const itens = await db.all('SELECT * FROM pedido_itens WHERE pedido_id = ANY($1)', pedidos.map(p => p.id));
+  const adicionais = await db.all('SELECT * FROM pedido_item_adicionais WHERE pedido_item_id = ANY($1)', itens.map(i => i.id));
+
+  res.json(pedidos.map(p => ({
+    ...p,
+    itens: itens.filter(i => i.pedido_id === p.id).map(item => ({
+      ...item,
+      adicionais: adicionais.filter(a => a.pedido_item_id === item.id)
+    }))
+  })));
+}));
+
 router.get('/:id/pedidos', middlewareAdmin, wrapAsync(async (req, res) => {
   const pedidos = await db.all('SELECT * FROM pedidos WHERE cliente_id = $1 ORDER BY criado_em DESC', req.params.id);
   res.json(pedidos);

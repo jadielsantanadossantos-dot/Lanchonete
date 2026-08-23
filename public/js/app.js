@@ -471,17 +471,17 @@ function acompanharPedido() {
   if (tel) buscarPedidos();
 }
 
+let meusPedidosCache = [];
+
 async function buscarPedidos() {
   const telefone = document.getElementById('acomp-telefone').value.trim();
   if (!telefone) { mostrarToast('Informe seu telefone'); return; }
 
   try {
-    const cliRes = await fetch(`/api/clientes/telefone/${encodeURIComponent(telefone)}`);
-    if (!cliRes.ok) { document.getElementById('meus-pedidos').innerHTML = '<div class="empty-state"><p>Nenhum pedido encontrado</p></div>'; return; }
-    const cliente = await cliRes.json();
-
-    const pedRes = await fetch(`/api/clientes/${cliente.id}/pedidos`);
+    const pedRes = await fetch(`/api/clientes/telefone/${encodeURIComponent(telefone)}/pedidos`);
+    if (!pedRes.ok) throw new Error('erro');
     const pedidos = await pedRes.json();
+    meusPedidosCache = pedidos;
 
     if (!pedidos.length) {
       document.getElementById('meus-pedidos').innerHTML = '<div class="empty-state"><p>Nenhum pedido encontrado</p></div>';
@@ -529,9 +529,8 @@ async function carregarDetalhesPedido(pedidoId) {
   if (!container) return;
 
   try {
-    const res = await fetch(`/api/pedidos/${pedidoId}`);
-    if (!res.ok) throw new Error('Pedido não encontrado');
-    const p = await res.json();
+    const p = meusPedidosCache.find(x => String(x.id) === String(pedidoId));
+    if (!p) throw new Error('Pedido não encontrado');
 
     const statusLabels = { recebido: 'Recebido', em_preparo: 'Em preparo', saiu_entrega: 'Saiu p/ entrega', entregue: 'Entregue', cancelado: 'Cancelado' };
     const payLabels = { pix: 'Pix', dinheiro: 'Dinheiro', cartao: 'Cartão (na entrega)' };
@@ -595,9 +594,8 @@ function fecharDetalhe(detailId) {
 
 async function refazerPedido(pedidoId) {
   try {
-    const res = await fetch(`/api/pedidos/${pedidoId}`);
-    if (!res.ok) throw new Error('Pedido não encontrado');
-    const p = await res.json();
+    const p = meusPedidosCache.find(x => String(x.id) === String(pedidoId));
+    if (!p || !p.itens) throw new Error('Pedido não encontrado');
 
     carrinho = p.itens.map(item => ({
       produto_id: item.produto_id,
