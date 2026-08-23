@@ -312,7 +312,36 @@ function atualizarTotais() {
   document.getElementById('cart-subtotal').textContent = `R$ ${subtotal.toFixed(2)}`;
   document.getElementById('cart-taxa').textContent = `R$ ${taxaEntregaAtual.toFixed(2)}`;
   document.getElementById('cart-total').textContent = `R$ ${(subtotal + taxaEntregaAtual).toFixed(2)}`;
+  const paySub = document.getElementById('pay-subtotal');
+  if (paySub) {
+    paySub.textContent = `R$ ${subtotal.toFixed(2)}`;
+    document.getElementById('pay-taxa').textContent = `R$ ${taxaEntregaAtual.toFixed(2)}`;
+  }
   document.getElementById('pay-total').textContent = `R$ ${(subtotal + taxaEntregaAtual).toFixed(2)}`;
+}
+
+function renderResumoPagamento() {
+  const container = document.getElementById('pagamento-itens');
+  if (!container) return;
+
+  container.innerHTML = carrinho.map(item => {
+    let itemTotal = item.preco_unitario * item.quantidade;
+    const adcTexto = item.adicionais.map(a => {
+      itemTotal += a.preco * item.quantidade;
+      return `<div class="pedido-item-adicional" style="padding-left:12px">+ ${a.nome} (R$ ${a.preco.toFixed(2)})</div>`;
+    }).join('');
+
+    return `
+      <div class="cart-item">
+        <div class="cart-item-header">
+          <div class="cart-item-name">${item.quantidade}x ${item.produto_nome}</div>
+          <div class="cart-item-price">R$ ${itemTotal.toFixed(2)}</div>
+        </div>
+        ${adcTexto ? `<div>${adcTexto}</div>` : ''}
+        ${item.observacao ? `<div class="cart-item-details">Obs: ${item.observacao}</div>` : ''}
+      </div>
+    `;
+  }).join('');
 }
 
 function atualizarTaxaBairro() {
@@ -370,6 +399,7 @@ function irParaPagamento() {
   if (!nome || !telefone) { mostrarToast('Preencha nome e telefone!'); return; }
   if (!bairro) { mostrarToast('Selecione o bairro!'); return; }
 
+  renderResumoPagamento();
   atualizarTotais();
   mostrarPagina('page-pagamento');
 }

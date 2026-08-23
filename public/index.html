@@ -139,10 +139,20 @@
       <button class="back-btn" onclick="mostrarPagina('page-dados')" aria-label="Voltar">&#8592;</button>
       <span>Pagamento</span>
     </div>
-    <div class="alert alert-primary" style="margin-bottom: var(--space-4);">
-      <div class="alert-content">
-        <div class="alert-title">Total a pagar</div>
-        <div class="alert-message" style="font-size: var(--text-xl); font-weight: var(--font-extrabold); color: var(--color-primary);" id="pay-total">R$ 0,00</div>
+    <div class="section-title">Resumo do pedido</div>
+    <div id="pagamento-itens"></div>
+    <div class="cart-summary">
+      <div class="summary-row">
+        <span class="label">Subtotal</span>
+        <span class="value" id="pay-subtotal">R$ 0,00</span>
+      </div>
+      <div class="summary-row">
+        <span class="label">Taxa de entrega</span>
+        <span class="value" id="pay-taxa">R$ 0,00</span>
+      </div>
+      <div class="summary-row summary-total">
+        <span class="label">Total</span>
+        <span class="value" id="pay-total">R$ 0,00</span>
       </div>
     </div>
     <div class="section-title">Forma de pagamento</div>
