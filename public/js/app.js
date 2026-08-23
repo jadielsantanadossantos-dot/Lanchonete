@@ -343,9 +343,16 @@ function renderCarrinho() {
       <div class="cart-item">
         <div class="cart-item-header">
           <div>
-            <div class="cart-item-name">${qtdTexto} ${item.produto_nome}</div>
+            <div class="cart-item-name">${item.produto_nome}</div>
             ${adcTexto ? `<div class="cart-item-details">${adcTexto}</div>` : ''}
             ${item.observacao ? `<div class="cart-item-details">Obs: ${item.observacao}</div>` : ''}
+            ${item.unidade === 'un' ? `
+              <div class="qty-control" style="margin-top: 8px; justify-content: flex-start;">
+                <button class="qty-btn" onclick="alterarQtdCarrinho(${i}, -1)" aria-label="Diminuir" style="width: 28px; height: 28px; font-size: 14px;">-</button>
+                <span class="qty-value" style="font-size: 14px; margin: 0 10px;">${item.quantidade}</span>
+                <button class="qty-btn" onclick="alterarQtdCarrinho(${i}, 1)" aria-label="Aumentar" style="width: 28px; height: 28px; font-size: 14px;">+</button>
+              </div>
+            ` : `<div style="font-size: 13px; color: var(--color-primary); font-weight: bold; margin-top: 6px;">Peso: ${qtdTexto}</div>`}
           </div>
           <button class="cart-item-remove" onclick="removerItem(${i})">&times;</button>
         </div>
@@ -355,6 +362,19 @@ function renderCarrinho() {
   }).join('');
 
   atualizarTotais();
+}
+
+function alterarQtdCarrinho(index, delta) {
+  if (carrinho[index].unidade !== 'un') return;
+  const novaQtd = carrinho[index].quantidade + delta;
+  if (novaQtd <= 0) {
+    removerItem(index);
+  } else {
+    carrinho[index].quantidade = novaQtd;
+    salvarCarrinhoLocal();
+    atualizarCartFab();
+    renderCarrinho();
+  }
 }
 
 function removerItem(i) {

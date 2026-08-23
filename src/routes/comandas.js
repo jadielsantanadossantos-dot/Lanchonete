@@ -170,6 +170,25 @@ router.put('/mesa/:mesaId/item/:itemId', wrapAsync(async (req, res) => {
   res.json({ success: true });
 }));
 
+router.patch('/mesa/:mesaId/item/:itemId/quantidade', wrapAsync(async (req, res) => {
+  const { quantidade } = req.body;
+  const { mesaId, itemId } = req.params;
+
+  const comanda = await getComandaAberta(mesaId);
+  if (!comanda) return res.status(404).json({ error: 'Comanda não encontrada' });
+
+  await db.run('UPDATE comanda_itens SET quantidade = $1 WHERE id = $2 AND comanda_id = $3', quantidade, itemId, comanda.id);
+
+  if (req.emitToMesa) {
+    await req.emitToMesa(mesaId, 'comanda-atualizada', { mesaId: parseInt(mesaId) });
+  }
+  if (req.emitToGarcom) {
+    await req.emitToGarcom('comanda-atualizada', { mesaId: parseInt(mesaId) });
+  }
+
+  res.json({ success: true });
+}));
+
 router.delete('/mesa/:mesaId/item/:itemId', wrapAsync(async (req, res) => {
   const { mesaId, itemId } = req.params;
   const comanda = await getComandaAberta(mesaId);

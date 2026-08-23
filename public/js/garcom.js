@@ -358,9 +358,16 @@ function renderComanda() {
       <div class="g-comanda-item">
         <div class="g-comanda-item-header">
           <div style="flex:1">
-            <div class="g-item-name">${item.quantidade}x ${item.produto_nome} ${badgeEnviado}</div>
+            <div class="g-item-name">${item.produto_nome} ${badgeEnviado}</div>
             ${adcText ? `<div class="g-item-details">${adcText}</div>` : ''}
             ${item.observacao ? `<div class="g-item-details">Obs: ${item.observacao}</div>` : ''}
+            ${!item.enviado_cozinha ? `
+              <div class="qty-control" style="margin-top: 8px; justify-content: flex-start; display: flex;">
+                <button class="qty-btn" onclick="alterarQtdComanda(${item.id}, ${item.quantidade}, -1)" aria-label="Diminuir" style="width: 24px; height: 24px; font-size: 14px; padding: 0; line-height: 24px;">-</button>
+                <span class="qty-value" style="font-size: 14px; margin: 0 10px;">${item.quantidade}</span>
+                <button class="qty-btn" onclick="alterarQtdComanda(${item.id}, ${item.quantidade}, 1)" aria-label="Aumentar" style="width: 24px; height: 24px; font-size: 14px; padding: 0; line-height: 24px;">+</button>
+              </div>
+            ` : `<div style="font-size: 13px; color: var(--gray); margin-top: 6px;">Quantidade: ${item.quantidade}x</div>`}
           </div>
           <button class="g-item-remove" onclick="removerItemComanda(${item.id})">&times;</button>
         </div>
@@ -370,6 +377,27 @@ function renderComanda() {
   }).join('');
 
   document.getElementById('g-comanda-valor').textContent = `R$ ${comandaTotal.toFixed(2)}`;
+}
+
+async function alterarQtdComanda(itemId, quantAtual, delta) {
+  if (!mesaAtual) return;
+  const novaQtd = quantAtual + delta;
+  if (novaQtd <= 0) {
+    await removerItemComanda(itemId);
+  } else {
+    try {
+      const res = await authFetch(`/api/comandas/mesa/${mesaAtual.id}/item/${itemId}/quantidade`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quantidade: novaQtd })
+      });
+      if (res.ok) {
+        abrirMesa(mesaAtual.id, mesaAtual.numero);
+      }
+    } catch (e) {
+      showToast('Erro ao atualizar quantidade');
+    }
+  }
 }
 
 async function removerItemComanda(itemId) {
