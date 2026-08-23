@@ -258,6 +258,14 @@ function renderCarrinho() {
     return;
   }
 
+  // Se o cliente logado tem bairro e nenhum bairro foi escolhido
+  // manualmente ainda, usa a taxa do cadastro como padrao
+  const selectBairro = document.getElementById('cli-bairro');
+  if (!selectBairro.value && clienteLogado && clienteLogado.bairro) {
+    const b = bairros.find(x => x.nome === clienteLogado.bairro);
+    if (b) taxaEntregaAtual = parseFloat(b.taxa_entrega) || 0;
+  }
+
   empty.style.display = 'none';
   summary.style.display = 'block';
   btnCheckout.style.display = 'block';
@@ -689,11 +697,16 @@ async function cadastrarCliente() {
   if (!nome || !telefone) { mostrarErroCad('Preencha nome e telefone!'); return; }
   if (telefone.replace(/\D/g, '').length < 10) { mostrarErroCad('Telefone inválido!'); return; }
 
+  const bairroSelect = document.getElementById('cad-bairro');
+  const bairroNome = bairroSelect.selectedIndex > 0
+    ? bairroSelect.options[bairroSelect.selectedIndex].text.split(' - ')[0].trim()
+    : '';
+
   try {
     const res = await fetch('/api/clientes', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nome, telefone, rua, numero, bairro: '', complemento, ponto_referencia: referencia })
+      body: JSON.stringify({ nome, telefone, rua, numero, bairro: bairroNome, complemento, ponto_referencia: referencia })
     });
     const cliente = await res.json();
     salvarClienteLocal(cliente);
@@ -739,6 +752,12 @@ function carregarClienteLocal() {
     const saved = localStorage.getItem('clienteLogado');
     if (saved) {
       clienteLogado = JSON.parse(saved);
+      // Sessoes antigas podem ter salvo apenas {id} - invalida para forcar novo login
+      if (!clienteLogado || !clienteLogado.telefone) {
+        clienteLogado = null;
+        localStorage.removeItem('clienteLogado');
+        return;
+      }
       if (document.getElementById('page-cadastro').classList.contains('active')) {
         mostrarTelaLogado();
       }

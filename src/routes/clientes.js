@@ -38,7 +38,8 @@ router.post('/', wrapAsync(async (req, res) => {
       'INSERT INTO clientes (nome, telefone, rua, numero, bairro, complemento, ponto_referencia) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id',
       nome, telefone, rua || '', numero || '', bairro || '', complemento || '', ponto_referencia || ''
     );
-    res.json({ id: info.lastInsertRowid });
+    const cliente = await db.get('SELECT * FROM clientes WHERE id = $1', info.lastInsertRowid);
+    res.json(cliente);
   } catch (e) {
     const existing = await db.get('SELECT * FROM clientes WHERE telefone = $1', telefone);
     if (existing) {
@@ -46,7 +47,7 @@ router.post('/', wrapAsync(async (req, res) => {
         'UPDATE clientes SET nome=$1, rua=$2, numero=$3, bairro=$4, complemento=$5, ponto_referencia=$6 WHERE id=$7',
         nome, rua || '', numero || '', bairro || '', complemento || '', ponto_referencia || '', existing.id
       );
-      return res.json({ id: existing.id, updated: true });
+      return res.json(existing);
     }
     res.status(400).json({ error: 'Erro ao cadastrar cliente' });
   }
