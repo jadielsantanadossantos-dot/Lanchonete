@@ -82,13 +82,18 @@ function toggleSidebar() {
   document.getElementById('overlay').classList.toggle('active');
 }
 
+function fecharSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('overlay').classList.remove('active');
+}
+
 function showSection(section, el) {
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.getElementById('sec-' + section).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   if (el) el.classList.add('active');
   document.getElementById('page-title').textContent = el ? el.textContent.trim() : section;
-  toggleSidebar();
+  fecharSidebar();
 
   if (section === 'pedidos') carregarPedidos();
   if (section === 'produtos') carregarProdutosAdmin();
@@ -444,15 +449,29 @@ async function carregarCategoriasAdmin() {
   </table>`;
 }
 
+async function verificarResposta(res) {
+  if (!res.ok) {
+    let msg = 'Erro ' + res.status;
+    try { const j = await res.json(); if (j.error) msg = j.error; } catch (e) { /* sem corpo JSON */ }
+    throw new Error(msg);
+  }
+  return res;
+}
+
 async function salvarCategoria() {
   const nome = document.getElementById('cat-nome').value.trim();
   const ordem = parseInt(document.getElementById('cat-ordem').value) || 0;
   if (!nome) { showToast('Informe o nome da categoria'); return; }
-  await authFetch('/api/categorias', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nome, ordem }) });
-  document.getElementById('cat-nome').value = '';
-  document.getElementById('cat-ordem').value = '';
-  carregarCategoriasAdmin();
-  showToast('Categoria cadastrada!');
+  try {
+    const res = await authFetch('/api/categorias', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nome, ordem }) });
+    await verificarResposta(res);
+    document.getElementById('cat-nome').value = '';
+    document.getElementById('cat-ordem').value = '';
+    carregarCategoriasAdmin();
+    showToast('Categoria cadastrada!');
+  } catch (e) {
+    showToast(e.message === 'Failed to fetch' ? 'Erro de conexão com o servidor' : e.message);
+  }
 }
 
 async function excluirCategoria(id) {
@@ -527,11 +546,15 @@ async function salvarProduto(e) {
 
   const url = id ? `/api/produtos/${id}` : '/api/produtos';
   const method = id ? 'PUT' : 'POST';
-  await authFetch(url, { method, body: formData });
-
-  fecharModalProduto();
-  carregarProdutosAdmin();
-  showToast(id ? 'Produto atualizado!' : 'Produto cadastrado!');
+  try {
+    const res = await authFetch(url, { method, body: formData });
+    await verificarResposta(res);
+    fecharModalProduto();
+    carregarProdutosAdmin();
+    showToast(id ? 'Produto atualizado!' : 'Produto cadastrado!');
+  } catch (e) {
+    showToast(e.message === 'Failed to fetch' ? 'Erro de conexão com o servidor' : e.message);
+  }
 }
 
 async function excluirProduto(id) {
@@ -658,11 +681,16 @@ async function salvarBairro() {
   const nome = document.getElementById('bairro-nome').value.trim();
   const taxa = document.getElementById('bairro-taxa').value;
   if (!nome) { showToast('Informe o nome do bairro'); return; }
-  await authFetch('/api/bairros', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nome, taxa_entrega: taxa || 0 }) });
-  document.getElementById('bairro-nome').value = '';
-  document.getElementById('bairro-taxa').value = '';
-  carregarBairrosAdmin();
-  showToast('Bairro cadastrado!');
+  try {
+    const res = await authFetch('/api/bairros', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nome, taxa_entrega: taxa || 0 }) });
+    await verificarResposta(res);
+    document.getElementById('bairro-nome').value = '';
+    document.getElementById('bairro-taxa').value = '';
+    carregarBairrosAdmin();
+    showToast('Bairro cadastrado!');
+  } catch (e) {
+    showToast(e.message === 'Failed to fetch' ? 'Erro de conexão com o servidor' : e.message);
+  }
 }
 
 async function toggleBairro(id, nome, taxa, atendido) {

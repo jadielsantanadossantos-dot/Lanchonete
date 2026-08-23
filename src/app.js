@@ -7,6 +7,10 @@ const path = require('path');
 function buildApp() {
   const app = express();
 
+  if (process.env.VERCEL) {
+    app.set('trust proxy', 1);
+  }
+
   const notifier = require('./realtime/notifier');
   app.use((req, res, next) => {
     req.emitToAdmin = notifier.emitToAdmin;
