@@ -64,6 +64,13 @@ router.post('/', wrapAsync(async (req, res) => {
 
   const { cliente_id, itens, forma_pagamento, observacoes, endereco_entrega, bairro_entrega, taxa_entrega, mesa_id } = req.body;
 
+  if (cliente_id) {
+    const cliente = await db.get('SELECT bloqueado FROM clientes WHERE id = $1', cliente_id);
+    if (cliente && cliente.bloqueado) {
+      return res.status(403).json({ error: 'Você não tem permissão para realizar pedidos.' });
+    }
+  }
+
   let subtotal = 0;
   itens.forEach(item => {
     let itemTotal = item.preco_unitario * item.quantidade;

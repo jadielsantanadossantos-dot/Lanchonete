@@ -519,6 +519,14 @@ async function finalizarPedido() {
         taxa_entrega: taxaEntregaAtual
       })
     });
+    
+    if (!pedidoRes.ok) {
+      let msg = 'Erro ao finalizar pedido. Tente novamente.';
+      try { const j = await pedidoRes.json(); if (j.error) msg = j.error; } catch (e) {}
+      mostrarToast(msg);
+      return;
+    }
+    
     const pedido = await pedidoRes.json();
     ultimoPedidoId = pedido.id;
 
@@ -822,7 +830,12 @@ async function entrarCliente() {
 
   try {
     const res = await fetch(`/api/clientes/telefone/${encodeURIComponent(telefone)}`);
-    if (!res.ok) { mostrarErroCad('Cliente não encontrado'); return; }
+    if (!res.ok) {
+      let msg = 'Cliente não encontrado';
+      try { const j = await res.json(); if (j.error) msg = j.error; } catch (e) {}
+      mostrarErroCad(msg);
+      return;
+    }
     const cliente = await res.json();
     salvarClienteLocal(cliente);
     clienteLogado = cliente;

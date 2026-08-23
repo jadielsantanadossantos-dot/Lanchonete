@@ -634,16 +634,52 @@ function filtrarClientes() {
 
 function renderClientes(clientes) {
   document.getElementById('clientes-list').innerHTML = `<table>
-    <thead><tr><th>Nome</th><th>Telefone</th><th>Bairro</th><th>Ações</th></tr></thead>
+    <thead><tr><th>Nome</th><th>Telefone</th><th>Bairro</th><th>Status</th><th>Ações</th></tr></thead>
     <tbody>${clientes.map(c => `
-      <tr>
+      <tr style="${c.bloqueado ? 'background-color: #ffe6e6;' : ''}">
         <td>${c.nome}</td>
         <td>${c.telefone}</td>
         <td>${c.bairro || '-'}</td>
-        <td><button class="btn btn-xs btn-primary" onclick="verPedidosCliente(${c.id}, '${c.nome}')">Pedidos</button></td>
+        <td>${c.bloqueado ? '<span class="status-badge status-cancelado">Bloqueado</span>' : '<span class="status-badge status-entregue">Ativo</span>'}</td>
+        <td>
+          <button class="btn btn-xs btn-primary" onclick="verPedidosCliente(${c.id}, '${c.nome}')">Pedidos</button>
+          <button class="btn btn-xs ${c.bloqueado ? 'btn-success' : 'btn-warning'}" onclick="toggleBloqueioCliente(${c.id}, ${c.bloqueado})">
+            ${c.bloqueado ? 'Desbloquear' : 'Bloquear'}
+          </button>
+          <button class="btn btn-xs btn-danger" onclick="excluirCliente(${c.id})">Excluir</button>
+        </td>
       </tr>
     `).join('')}</tbody>
   </table>`;
+}
+
+async function toggleBloqueioCliente(id, statusAtual) {
+  const acao = statusAtual ? 'desbloquear' : 'bloquear';
+  if (!confirm(`Deseja ${acao} este cliente?`)) return;
+  try {
+    const res = await authFetch(`/api/clientes/${id}/bloquear`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ bloqueado: !statusAtual })
+    });
+    await verificarResposta(res);
+    carregarClientes();
+    showToast(`Cliente ${statusAtual ? 'desbloqueado' : 'bloqueado'}!`);
+  } catch (e) {
+    showToast(e.message === 'Failed to fetch' ? 'Erro de conexão com o servidor' : e.message);
+  }
+}
+
+async function excluirCliente(id) {
+  if (!confirm('Tem certeza que deseja excluir permanentemente este cliente?')) return;
+  try {
+    const res = await authFetch(`/api/clientes/${id}`, { method: 'DELETE' });
+    await verificarResposta(res);
+    carregarClientes();
+    showToast('Cliente excluído!');
+  } catch (e) {
+    showToast(e.message === 'Failed to fetch' ? 'Erro de conexão com o servidor' : e.message);
+  }
 }
 
 async function verPedidosCliente(id, nome) {

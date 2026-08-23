@@ -23,6 +23,7 @@ router.get('/:id', middlewareAdmin, wrapAsync(async (req, res) => {
 router.get('/telefone/:telefone', wrapAsync(async (req, res) => {
   const cliente = await db.get('SELECT * FROM clientes WHERE telefone = $1', req.params.telefone);
   if (!cliente) return res.status(404).json({ error: 'Cliente não encontrado' });
+  if (cliente.bloqueado) return res.status(403).json({ error: 'Cliente bloqueado. Entre em contato com o estabelecimento.' });
   res.json(cliente);
 }));
 
@@ -78,6 +79,22 @@ router.put('/:id', middlewareAdmin, wrapAsync(async (req, res) => {
     nome, telefone, rua || '', numero || '', bairro || '', complemento || '', ponto_referencia || '', req.params.id
   );
   res.json({ success: true });
+}));
+
+router.patch('/:id/bloquear', middlewareAdmin, wrapAsync(async (req, res) => {
+  const { bloqueado } = req.body;
+  await db.run('UPDATE clientes SET bloqueado = $1 WHERE id = $2', bloqueado, req.params.id);
+  res.json({ success: true });
+}));
+
+router.delete('/:id', middlewareAdmin, wrapAsync(async (req, res) => {
+  try {
+    await db.run('UPDATE pedidos SET cliente_id = NULL WHERE cliente_id = $1', req.params.id);
+    await db.run('DELETE FROM clientes WHERE id = $1', req.params.id);
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Erro ao excluir cliente.' });
+  }
 }));
 
 module.exports = router;
