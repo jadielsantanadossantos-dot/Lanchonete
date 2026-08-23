@@ -102,12 +102,20 @@ router.get('/ativos', wrapAsync(async (req, res) => {
     // Para pizzas/sucos: retornar sabores + adicionais. Para outros: apenas adicionais
     const adicionaisFiltrados = adicionais.filter(a => {
       const mesmaCategoria = !a.categoria_id || a.categoria_id === p.categoria_id;
+      // Adicionais específicos do produto têm prioridade
+      const produtoEspecifico = a.produto_id === p.id;
+      // Adicionais globais da categoria
+      const adicionalGlobal = (!a.produto_id || a.produto_id === null) && mesmaCategoria;
+      
       if (isPizza) {
         // Pizzas/sucos recebem sabores (tipo='sabor') E adicionais com preço
-        return mesmaCategoria && (a.tipo === 'sabor' || (a.tipo === 'adicional' && a.preco > 0));
+        if (a.tipo === 'sabor' && (produtoEspecifico || mesmaCategoria)) {
+          return true;
+        }
+        return (produtoEspecifico || adicionalGlobal) && a.tipo === 'adicional' && a.preco > 0;
       } else {
         // Não-pizzas recebem apenas adicionais sem tipo ou tipo='adicional'
-        return mesmaCategoria && (!a.tipo || a.tipo === 'adicional');
+        return (produtoEspecifico || adicionalGlobal) && (!a.tipo || a.tipo === 'adicional');
       }
     });
     
