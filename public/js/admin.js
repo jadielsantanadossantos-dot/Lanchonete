@@ -602,16 +602,17 @@ async function carregarAdicionais() {
   }
 
   document.getElementById('adicionais-list').innerHTML = `<table>
-    <thead><tr><th>Nome</th><th>Tipo</th><th>Categoria</th><th>Preço</th><th>Status</th><th>Ações</th></tr></thead>
+    <thead><tr><th>Nome</th><th>Descrição</th><th>Tipo</th><th>Categoria</th><th>Preço</th><th>Status</th><th>Ações</th></tr></thead>
     <tbody>${adicionais.map(a => `
       <tr>
-        <td>${a.nome}</td>
+        <td><strong>${a.nome}</strong></td>
+        <td><small style="color:var(--color-text-secondary)">${a.descricao || '-'}</small></td>
         <td><span style="background: ${a.tipo === 'sabor' ? '#e8f5e9' : '#fff3e0'}; padding: 2px 8px; border-radius: 4px; font-size: 12px;">${a.tipo === 'sabor' ? '🍕 Sabor' : 'Adicional'}</span></td>
         <td>${a.categoria_nome || 'Todas'}</td>
         <td>R$ ${a.preco.toFixed(2)}</td>
         <td>${a.ativo ? '<span style="color:var(--success)">Ativo</span>' : '<span style="color:var(--danger)">Inativo</span>'}</td>
         <td>
-          <button class="btn btn-xs ${a.ativo ? 'btn-warning' : 'btn-success'}" onclick="toggleAdicional(${a.id}, '${a.nome}', ${a.preco}, ${a.ativo ? 0 : 1}, ${a.categoria_id || 'null'}, '${a.tipo}')">${a.ativo ? 'Desativar' : 'Ativar'}</button>
+          <button class="btn btn-xs ${a.ativo ? 'btn-warning' : 'btn-success'}" onclick="toggleAdicional(${a.id}, '${a.nome}', ${a.preco}, ${a.ativo ? 0 : 1}, ${a.categoria_id || 'null'}, '${a.tipo}', '${(a.descricao || '').replace(/'/g, "\\'")}')">${a.ativo ? 'Desativar' : 'Ativar'}</button>
           <button class="btn btn-xs btn-danger" onclick="excluirAdicional(${a.id})">Excluir</button>
         </td>
       </tr>
@@ -621,15 +622,17 @@ async function carregarAdicionais() {
 
 async function salvarAdicional() {
   const nome = document.getElementById('adic-nome').value.trim();
+  const descricao = document.getElementById('adic-descricao').value.trim();
   const preco = document.getElementById('adic-preco').value;
   const categoria = document.getElementById('adic-categoria');
   const tipo = document.getElementById('adic-tipo').value;
   const categoria_id = categoria && categoria.value ? parseInt(categoria.value) : null;
   if (!nome || !preco) { showToast('Preencha nome e preço'); return; }
   try {
-    const res = await authFetch('/api/adicionais', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nome, preco, categoria_id, tipo }) });
+    const res = await authFetch('/api/adicionais', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nome, preco, categoria_id, tipo, descricao: descricao || null }) });
     await verificarResposta(res);
     document.getElementById('adic-nome').value = '';
+    document.getElementById('adic-descricao').value = '';
     document.getElementById('adic-preco').value = '';
     document.getElementById('adic-tipo').value = 'adicional';
     carregarAdicionais();
@@ -637,8 +640,8 @@ async function salvarAdicional() {
   } catch (e) { showToast(e.message); }
 }
 
-async function toggleAdicional(id, nome, preco, ativo, categoria_id, tipo) {
-  await authFetch(`/api/adicionais/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nome, preco, ativo, categoria_id: categoria_id === null ? null : undefined, tipo: tipo || 'adicional' }) });
+async function toggleAdicional(id, nome, preco, ativo, categoria_id, tipo, descricao) {
+  await authFetch(`/api/adicionais/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nome, preco, ativo, categoria_id: categoria_id === null ? null : undefined, tipo: tipo || 'adicional', descricao: descricao || null }) });
   carregarAdicionais();
 }
 

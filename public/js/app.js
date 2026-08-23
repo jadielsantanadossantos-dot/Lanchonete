@@ -224,7 +224,10 @@ function abrirProduto(id) {
           <div class="adicional-item">
             <label>
               <input type="checkbox" value="${a.id}" data-nome="${a.nome}" data-preco="${a.preco}" class="sabor-checkbox" data-max="${maxSabores}">
-              ${a.nome}
+              <div>
+                <span>${a.nome}</span>
+                ${a.descricao ? `<br><small style="color: var(--color-text-secondary); display: block; margin-top: 2px;">${a.descricao}</small>` : ''}
+              </div>
             </label>
             <span class="adicional-price">${a.preco > 0 ? '+ R$ ' + a.preco.toFixed(2) : 'Incluído'}</span>
           </div>
