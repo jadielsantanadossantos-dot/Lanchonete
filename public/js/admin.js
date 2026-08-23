@@ -767,6 +767,17 @@ async function salvarConfig(e) {
 
 // ===== SOM DE NOTIFICACAO =====
 
+function tocarSomNovoPedido() {
+  try {
+    const prefs = JSON.parse(localStorage.getItem('somPrefs')) || {};
+    if (prefs.ativo === false) return;
+    const tipo = prefs.tipo || 'classic';
+    const audio = new Audio(`/sounds/${tipo}.wav`);
+    audio.volume = (prefs.volume !== undefined ? prefs.volume : 100) / 100;
+    audio.play().catch(() => {});
+  } catch (e) {}
+}
+
 function carregarSomPrefs() {
   try {
     const prefs = JSON.parse(localStorage.getItem('somPrefs')) || {};
@@ -787,8 +798,7 @@ function salvarSomPrefs() {
     ativo: document.getElementById('cfg-som-ativo').checked,
     tipo: document.getElementById('cfg-som-tipo').value,
     volume: parseInt(document.getElementById('cfg-som-volume').value)
-  };
-  localStorage.setItem('somPrefs', JSON.stringify(prefs));
+  };  localStorage.setItem('somPrefs', JSON.stringify(prefs));
 }
 
 function getSomPrefs() {
