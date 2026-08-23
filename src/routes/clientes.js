@@ -10,7 +10,7 @@ function wrapAsync(fn) {
 }
 
 router.get('/', middlewareAdmin, wrapAsync(async (req, res) => {
-  const rows = await db.all('SELECT * FROM clientes ORDER BY nome');
+  const rows = await db.all("SELECT * FROM clientes WHERE COALESCE(bairro, '') != 'Mesa' AND telefone NOT LIKE 'mesa%' ORDER BY nome");
   res.json(rows);
 }));
 
