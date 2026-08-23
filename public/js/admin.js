@@ -730,25 +730,40 @@ async function salvarAdicional() {
     
     if (adicionalEmEdicao) {
       console.log('Atualizando adicional ID:', adicionalEmEdicao);
-      // Atualizar - usar primeira categoria selecionada ou manter atual
-      const catId = categoriasAdicionaisSelecionadas.length > 0 ? categoriasAdicionaisSelecionadas[0] : null;
-      console.log('Enviando PUT com categoria_id:', catId);
       
-      const res = await authFetch(`/api/adicionais/${adicionalEmEdicao}`, { 
-        method: 'PUT', 
-        headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify({ nome, preco, categoria_id: catId, tipo, descricao: descricao || null }) 
-      });
-      
-      console.log('Resposta do PUT:', res.status, res.ok);
-      
-      if (!res.ok) {
-        const erro = await res.text();
-        console.error('Erro na resposta:', erro);
-        throw new Error('Erro ao atualizar: ' + res.status);
+      // Se múltiplas categorias selecionadas, cria cópias em todas
+      if (categoriasAdicionaisSelecionadas.length > 1) {
+        console.log('Criando cópias em', categoriasAdicionaisSelecionadas.length, 'categorias');
+        for (const cat_id of categoriasAdicionaisSelecionadas) {
+          const res = await authFetch('/api/adicionais', { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify({ nome, preco, categoria_id: cat_id, tipo, descricao: descricao || null }) 
+          });
+          await verificarResposta(res);
+        }
+        showToast(`Item copiado para ${categoriasAdicionaisSelecionadas.length} categoria(s)!`);
+      } else {
+        // Se uma única categoria, atualiza normalmente
+        const catId = categoriasAdicionaisSelecionadas.length > 0 ? categoriasAdicionaisSelecionadas[0] : null;
+        console.log('Enviando PUT com categoria_id:', catId);
+        
+        const res = await authFetch(`/api/adicionais/${adicionalEmEdicao}`, { 
+          method: 'PUT', 
+          headers: { 'Content-Type': 'application/json' }, 
+          body: JSON.stringify({ nome, preco, categoria_id: catId, tipo, descricao: descricao || null }) 
+        });
+        
+        console.log('Resposta do PUT:', res.status, res.ok);
+        
+        if (!res.ok) {
+          const erro = await res.text();
+          console.error('Erro na resposta:', erro);
+          throw new Error('Erro ao atualizar: ' + res.status);
+        }
+        
+        showToast('Item atualizado!');
       }
-      
-      showToast('Item atualizado!');
       cancelarEdicaoAdicional();
     } else {
       // Criar novo - para cada categoria selecionada
