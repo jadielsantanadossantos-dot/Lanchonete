@@ -86,6 +86,11 @@
       <!-- PRODUTOS -->
       <section id="sec-produtos" class="section">
         <button class="btn btn-primary" onclick="abrirFormProduto()">+ Novo Produto</button>
+        <div class="filters" style="margin-top: 16px; margin-bottom: 16px;">
+          <select class="filter-select" id="filtro-categoria-produtos" onchange="filtrarProdutosPorCategoria()">
+            <option value="">Todas as categorias</option>
+          </select>
+        </div>
         <div id="produtos-list" class="table-container"></div>
 
         <div class="modal-overlay" id="modal-produto-admin">

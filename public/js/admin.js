@@ -408,9 +408,24 @@ async function carregarProdutosAdmin() {
   const produtos = await prodRes.json();
   const categorias = await catRes.json();
 
+  // Armazenar produtos para filtro
+  window.produtosAdmin = produtos;
+  window.categoriasAdmin = categorias;
+
   const select = document.getElementById('prod-categoria');
   select.innerHTML = categorias.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
 
+  // Popular select de filtro
+  const filtroSelect = document.getElementById('filtro-categoria-produtos');
+  if (filtroSelect) {
+    filtroSelect.innerHTML = '<option value="">Todas as categorias</option>' + 
+      categorias.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+  }
+
+  renderizarProdutosAdmin(produtos);
+}
+
+function renderizarProdutosAdmin(produtos) {
   const container = document.getElementById('produtos-list');
   container.innerHTML = `<table>
     <thead><tr><th>Foto</th><th>Nome</th><th>Categoria</th><th>Preço</th><th>Status</th><th>Ações</th></tr></thead>
@@ -428,6 +443,17 @@ async function carregarProdutosAdmin() {
       </tr>
     `).join('')}</tbody>
   </table>`;
+}
+
+function filtrarProdutosPorCategoria() {
+  const categoriaId = document.getElementById('filtro-categoria-produtos').value;
+  let produtosFiltrados = window.produtosAdmin;
+  
+  if (categoriaId) {
+    produtosFiltrados = produtosFiltrados.filter(p => p.categoria_id == categoriaId);
+  }
+  
+  renderizarProdutosAdmin(produtosFiltrados);
 }
 
 // CATEGORIAS
