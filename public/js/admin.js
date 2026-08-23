@@ -681,11 +681,13 @@ function editarAdicional(id, nome, descricao, preco, categoria_id, tipo) {
   document.getElementById('adic-descricao').value = descricao;
   document.getElementById('adic-preco').value = preco;
   document.getElementById('adic-tipo').value = tipo;
-  categoriasAdicionaisSelecionadas = categoria_id !== null ? [categoria_id] : [];
+  categoriasAdicionaisSelecionadas = categoria_id !== 'null' && categoria_id ? [parseInt(categoria_id)] : [];
   
   document.getElementById('btn-salvar-adic').textContent = 'Atualizar';
   document.getElementById('btn-cancelar-adic').style.display = 'inline-block';
   document.getElementById('adic-nome').focus();
+  
+  showToast('Categorias selecionadas: ' + (categoriasAdicionaisSelecionadas.length > 0 ? categoriasAdicionaisSelecionadas.length : 'Nenhuma'));
 }
 
 function cancelarEdicaoAdicional() {
@@ -707,17 +709,23 @@ async function salvarAdicional() {
   
   if (!nome) { showToast('Preencha o nome'); return; }
   if (precoVal === '' || precoVal === null) { showToast('Informe o preço (use 0 para sabor grátis)'); return; }
-  if (categoriasAdicionaisSelecionadas.length === 0) { showToast('Selecione pelo menos uma categoria'); return; }
+  
+  // Se está editando, não precisa de categorias (mantém a atual). Se está criando, precisa.
+  if (!adicionalEmEdicao && categoriasAdicionaisSelecionadas.length === 0) { 
+    showToast('Selecione pelo menos uma categoria'); 
+    return; 
+  }
   
   try {
     const preco = parseFloat(precoVal);
     
     if (adicionalEmEdicao) {
-      // Atualizar - usar primeira categoria selecionada
+      // Atualizar - usar primeira categoria selecionada ou manter atual
+      const catId = categoriasAdicionaisSelecionadas.length > 0 ? categoriasAdicionaisSelecionadas[0] : null;
       await authFetch(`/api/adicionais/${adicionalEmEdicao}`, { 
         method: 'PUT', 
         headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify({ nome, preco, categoria_id: categoriasAdicionaisSelecionadas[0], tipo, descricao: descricao || null }) 
+        body: JSON.stringify({ nome, preco, categoria_id: catId, tipo, descricao: descricao || null }) 
       });
       showToast('Item atualizado!');
       cancelarEdicaoAdicional();
