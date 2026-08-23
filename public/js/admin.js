@@ -21,6 +21,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   carregarPedidos();
   carregarSomPrefs();
+  carregarLojaStatus();
   
   // Inicializar Socket.io Realtime local
   if (window.Realtime && window.Realtime.init) {
@@ -763,6 +764,39 @@ async function salvarConfig(e) {
   await authFetch('/api/config', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(config) });
   salvarSomPrefs();
   showToast('Configurações salvas!');
+}
+
+// ===== STATUS DA LOJA =====
+
+async function carregarLojaStatus() {
+  try {
+    const res = await authFetch('/api/config');
+    if (!res.ok) return;
+    const cfg = await res.json();
+    atualizarBotaoLoja(cfg.loja_aberta !== 'false');
+  } catch (e) { /* mantem padrao aberto */ }
+}
+
+function atualizarBotaoLoja(aberta) {
+  const btn = document.getElementById('loja-status-btn');
+  const txt = document.getElementById('loja-status-texto');
+  if (!btn || !txt) return;
+  btn.classList.toggle('aberto', aberta);
+  btn.classList.toggle('fechado', !aberta);
+  txt.textContent = aberta ? 'Loja Aberta' : 'Loja Fechada';
+}
+
+async function toggleLojaStatus() {
+  try {
+    const res = await authFetch('/api/config');
+    if (!res.ok) { showToast('Erro ao ler status da loja'); return; }
+    const cfg = await res.json();
+    const vaiAbrir = cfg.loja_aberta === 'false';
+    const put = await authFetch('/api/config', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ loja_aberta: vaiAbrir ? 'true' : 'false' }) });
+    if (!put.ok) { showToast('Erro ao alterar status da loja'); return; }
+    atualizarBotaoLoja(vaiAbrir);
+    showToast(vaiAbrir ? 'Loja ABERTA - recebendo pedidos' : 'Loja FECHADA - clientes não podem fazer pedidos');
+  } catch (e) { showToast('Erro de conexão'); }
 }
 
 // ===== SOM DE NOTIFICACAO =====

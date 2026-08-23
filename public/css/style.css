@@ -268,6 +268,8 @@ textarea.form-control { min-height: 100px; resize: vertical; }
 .alert-title { font-weight: var(--font-semibold); margin-bottom: var(--space-1); }
 .alert-message { font-size: var(--text-sm); line-height: var(--line-relaxed); }
 .alert-primary { background: var(--color-primary-soft); border-color: var(--color-primary-light); color: var(--color-primary-dark); }
+.loja-fechada-banner { margin: var(--space-3) var(--space-3) 0; background: #fdecec; border: 1px solid var(--color-danger); border-radius: var(--radius); }
+.loja-fechada-banner .alert-title, .loja-fechada-banner .alert-message { color: var(--color-danger); }
 
 /* ============================================
    RESPONSIVE BREAKPOINTS (Mobile-First)

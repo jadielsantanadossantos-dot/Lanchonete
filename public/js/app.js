@@ -9,6 +9,7 @@ let taxaEntregaAtual = 0;
 let ultimoPedidoId = null;
 let config = {};
 let clienteLogado = null;
+let lojaAberta = true;
 
 // Supabase Realtime config (unused in local version)
 const SUPABASE_URL = '';
@@ -91,7 +92,24 @@ async function carregarConfig() {
       document.getElementById('loja-nome').textContent = config.loja_nome;
       document.title = config.loja_nome;
     }
+    atualizarStatusLoja(config.loja_aberta !== 'false');
   } catch (e) {}
+}
+
+async function verificarLojaAberta() {
+  try {
+    const res = await fetch('/api/config');
+    const cfg = await res.json();
+    const aberta = cfg.loja_aberta !== 'false';
+    atualizarStatusLoja(aberta);
+    return aberta;
+  } catch (e) { return true; }
+}
+
+function atualizarStatusLoja(aberta) {
+  lojaAberta = aberta;
+  const banner = document.getElementById('loja-fechada-banner');
+  if (banner) banner.style.display = aberta ? 'none' : 'block';
 }
 
 async function carregarProdutos() {
@@ -364,7 +382,7 @@ function mostrarPagina(pageId) {
     }
   }
 
-  if (pageId === 'page-carrinho') renderCarrinho();
+  if (pageId === 'page-carrinho') { renderCarrinho(); verificarLojaAberta(); }
   if (pageId === 'page-dados') preencherDadosClientePaginaDados();
   if (pageId === 'page-cadastro') {
     if (clienteLogado) mostrarTelaLogado();
@@ -396,6 +414,7 @@ function irParaPagamento() {
   const telefone = document.getElementById('cli-telefone').value.trim();
   const bairro = document.getElementById('cli-bairro').value;
 
+  if (!lojaAberta) { mostrarToast('A loja está fechada e não está aceitando pedidos'); return; }
   if (!nome || !telefone) { mostrarToast('Preencha nome e telefone!'); return; }
   if (!bairro) { mostrarToast('Selecione o bairro!'); return; }
 
@@ -405,6 +424,11 @@ function irParaPagamento() {
 }
 
 async function finalizarPedido() {
+  if (!(await verificarLojaAberta())) {
+    mostrarToast('A loja está fechada e não está aceitando pedidos');
+    mostrarPagina('page-cardapio');
+    return;
+  }
   const nome = document.getElementById('cli-nome').value.trim();
   const telefone = document.getElementById('cli-telefone').value.trim();
   const bairroId = document.getElementById('cli-bairro').value;

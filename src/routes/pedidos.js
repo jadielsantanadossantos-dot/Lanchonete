@@ -55,6 +55,13 @@ router.get('/:id', middlewareAdmin, wrapAsync(async (req, res) => {
 }));
 
 router.post('/', wrapAsync(async (req, res) => {
+  // Cliente publico so pede com a loja aberta; garcom/admin (com token) podem sempre
+  const cfgLoja = await db.get("SELECT valor FROM configuracoes WHERE chave = 'loja_aberta'");
+  const lojaAberta = !cfgLoja || cfgLoja.valor !== 'false';
+  if (!lojaAberta && !req.usuario) {
+    return res.status(403).json({ error: 'A loja está fechada e não está aceitando pedidos no momento' });
+  }
+
   const { cliente_id, itens, forma_pagamento, observacoes, endereco_entrega, bairro_entrega, taxa_entrega, mesa_id } = req.body;
 
   let subtotal = 0;

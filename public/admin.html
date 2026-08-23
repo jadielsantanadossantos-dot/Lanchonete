@@ -52,6 +52,10 @@
       <button class="menu-btn" onclick="toggleSidebar()" aria-label="Abrir menu">&#9776;</button>
       <h1 id="page-title" class="topbar-title">Pedidos</h1>
       <div class="topbar-right">
+        <button class="loja-status-btn aberto" id="loja-status-btn" onclick="toggleLojaStatus()" aria-label="Alternar status da loja">
+          <span class="loja-status-dot"></span>
+          <span id="loja-status-texto">Loja Aberta</span>
+        </button>
         <span id="admin-user-info"></span>
         <button class="btn btn-danger btn-sm" onclick="logout()">Sair</button>
         <span class="badge" id="pedidos-count">0</span>
