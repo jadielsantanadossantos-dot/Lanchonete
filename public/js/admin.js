@@ -4,6 +4,7 @@ let realtimeUnsubscribes = [];
 let adicionalEmEdicao = null;
 let adicionaisAdmin = [];
 let categoriasAdmin = [];
+let produtosAdmin = [];
 let categoriasAdicionaisSelecionadas = [];
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -596,12 +597,25 @@ async function excluirProduto(id) {
 // ADICIONAIS
 async function carregarAdicionais() {
   try {
-    const [adcRes, catRes] = await Promise.all([authFetch('/api/adicionais'), authFetch('/api/categorias')]);
+    const [adcRes, catRes, prodRes] = await Promise.all([
+      authFetch('/api/adicionais'), 
+      authFetch('/api/categorias'),
+      authFetch('/api/produtos')
+    ]);
     adicionaisAdmin = await adcRes.json();
     categoriasAdmin = await catRes.json();
+    produtosAdmin = await prodRes.json();
 
     console.log('Categorias carregadas:', categoriasAdmin);
     console.log('Adicionais carregados:', adicionaisAdmin);
+    console.log('Produtos carregados:', produtosAdmin);
+
+    // Popular select de produtos
+    const prodSelect = document.getElementById('adic-produto-select');
+    if (prodSelect) {
+      prodSelect.innerHTML = '<option value="">Nenhum (global)</option>' +
+        produtosAdmin.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
+    }
 
     // Popular filtro de categorias
     const filtroSelect = document.getElementById('filtro-categoria-adicionais');
@@ -644,24 +658,26 @@ function fecharSeletorCategorias() {
 }
 
 function renderizarAdicionais(adicionais) {
-    document.getElementById('adicionais-list').innerHTML = `<table>
-    <thead><tr><th>Nome</th><th>Descrição</th><th>Tipo</th><th>Categoria</th><th>Produto ID</th><th>Preço</th><th>Status</th><th>Ações</th></tr></thead>
-    <tbody>${adicionais.map(a => `
+  document.getElementById('adicionais-list').innerHTML = `<table>
+    <thead><tr><th>Nome</th><th>Descrição</th><th>Tipo</th><th>Categoria</th><th>Produto</th><th>Preço</th><th>Status</th><th>Ações</th></tr></thead>
+    <tbody>${adicionais.map(a => {
+      const produtoNome = a.produto_id ? (produtosAdmin.find(p => p.id == a.produto_id)?.nome || 'ID: ' + a.produto_id) : '-';
+      return `
       <tr>
         <td><strong>${a.nome}</strong></td>
         <td><small style="color:var(--color-text-secondary)">${a.descricao || '-'}</small></td>
         <td><span style="background: ${a.tipo === 'sabor' ? '#e8f5e9' : '#fff3e0'}; padding: 2px 8px; border-radius: 4px; font-size: 12px;">${a.tipo === 'sabor' ? '🍕 Sabor' : 'Adicional'}</span></td>
         <td>${a.categoria_nome || 'Todas'}</td>
-        <td>${a.produto_id || '-'}</td>
+        <td>${produtoNome}</td>
         <td>R$ ${a.preco.toFixed(2)}</td>
         <td>${a.ativo ? '<span style="color:var(--success)">Ativo</span>' : '<span style="color:var(--danger)">Inativo</span>'}</td>
         <td>
           <button class="btn btn-xs btn-primary" onclick="editarAdicional(${a.id}, '${a.nome}', '${(a.descricao || '').replace(/'/g, "\\'")}', ${a.preco}, ${a.categoria_id || 'null'}, '${a.tipo}', ${a.produto_id || 'null'})">Editar</button>
-          <button class="btn btn-xs ${a.ativo ? 'btn-warning' : 'btn-success'}" onclick="toggleAdicional(${a.id}, '${a.nome}', ${a.preco}, ${a.ativo ? 0 : 1}, ${a.categoria_id || 'null'}, '${a.tipo}', '${(a.descricao || '').replace(/'/g, "\\'")}')">${a.ativo ? 'Desativar' : 'Ativar'}</button>
+          <button class="btn btn-xs ${a.ativo ? 'btn-warning' : 'btn-success'}" onclick="toggleAdicional(${a.id}, '${a.nome}', ${a.preco}, ${a.ativo ? 0 : 1}, ${a.categoria_id || 'null'}, '${a.tipo}', '${(a.descricao || '').replace(/'/g, "\\'")}', ${a.produto_id || 'null'})">${a.ativo ? 'Desativar' : 'Ativar'}</button>
           <button class="btn btn-xs btn-danger" onclick="excluirAdicional(${a.id})">Excluir</button>
         </td>
       </tr>
-    `).join('')}</tbody>
+    `}).join('')}</tbody>
   </table>`;
 }
 
@@ -682,7 +698,7 @@ function editarAdicional(id, nome, descricao, preco, categoria_id, tipo, produto
   document.getElementById('adic-descricao').value = descricao || '';
   document.getElementById('adic-preco').value = preco;
   document.getElementById('adic-tipo').value = tipo || 'adicional';
-  document.getElementById('adic-produto').value = produto_id || '';
+  document.getElementById('adic-produto-select').value = produto_id || '';
   categoriasAdicionaisSelecionadas = categoria_id !== 'null' && categoria_id ? [parseInt(categoria_id)] : [];
   
   document.getElementById('btn-salvar-adic').textContent = 'Atualizar';
@@ -696,7 +712,7 @@ function cancelarEdicaoAdicional() {
   document.getElementById('adic-descricao').value = '';
   document.getElementById('adic-preco').value = '0';
   document.getElementById('adic-tipo').value = 'adicional';
-  document.getElementById('adic-produto').value = '';
+  document.getElementById('adic-produto-select').value = '';
   categoriasAdicionaisSelecionadas = [];
   document.getElementById('btn-salvar-adic').textContent = 'Adicionar';
   document.getElementById('btn-cancelar-adic').style.display = 'none';
@@ -707,8 +723,8 @@ async function salvarAdicional() {
   const descricao = document.getElementById('adic-descricao').value.trim();
   const precoVal = document.getElementById('adic-preco').value;
   const tipo = document.getElementById('adic-tipo').value;
-  const produtoVal = document.getElementById('adic-produto').value;
-  const produto_id = produtoVal ? parseInt(produtoVal) : null;
+  const produtoId = document.getElementById('adic-produto-select').value;
+  const produto_id = produtoId ? parseInt(produtoId) : null;
   
   if (!nome) { showToast('Preencha o nome'); return; }
   if (precoVal === '' || precoVal === null) { showToast('Informe o preço (use 0 para sabor grátis)'); return; }
@@ -721,7 +737,6 @@ async function salvarAdicional() {
     const preco = parseFloat(precoVal);
     
     if (adicionalEmEdicao) {
-      // Atualizar - usar categoria selecionada
       const catId = categoriasAdicionaisSelecionadas.length > 0 ? categoriasAdicionaisSelecionadas[0] : null;
       await authFetch(`/api/adicionais/${adicionalEmEdicao}`, { 
         method: 'PUT', 
@@ -731,7 +746,6 @@ async function salvarAdicional() {
       showToast('Item atualizado!');
       cancelarEdicaoAdicional();
     } else {
-      // Criar novo - para cada categoria selecionada
       for (const cat_id of categoriasAdicionaisSelecionadas) {
         const res = await authFetch('/api/adicionais', { 
           method: 'POST', 
@@ -747,7 +761,7 @@ async function salvarAdicional() {
     document.getElementById('adic-descricao').value = '';
     document.getElementById('adic-preco').value = '0';
     document.getElementById('adic-tipo').value = 'adicional';
-    document.getElementById('adic-produto').value = '';
+    document.getElementById('adic-produto-select').value = '';
     categoriasAdicionaisSelecionadas = [];
     carregarAdicionais();
   } catch (e) { 

@@ -162,7 +162,9 @@
             <option value="adicional">Adicional</option>
             <option value="sabor">Sabor</option>
           </select>
-          <input class="form-control" id="adic-produto" placeholder="Produto ID (opcional)" style="width:130px" type="number">
+          <select class="form-control" id="adic-produto-select" style="width:150px" title="Produto específico (opcional)">
+            <option value="">Produto específico</option>
+          </select>
           <button class="btn btn-primary btn-sm" onclick="abrirSeletorCategorias()">Selecionar Categorias</button>
           <button class="btn btn-primary btn-sm" onclick="salvarAdicional()" id="btn-salvar-adic">Adicionar</button>
           <button class="btn btn-secondary btn-sm" onclick="cancelarEdicaoAdicional()" id="btn-cancelar-adic" style="display:none;">Cancelar</button>
