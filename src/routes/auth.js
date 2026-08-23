@@ -213,12 +213,31 @@ router.post('/usuarios/:id/redefinir-senha', middlewareAdmin, wrapAsync(async (r
   if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
   if (user.id === req.usuario.id) return res.status(400).json({ error: 'Use a página de alterar senha para sua própria conta' });
 
-  const novaSenha = gerarSenhaAleatoria();
+  const novaSenha = '1234';
   const hash = gerarHash(novaSenha);
   await db.run('UPDATE usuarios SET senha_hash = $1, trocar_senha = true WHERE id = $2', hash, req.params.id);
 
   registrarAuditoria({ usuarioId: req.usuario.id, usuarioNome: req.usuario.usuario, acao: AUDIT_ACTIONS.PASSWORD_RESET, detalhes: { usuarioAlvo: user.usuario }, req });
   res.json({ success: true, senha_inicial: novaSenha });
+}));
+
+// Excluir usuario permanentemente
+router.delete('/usuarios/:id/excluir', middlewareAdmin, wrapAsync(async (req, res) => {
+  const user = await db.get('SELECT * FROM usuarios WHERE id = $1', req.params.id);
+  if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
+  if (user.id === req.usuario.id) return res.status(400).json({ error: 'Você não pode excluir sua própria conta' });
+
+  if (user.perfil === 'admin') {
+    const adminCount = await db.get("SELECT COUNT(*)::int AS total FROM usuarios WHERE perfil = 'admin' AND ativo = true");
+    if (adminCount.total <= 1) {
+      return res.status(400).json({ error: 'Não é possível excluir o último administrador ativo' });
+    }
+  }
+
+  await db.run('UPDATE auditoria SET usuario_id = NULL WHERE usuario_id = $1', user.id);
+  await db.run('DELETE FROM usuarios WHERE id = $1', user.id);
+  registrarAuditoria({ usuarioId: req.usuario.id, usuarioNome: req.usuario.usuario, acao: 'USUARIO_EXCLUIDO', detalhes: { usuarioAlvo: user.usuario }, req });
+  res.json({ success: true });
 }));
 
 // Desativar usuário (manter histórico)

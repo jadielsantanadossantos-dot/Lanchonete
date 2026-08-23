@@ -921,7 +921,8 @@ async function carregarUsuariosAdmin() {
         <td>
           <button class="btn btn-xs btn-primary" onclick="editarUsuario(${u.id}, '${u.nome}', '${u.usuario}', '${u.perfil}', ${u.ativo})">Editar</button>
           <button class="btn btn-xs btn-warning" onclick="redefinirSenhaUsuario(${u.id}, '${u.usuario}')">Redefinir senha (1234)</button>
-          ${u.id !== usuarioLogado.id ? `<button class="btn btn-xs btn-danger" onclick="excluirUsuario(${u.id}, '${u.usuario}')">Desativar</button>` : ''}
+          ${u.id !== usuarioLogado.id ? `<button class="btn btn-xs btn-danger" onclick="excluirUsuario(${u.id}, '${u.usuario}')">Desativar</button>
+          <button class="btn btn-xs btn-danger" onclick="excluirUsuarioPermanente(${u.id}, '${u.usuario}')" title="Excluir definitivamente">Excluir</button>` : ''}
         </td>
       </tr>
     `).join('')}</tbody>
@@ -977,15 +978,12 @@ async function salvarUsuario() {
   const perfil = document.getElementById('usr-perfil').value;
 
   if (!nome || !usuario) { showToast('Informe nome e usuário'); return; }
-
-  const body = { nome, usuario, perfil };
-  if (senha) body.senha = senha;
+  if (!senha || senha.length < 8) { showToast('Defina uma senha com no mínimo 8 caracteres'); return; }
 
   try {
-    const res = await authPost('/api/auth/usuarios', body);
-    if (!res.ok) { const err = await res.json(); showToast(err.error || 'Erro ao criar usuário'); return; }
-    const data = await res.json();
-    showToast(`Usuário criado! Senha inicial: ${data.senha_inicial}`);
+    const res = await authPost('/api/auth/usuarios', { nome, usuario, senha, perfil });
+    if (!res.ok) { const err = await res.json(); showToast(err.error || err.detalhes?.[0] || 'Erro ao criar usuário'); return; }
+    showToast(`Usuário ${usuario} criado!`);
     document.getElementById('usr-nome').value = '';
     document.getElementById('usr-usuario').value = '';
     document.getElementById('usr-senha').value = '';
@@ -1021,6 +1019,17 @@ async function excluirUsuario(id, usuario) {
     showToast('Usuário desativado');
     carregarUsuariosAdmin();
   } catch (e) { showToast('Erro ao desativar usuário'); }
+}
+
+async function excluirUsuarioPermanente(id, usuario) {
+  if (!confirm(`EXCLUIR definitivamente o usuário ${usuario}? Esta ação não pode ser desfeita.`)) return;
+  if (!confirm(`Confirma a exclusão permanente de ${usuario}? Ele perderá o acesso imediatamente.`)) return;
+  try {
+    const res = await authDelete(`/api/auth/usuarios/${id}/excluir`);
+    if (!res.ok) { const err = await res.json(); showToast(err.error || 'Erro ao excluir'); return; }
+    showToast('Usuário excluído permanentemente');
+    carregarUsuariosAdmin();
+  } catch (e) { showToast('Erro ao excluir usuário'); }
 }
 
 document.addEventListener('click', (e) => {
