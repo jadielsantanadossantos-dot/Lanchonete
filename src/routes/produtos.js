@@ -105,7 +105,8 @@ router.get('/ativos', wrapAsync(async (req, res) => {
       if (isPizza) {
         return mesmaCategoria && a.tipo === 'sabor';
       } else {
-        return mesmaCategoria && a.tipo !== 'sabor';
+        // Para não-pizzas, mostrar adicionais de categoria igual OU adicionais globais (sem categoria) do tipo "adicional"
+        return mesmaCategoria && (!a.tipo || a.tipo === 'adicional');
       }
     });
     
