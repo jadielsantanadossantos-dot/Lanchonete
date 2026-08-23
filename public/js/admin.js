@@ -707,6 +707,15 @@ async function salvarAdicional() {
   const precoVal = document.getElementById('adic-preco').value;
   const tipo = document.getElementById('adic-tipo').value;
   
+  console.log('Salvando adicional:', {
+    adicionalEmEdicao,
+    nome,
+    descricao,
+    preco: precoVal,
+    tipo,
+    categoriasAdicionaisSelecionadas
+  });
+  
   if (!nome) { showToast('Preencha o nome'); return; }
   if (precoVal === '' || precoVal === null) { showToast('Informe o preço (use 0 para sabor grátis)'); return; }
   
@@ -720,17 +729,30 @@ async function salvarAdicional() {
     const preco = parseFloat(precoVal);
     
     if (adicionalEmEdicao) {
+      console.log('Atualizando adicional ID:', adicionalEmEdicao);
       // Atualizar - usar primeira categoria selecionada ou manter atual
       const catId = categoriasAdicionaisSelecionadas.length > 0 ? categoriasAdicionaisSelecionadas[0] : null;
-      await authFetch(`/api/adicionais/${adicionalEmEdicao}`, { 
+      console.log('Enviando PUT com categoria_id:', catId);
+      
+      const res = await authFetch(`/api/adicionais/${adicionalEmEdicao}`, { 
         method: 'PUT', 
         headers: { 'Content-Type': 'application/json' }, 
         body: JSON.stringify({ nome, preco, categoria_id: catId, tipo, descricao: descricao || null }) 
       });
+      
+      console.log('Resposta do PUT:', res.status, res.ok);
+      
+      if (!res.ok) {
+        const erro = await res.text();
+        console.error('Erro na resposta:', erro);
+        throw new Error('Erro ao atualizar: ' + res.status);
+      }
+      
       showToast('Item atualizado!');
       cancelarEdicaoAdicional();
     } else {
       // Criar novo - para cada categoria selecionada
+      console.log('Criando novo adicional em', categoriasAdicionaisSelecionadas.length, 'categoria(s)');
       for (const cat_id of categoriasAdicionaisSelecionadas) {
         const res = await authFetch('/api/adicionais', { 
           method: 'POST', 
@@ -750,7 +772,7 @@ async function salvarAdicional() {
     carregarAdicionais();
   } catch (e) { 
     console.error('Erro ao salvar adicional:', e);
-    showToast(e.message); 
+    showToast('Erro: ' + e.message); 
   }
 }
 
