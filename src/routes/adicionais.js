@@ -14,11 +14,12 @@ const TIPOS_VALIDOS = ['adicional', 'sabor', 'base', 'cobertura', 'acompanhament
 router.get('/', wrapAsync(async (req, res) => {
   const categoriaId = req.query.categoria_id ? parseInt(req.query.categoria_id) : null;
   const produtoId = req.query.produto_id ? parseInt(req.query.produto_id) : null;
+  const incluirInativos = req.query.incluir_inativos === '1';
 
   let sql = `
     SELECT a.*, c.nome AS categoria_nome FROM adicionais a
     LEFT JOIN categorias c ON a.categoria_id = c.id
-    WHERE a.ativo = true
+    WHERE ${incluirInativos ? '1 = 1' : 'a.ativo = true'}
   `;
   const params = [];
 

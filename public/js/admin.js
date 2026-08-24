@@ -753,7 +753,7 @@ async function excluirProduto(id) {
 async function carregarAdicionais() {
   try {
     const [adcRes, catRes, prodRes] = await Promise.all([
-      authFetch('/api/adicionais'), 
+      authFetch('/api/adicionais?incluir_inativos=1'),
       authFetch('/api/categorias'),
       authFetch('/api/produtos')
     ]);
@@ -897,7 +897,7 @@ function renderizarAdicionais(adicionais) {
       const tl = tipoLabels[a.tipo] || tipoLabels['adicional'];
       const limiteText = a.limite > 0 ? a.limite : 'Livre';
       return `
-      <tr>
+      <tr style="${a.ativo ? '' : 'opacity:.55'}">
         <td><strong>${a.nome}</strong></td>
         <td><small style="color:var(--color-text-secondary)">${a.descricao || '-'}</small></td>
         <td><span style="background: ${tl.bg}; padding: 2px 8px; border-radius: 4px; font-size: 12px;">${tl.text}</span></td>
