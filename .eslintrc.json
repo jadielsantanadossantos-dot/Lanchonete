@@ -33,7 +33,8 @@
         "verificarAuth": "readonly",
         "redirecionarSemAuth": "readonly",
         "mostrarModalTrocaSenha": "readonly",
-        "tocarSomNovoPedido": "readonly"
+        "tocarSomNovoPedido": "readonly",
+        "PizzaModal": "readonly"
       }
     }
   ]

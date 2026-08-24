@@ -1,6 +1,8 @@
 let allClientes = [];
 let usuarioLogado = null;
 let realtimeUnsubscribes = [];
+let pedidosNovos = new Set(); // ids de pedidos marcados como NOVO (60s)
+let notificacaoCount = 0;
 let adicionalEmEdicao = null;
 let adicionaisAdmin = [];
 let categoriasAdmin = [];
@@ -35,19 +37,56 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Escutar novos pedidos
     const novoPedidoUnsub = window.Realtime.subscribeNovoPedidoAdmin((pedido) => {
-      showToast('Novo pedido recebido! #' + pedido.id);
+      const ehAtualizacao = pedido._isAtualizacao || pedido._novoItem;
+      if (ehAtualizacao) {
+        pedidosNovos.add(pedido.id);
+        showToast(`Novo item na Mesa ${pedido._mesaId || pedido.mesa_id || '?'}: Pedido #${pedido.id} atualizado!`, 'warning', '🆕');
+        setTimeout(() => pedidosNovos.delete(pedido.id), 60000);
+      } else {
+        pedidosNovos.add(pedido.id);
+        showToast(`Novo pedido recebido! #${pedido.id} - ${pedido.cliente_nome || ''}`, 'success', '🔔');
+        setTimeout(() => pedidosNovos.delete(pedido.id), 60000);
+      }
       carregarPedidos();
       tocarSomNovoPedido();
+      atualizarBadgeNotificacao();
     });
     realtimeUnsubscribes.push(novoPedidoUnsub);
     
     // Escutar atualizações de pedidos
     const pedidosUnsub = window.Realtime.subscribePedidosAdmin((payload) => {
       if (payload.eventType === 'UPDATE' || payload.eventType === 'INSERT' || payload.eventType === 'DELETE') {
+        const p = payload.new;
+        if (p && p._novoItem) {
+          pedidosNovos.add(p.id);
+          showToast(`Mesa ${p._mesaId || p.mesa_id} recebeu +${p._qtdItens || 1} item(ns)! Pedido #${p.id}`, 'warning', '🍽️');
+          setTimeout(() => pedidosNovos.delete(p.id), 60000);
+          atualizarBadgeNotificacao();
+        }
         carregarPedidos();
       }
     });
     realtimeUnsubscribes.push(pedidosUnsub);
+
+    // Escutar itens adicionados na comanda (antes de enviar à cozinha)
+    const comandaUnsub = window.Realtime.subscribeComandaAdmin((data) => {
+      if (data.tipo === 'novo-item') {
+        showToast(`Garçom adicionou ${data.quantidade}x ${data.produto_nome} na Mesa ${data.mesaId}`, 'info', '📝');
+        tocarSomNovoPedido();
+        // destacar comanda pendente visualmente se houver pedido vinculado, marcar como novo
+        if (data.comandaId) {
+          // tenta encontrar pedido vinculado para marcar
+          const pedidoVinculado = (typeof todosPedidos !== 'undefined' ? todosPedidos.find(p => p.comanda_id === data.comandaId) : null);
+          if (pedidoVinculado) {
+            pedidosNovos.add(pedidoVinculado.id);
+            setTimeout(() => pedidosNovos.delete(pedidoVinculado.id), 60000);
+          }
+        }
+        carregarPedidos();
+        atualizarBadgeNotificacao();
+      }
+    });
+    realtimeUnsubscribes.push(comandaUnsub);
     
     // Cleanup ao sair
     window.addEventListener('beforeunload', () => {
@@ -205,8 +244,30 @@ function renderPedidos(pedidos) {
 }
 
 function renderPedidoCard(p) {
+  const isNovo = pedidosNovos.has(p.id);
+  let maxItemTime = 0;
+  let isNewPedido = false;
+  if (isNovo) {
+    p.itens.forEach(it => {
+      const t = new Date(it.criado_em).getTime();
+      if (t > maxItemTime) maxItemTime = t;
+    });
+    try {
+      const pedidoCriado = new Date(p.criado_em).getTime();
+      isNewPedido = Math.abs(maxItemTime - pedidoCriado) < 8000;
+    } catch(e) {}
+  }
   const itensHtml = p.itens.map(i => {
-    let line = `<div class="pedido-item-line">${i.quantidade}x ${i.produto_nome} - R$ ${(i.preco_unitario * i.quantidade).toFixed(2)}</div>`;
+    const isItemNovo = isNovo && (() => {
+      try {
+        const it = new Date(i.criado_em).getTime();
+        if (isNewPedido) return true;
+        return (maxItemTime - it) < 5000;
+      } catch(e){ return false; }
+    })();
+    const lineClass = isItemNovo ? 'pedido-item-line pedido-item-line--novo' : 'pedido-item-line';
+    const badgeItemNovo = isItemNovo ? `<span class="badge-item-novo">NOVO</span>` : '';
+    let line = `<div class="${lineClass}" ${isItemNovo ? `data-item-id="${i.id}" onclick="marcarItemLido(event, ${p.id}, ${i.id})" style="cursor:pointer" title="Clique para marcar item como lido"` : ''}><span>${i.quantidade}x ${i.produto_nome} ${badgeItemNovo}</span><span>R$ ${(i.preco_unitario * i.quantidade).toFixed(2)}</span></div>`;
     if (i.adicionais && i.adicionais.length) {
       line += i.adicionais.map(a => `<div class="pedido-item-adicional">+ ${a.adicional_nome} (R$ ${a.preco.toFixed(2)})</div>`).join('');
     }
@@ -245,8 +306,9 @@ function renderPedidoCard(p) {
   }
   actionsHtml.push(`<button class="btn btn-primary btn-xs" onclick="imprimirComanda(${p.id})">Imprimir</button>`);
 
-  // Selecao de motoboy para pedidos de entrega
-  const motoboySelect = !p.mesa_id && p.status !== 'cancelado' ? `
+  // Selecao de motoboy para pedidos de entrega (oculta para mesa e avulso do garçom)
+  const ehAvulsoGarcom = p.bairro_entrega === 'Avulso' || (p.observacoes && p.observacoes.includes('AVULSO'));
+  const motoboySelect = !p.mesa_id && !ehAvulsoGarcom && p.status !== 'cancelado' ? `
     <div style="margin-top: 8px;">
       <select class="filter-select" style="width:100%; font-size: 0.78rem; padding: 6px 8px;" onchange="atribuirMotoboy(${p.id}, this.value)">
         <option value="">🏍️ Motoboy não definido</option>
@@ -256,13 +318,17 @@ function renderPedidoCard(p) {
     </div>
   ` : '';
 
+  const novoBadge = isNovo ? `<span class="badge-novo">🆕 NOVO • clique para marcar lido</span>` : '';
+  const cardExtraClass = isNovo ? ' pedido-card--novo' : '';
+  const mesaBadge = p.mesa_id ? `<span class="badge-mesa">Mesa ${p.mesa_id}</span>` : (p.bairro_entrega === 'Avulso' ? `<span class="badge-avulso">Avulso</span>` : '');
+
   return `
-    <div class="pedido-card status-${p.status}" data-pedido-id="${p.id}">
+    <div class="pedido-card status-${p.status}${cardExtraClass}" data-pedido-id="${p.id}" onclick="marcarPedidoLido(${p.id})" style="${isNovo ? 'cursor:pointer' : ''}" title="${isNovo ? 'Clique para marcar como lido' : ''}">
       <div class="pedido-header">
-        <span class="pedido-id">#${p.id}</span>
+        <span class="pedido-id">#${p.id} ${mesaBadge} ${novoBadge}</span>
         <span class="status-badge status-${p.status}">${statusLabels[p.status]}</span>
       </div>
-      <div class="pedido-time">${new Date(p.criado_em).toLocaleString('pt-BR')}</div>
+      <div class="pedido-time">${new Date(p.criado_em).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</div>
       <div class="pedido-cliente">${p.cliente_nome}</div>
       <div class="pedido-tel">${p.cliente_telefone}</div>
       <div class="pedido-items">${itensHtml}</div>
@@ -390,7 +456,7 @@ async function imprimirComanda(pedidoId) {
     if (!res.ok) throw new Error('Pedido não encontrado');
     const p = await res.json();
 
-    const dataHora = new Date(p.criado_em).toLocaleString('pt-BR');
+    const dataHora = new Date(p.criado_em).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
     const payLabel = payLabels[p.forma_pagamento] || p.forma_pagamento;
     const statusLabel = statusLabels[p.status] || p.status;
 
@@ -572,7 +638,7 @@ function renderizarProdutosAdmin(produtos) {
         </td>
         <td style="white-space:nowrap">
           <button class="btn btn-sm ${p.ativo ? 'btn-warning' : 'btn-success'}" onclick="alternarProduto(${p.id}, ${p.ativo ? 0 : 1})">${p.ativo ? 'Desativar' : 'Ativar'}</button>
-          <button class="btn btn-sm btn-primary" onclick='editarProduto(${JSON.stringify(p).replace(/'/g, "\\'")})'>Editar</button>
+          <button class="btn btn-sm btn-primary" onclick="editarProdutoPorId(${p.id})">Editar</button>
           <button class="btn btn-sm btn-danger" onclick="excluirProduto(${p.id})">Excluir</button>
         </td>
       </tr>
@@ -687,6 +753,12 @@ function editarProduto(p) {
     document.getElementById('prod-categoria').value = p.categoria_id;
     document.getElementById('modal-produto-admin').classList.add('active');
   }, 100);
+}
+
+function editarProdutoPorId(id) {
+  const p = (window.produtosAdmin || []).find(x => x.id == id);
+  if (!p) { showToast('Produto não encontrado'); return; }
+  editarProduto(p);
 }
 
 function fecharModalProduto() {
@@ -1170,7 +1242,7 @@ async function verPedidosCliente(id, nome) {
         <tbody>${pedidos.map(p => `
           <tr>
             <td>${p.id}</td>
-            <td>${new Date(p.criado_em).toLocaleString('pt-BR')}</td>
+            <td>${new Date(p.criado_em).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</td>
             <td>R$ ${p.total.toFixed(2)}</td>
             <td><span class="status-badge status-${p.status}">${statusLabels[p.status]}</span></td>
           </tr>
@@ -1380,15 +1452,102 @@ function testarSom() {
   document.getElementById('cfg-volume-label').textContent = Math.round(volume * 100) + '%';
 }
 
-function showToast(msg) {
-  const existing = document.querySelector('.toast-admin');
-  if (existing) existing.remove();
+function showToast(msg, type='info', icon='') {
+  const existing = document.querySelectorAll('.toast-admin');
+  // permitir até 3 toasts empilhados
+  if (existing.length >= 3) existing[0].remove();
   const toast = document.createElement('div');
-  toast.className = 'toast-admin';
-  toast.style.cssText = 'position:fixed;bottom:20px;right:20px;background:var(--dark);color:white;padding:12px 24px;border-radius:8px;z-index:999;animation:fadeIn 0.3s';
-  toast.textContent = msg;
+  const bgMap = { success: 'var(--color-success)', warning: 'var(--color-warning)', info: 'var(--color-primary)', error: 'var(--color-danger)' };
+  const bg = bgMap[type] || bgMap.info;
+  toast.className = 'toast-admin toast-'+type;
+  toast.style.cssText = `position:fixed;top:20px;right:20px;background:${bg};color:white;padding:14px 18px;border-radius:12px;z-index:9999;animation:toastSlideIn 0.35s cubic-bezier(0.16,1,0.3,1);box-shadow:0 8px 24px rgba(0,0,0,0.18);display:flex;align-items:center;gap:10px;min-width:280px;max-width:420px;font-size:0.9rem;font-weight:600;line-height:1.3;`;
+  toast.innerHTML = `${icon ? `<span style="font-size:1.3rem">${icon}</span>` : ''}<span style="flex:1">${msg}</span><button onclick="this.parentElement.remove()" style="background:rgba(255,255,255,0.2);border:none;color:white;width:28px;height:28px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;line-height:1">×</button><div style="position:absolute;bottom:0;left:0;height:3px;background:rgba(255,255,255,0.5);border-radius:0 0 12px 12px;animation:toastProgress 3.5s linear forwards;right:0"></div>`;
+  toast.style.position = 'fixed';
+  // empilhar
+  const offset = document.querySelectorAll('.toast-admin').length * 76;
+  toast.style.top = (20 + offset) + 'px';
   document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), 3000);
+  setTimeout(() => { toast.style.animation='toastSlideOut 0.3s forwards'; setTimeout(()=>toast.remove(),300); }, 3500);
+}
+
+function atualizarBadgeNotificacao() {
+  const el = document.getElementById('pedidos-count');
+  if (!el) return;
+  const novos = pedidosNovos.size;
+  // base count de ativos (sem sufixo)
+  const baseText = el.dataset.baseCount || el.textContent.split('•')[0].trim();
+  el.dataset.baseCount = baseText;
+  if (novos > 0) {
+    el.textContent = `${baseText} • ${novos} NOVO${novos>1?'S':''}`;
+    el.classList.add('badge-pulse');
+    el.style.background = 'var(--color-danger)';
+    el.style.color = 'white';
+  } else {
+    el.textContent = baseText;
+    el.classList.remove('badge-pulse');
+    el.style.background = '';
+    el.style.color = '';
+  }
+  // notificação no título
+  if (novos > 0) document.title = `(${novos}) Novo pedido! - ${document.title.replace(/^\(\d+\)\s*/, '')}`;
+  else document.title = document.title.replace(/^\(\d+\)\s*.*-\s*/, '');
+}
+
+function marcarPedidoLido(id) {
+  if (!pedidosNovos.has(id)) return;
+  pedidosNovos.delete(id);
+  const card = document.querySelector(`.pedido-card[data-pedido-id="${id}"]`);
+  if (card) {
+    card.classList.remove('pedido-card--novo');
+    const badge = card.querySelector('.badge-novo');
+    if (badge) badge.remove();
+    // limpar também itens restantes
+    card.querySelectorAll('.pedido-item-line--novo').forEach(el => {
+      el.classList.remove('pedido-item-line--novo');
+      const b = el.querySelector('.badge-item-novo');
+      if (b) b.remove();
+      el.style.cursor = '';
+      el.removeAttribute('title');
+      el.removeAttribute('onclick');
+    });
+    card.style.cursor = '';
+    card.removeAttribute('title');
+  }
+  atualizarBadgeNotificacao();
+  // remover dot pulsante
+  if (pedidosNovos.size === 0) {
+    document.title = document.title.replace(/^\(\d+\) Novo pedido! - /, '');
+  }
+}
+
+function marcarItemLido(event, pedidoId, itemId) {
+  event.stopPropagation();
+  const card = document.querySelector(`.pedido-card[data-pedido-id="${pedidoId}"]`);
+  if (!card) return;
+  const target = event.currentTarget;
+  target.classList.remove('pedido-item-line--novo');
+  const badge = target.querySelector('.badge-item-novo');
+  if (badge) badge.remove();
+  target.style.cursor = '';
+  target.removeAttribute('title');
+  target.removeAttribute('onclick');
+  // se não há mais itens novos neste pedido, limpar card também
+  const restantes = card.querySelectorAll('.pedido-item-line--novo').length;
+  if (restantes === 0) {
+    // remover pedido do Set sem re-render completo para manter outros itens
+    if (pedidosNovos.has(pedidoId)) {
+      pedidosNovos.delete(pedidoId);
+      card.classList.remove('pedido-card--novo');
+      const badgeNovo = card.querySelector('.badge-novo');
+      if (badgeNovo) badgeNovo.remove();
+      card.style.cursor = '';
+      card.removeAttribute('title');
+      atualizarBadgeNotificacao();
+      if (pedidosNovos.size === 0) {
+        document.title = document.title.replace(/^\(\d+\) Novo pedido! - /, '');
+      }
+    }
+  }
 }
 
 // MESAS
@@ -1438,7 +1597,7 @@ function escapeHtml(text) {
 
 function formatarHora(iso) {
   const d = new Date(iso);
-  return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' });
 }
 
 async function excluirMesa(id) {

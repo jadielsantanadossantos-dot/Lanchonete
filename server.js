@@ -1,5 +1,6 @@
 // Entrada local de desenvolvimento/produção self-hosted.
 // Na Vercel, a entrada é api/index.js
+process.env.TZ = 'America/Sao_Paulo';
 require('dotenv').config();
 
 const db = require('./src/db/database');

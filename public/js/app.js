@@ -116,9 +116,21 @@ async function carregarProdutos() {
   try {
     const res = await fetch('/api/produtos/ativos');
     produtos = await res.json();
-    const cats = [...new Set(produtos.map(p => p.categoria_nome))];
-    renderCategorias(cats);
-    renderProdutos(produtos);
+
+    // Config do modal "Montar sua Pizza" (sempre com a lista atual)
+    window.__pizzaCfg = {
+      produtos,
+      toast: mostrarToast,
+      onAdd(item) {
+        carrinho.push(item);
+        salvarCarrinhoLocal();
+        atualizarCartFab();
+        mostrarToast('Pizza adicionada ao carrinho!');
+      }
+    };
+
+    renderCategorias();
+    filtrarCategoria('', null);
   } catch (e) {
     document.getElementById('products-grid').innerHTML = '<div class="empty-state"><p>Erro ao carregar cardápio</p></div>';
   }
@@ -136,19 +148,53 @@ async function carregarBairros() {
   } catch (e) {}
 }
 
-function renderCategorias(cats) {
+function ehPizza(p) {
+  return !!(p && p.categoria_nome && p.categoria_nome.toLowerCase().includes('pizza'));
+}
+
+function renderCategorias() {
+  // Colapsar as categorias de pizza em uma unica aba "Pizzas", na posicao da primeira
+  const tabs = [];
+  const vistos = new Set();
+  produtos.forEach(p => {
+    if (vistos.has(p.categoria_id)) return;
+    vistos.add(p.categoria_id);
+    if (ehPizza(p)) {
+      if (!tabs.includes('__pizzas__')) tabs.push('__pizzas__');
+    } else {
+      tabs.push(p.categoria_nome);
+    }
+  });
+
   const container = document.getElementById('categories');
   container.innerHTML = `<button class="cat-btn active" onclick="filtrarCategoria('', this)">Todos</button>`;
-  cats.forEach(c => {
-    container.innerHTML += `<button class="cat-btn" onclick="filtrarCategoria('${c}', this)">${c}</button>`;
+  tabs.forEach(c => {
+    const token = c === '__pizzas__' ? '__pizzas__' : c;
+    const label = c === '__pizzas__' ? 'Pizzas' : c;
+    container.innerHTML += `<button class="cat-btn" data-cat="${token}" onclick="filtrarCategoria('${c}', this)">${label}</button>`;
   });
 }
 
 function filtrarCategoria(cat, btn) {
   document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  const filtrados = cat ? produtos.filter(p => p.categoria_nome === cat) : produtos;
+  if (btn) btn.classList.add('active');
+
+  if (cat === '__pizzas__') {
+    renderGridHtml(PizzaModal.cardHtml('cliente'));
+    return;
+  }
+
+  let filtrados;
+  if (cat) {
+    filtrados = produtos.filter(p => p.categoria_nome === cat && !ehPizza(p));
+  } else {
+    filtrados = produtos;
+  }
   renderProdutos(filtrados);
+}
+
+function renderGridHtml(html) {
+  document.getElementById('products-grid').innerHTML = html;
 }
 
 function renderProdutos(lista) {
@@ -165,35 +211,55 @@ function renderProdutos(lista) {
     if (!mapa.has(p.categoria_id)) {
       const itens = [];
       mapa.set(p.categoria_id, itens);
-      grupos.push({ id: p.categoria_id, nome: p.categoria_nome || 'Outros', itens });
+      grupos.push({ id: p.categoria_id, nome: p.categoria_nome || 'Outros', pizza: ehPizza(p), itens });
     }
     mapa.get(p.categoria_id).push(p);
   });
 
-  grid.innerHTML = grupos.map(g => `
-    <div class="category-section">
-      <h2 class="category-heading">${g.nome}</h2>
-      <div class="category-items">
-        ${g.itens.map(produtoCardHtml).join('')}
-      </div>
-    </div>
-  `).join('');
+  // Colapsar grupos de pizza em um unico bloco com o card "Montar sua Pizza"
+  let htmlGrupos = '';
+  let pizzasInseridas = false;
+  grupos.forEach(g => {
+    if (g.pizza) {
+      if (pizzasInseridas) return;
+      pizzasInseridas = true;
+      htmlGrupos += `
+        <div class="category-section">
+          <h2 class="category-heading">Pizzas</h2>
+          <div class="category-items">
+            ${PizzaModal.cardHtml('cliente')}
+          </div>
+        </div>`;
+      return;
+    }
+    htmlGrupos += `
+      <div class="category-section">
+        <h2 class="category-heading">${g.nome}</h2>
+        <div class="category-items">
+          ${g.itens.map(produtoCardHtml).join('')}
+        </div>
+      </div>`;
+  });
+
+  grid.innerHTML = htmlGrupos;
 }
 
 function produtoCardHtml(p) {
   return `
     <div class="product-card" onclick="abrirProduto(${p.id})">
-      ${p.foto
-        ? `<img class="product-img" src="${p.foto}" alt="${p.nome}" loading="lazy">`
-        : `<div class="product-img-placeholder">&#127828;</div>`}
+      <div class="product-media">
+        ${p.foto
+          ? `<img class="product-img" src="${p.foto}" alt="${p.nome}" loading="lazy">`
+          : `<div class="product-img-placeholder">&#127828;</div>`}
+      </div>
       <div class="product-info">
         <div>
           <div class="product-name">${p.nome}</div>
-          <div class="product-desc">${p.descricao || ''}</div>
+          ${p.descricao ? `<div class="product-desc">${p.descricao}</div>` : ''}
         </div>
-        <div class="product-bottom">
-          <span class="product-price">R$ ${p.preco.toFixed(2)}</span>
-          <button class="btn-add" onclick="event.stopPropagation(); abrirProduto(${p.id})">Adicionar ao carrinho</button>
+        <div class="product-footer">
+          <span class="product-price">R$ ${p.preco.toFixed(2)}${p.unidade === 'kg' ? '/kg' : ''}</span>
+          <button class="btn-add" onclick="event.stopPropagation(); abrirProduto(${p.id})" aria-label="Adicionar ${p.nome}">+</button>
         </div>
       </div>
     </div>
@@ -933,7 +999,7 @@ async function buscarPedidos() {
         <summary class="cart-item" style="cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
           <div>
             <div class="cart-item-name">Pedido #${p.id}</div>
-            <div class="cart-item-details">${new Date(p.criado_em).toLocaleString('pt-BR')}</div>
+            <div class="cart-item-details">${new Date(p.criado_em).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</div>
           </div>
           <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
             <span class="status-badge status-${p.status}">${statusLabels[p.status] || p.status}</span>

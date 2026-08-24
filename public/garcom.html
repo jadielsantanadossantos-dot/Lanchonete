@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Garçom - Atendimento</title>
-  <link rel="stylesheet" href="/css/garcom.css?v=20260823">
+  <link rel="stylesheet" href="/css/garcom.css?v=20260831">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     // Redirect imediato para login se acessar /garcom diretamente
@@ -98,8 +98,11 @@
   <div id="g-page-produtos" class="g-page">
     <div class="g-container">
       <h3 class="g-section-title">Adicionar Item</h3>
-      <div class="g-categorias" id="g-categorias"></div>
-      <div id="g-produtos-lista"></div>
+      <div class="g-filtros-sticky">
+        <input type="text" id="g-busca-produto" class="form-control g-busca-produto" placeholder="&#128269; Buscar produto por nome..." oninput="buscarProdutoMesa()" autocomplete="off">
+        <div class="g-categorias" id="g-categorias"></div>
+      </div>
+      <div id="g-produtos-lista" class="g-produtos-lista"></div>
     </div>
   </div>
 
@@ -217,18 +220,11 @@
     <div class="g-container">
       <h3 class="g-section-title">Pedido Avulso (sem mesa)</h3>
 
-      <div class="g-form-group">
-        <label>Nome do cliente</label>
-        <input type="text" id="g-avulso-nome" placeholder="Ex: João Silva">
+      <div class="g-filtros-sticky">
+        <input type="text" id="g-busca-produto-avulso" class="form-control g-busca-produto" placeholder="&#128269; Buscar produto por nome..." oninput="buscarProdutoAvulso()" autocomplete="off">
+        <div class="g-categorias" id="g-categorias-avulso"></div>
       </div>
-
-      <div class="g-form-group">
-        <label>Telefone do cliente</label>
-        <input type="tel" id="g-avulso-telefone" placeholder="(00) 00000-0000" oninput="formatarTel(this)">
-      </div>
-
-      <div class="g-categorias" id="g-categorias-avulso"></div>
-      <div id="g-produtos-avulso"></div>
+      <div id="g-produtos-avulso" class="g-produtos-lista"></div>
 
       <div class="g-comanda-header" style="margin-top:20px">
         <h3>Carrinho do avulso</h3>
@@ -247,7 +243,21 @@
         </div>
       </div>
 
-      <div class="g-form-group" style="margin-top:12px">
+      <div class="g-comanda-header" style="margin-top:20px">
+        <h3>Dados do cliente e pagamento</h3>
+      </div>
+
+      <div class="g-form-group">
+        <label>Nome do cliente</label>
+        <input type="text" id="g-avulso-nome" placeholder="Ex: João Silva">
+      </div>
+
+      <div class="g-form-group">
+        <label>Telefone do cliente</label>
+        <input type="tel" id="g-avulso-telefone" placeholder="(00) 00000-0000" oninput="formatarTel(this)">
+      </div>
+
+      <div class="g-form-group">
         <label>Forma de pagamento</label>
         <select id="g-avulso-forma" class="g-select">
           <option value="pix">Pix</option>
@@ -261,6 +271,12 @@
       </button>
     </div>
   </div>
+
+  <!-- CART FAB AVULSO (flutuante) -->
+  <button class="g-cart-fab hidden" id="g-cart-fab-avulso" onclick="scrollParaCarrinhoAvulso()" aria-label="Carrinho avulso">
+    🛒
+    <span class="g-cart-badge" id="g-cart-badge-avulso">0</span>
+  </button>
 
   <!-- MODAL: TROCA DE SENHA OBRIGATÓRIA -->
   <div class="g-modal-overlay" id="g-modal-troca-senha" style="display:none">
@@ -287,8 +303,9 @@
     </div>
   </div>
 
-  <script src="/js/realtime.js?v=20260823"></script>
-  <script src="/js/auth.js?v=20260823"></script>
-  <script src="/js/garcom.js?v=20260823"></script>
+  <script src="/js/realtime.js?v=20260831"></script>
+  <script src="/js/auth.js?v=20260831"></script>
+  <script src="/js/pizza-modal.js?v=20260831"></script>
+<script src="/js/garcom.js?v=20260831"></script>
 </body>
 </html>

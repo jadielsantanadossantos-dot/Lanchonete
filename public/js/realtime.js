@@ -164,6 +164,14 @@ function subscribePedidosAdmin(callback) {
   return () => { unsub1(); unsub2(); unsub3(); };
 }
 
+function subscribeComandaAdmin(callback) {
+  joinAdmin();
+  const handler = (data) => {
+    callback(data);
+  };
+  return subscribe('comanda-atualizada', handler);
+}
+
 // ============================================
 // COMUM
 // ============================================
@@ -191,6 +199,7 @@ if (typeof window !== 'undefined') {
     subscribeNovoPedidoGarcom,
     subscribeNovoPedidoAdmin,
     subscribePedidosAdmin,
+    subscribeComandaAdmin,
     cleanup: cleanupRealtime
   };
 }

@@ -1,3 +1,4 @@
+process.env.TZ = process.env.TZ || 'America/Sao_Paulo';
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -116,7 +117,7 @@ function buildApp() {
   app.use('/api/config', require('./routes/config'));
 
   app.get('/health', (req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+    res.json({ status: 'ok', timestamp: new Date().toLocaleString('sv-SE', { timeZone: 'America/Sao_Paulo' }), timezone: 'America/Sao_Paulo' });
   });
 
   const publicDir = path.join(__dirname, '..', 'public');

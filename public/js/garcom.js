@@ -174,6 +174,8 @@ function mostrarTela(pageId, titulo) {
   backBtn.style.display = pageId === 'g-page-mesas' ? 'none' : 'flex';
 
   window.scrollTo(0, 0);
+  // FAB avulso só aparece na tela avulso e com itens
+  setTimeout(atualizarFabAvulso, 50);
 }
 
 function voltarPagina() {
@@ -254,8 +256,9 @@ async function carregarComanda() {
   } catch (e) { showToast('Erro ao carregar comanda'); }
 }
 
+let enviandoCozinha = false;
 async function confirmarEnviarCozinha() {
-  if (!mesaAtual) return;
+  if (enviandoCozinha || !mesaAtual) return;
   const itensNaoEnviados = comandaItens.filter(i => !i.enviado_cozinha);
   if (!itensNaoEnviados.length) {
     showToast('Todos os itens já foram enviados');
@@ -265,6 +268,9 @@ async function confirmarEnviarCozinha() {
   const nomes = itensNaoEnviados.map(i => `${i.quantidade}x ${i.produto_nome}`).join(', ');
   if (!confirm(`Enviar para a cozinha:\n${nomes}\n\nA comanda continuará aberta para adicionar mais itens.`)) return;
 
+  enviandoCozinha = true;
+  const btn = document.getElementById('g-btn-enviar-cozinha');
+  if (btn) btn.disabled = true;
   try {
     const res = await authFetch(`/api/comandas/mesa/${mesaAtual.id}/enviar-cozinha`, {
       method: 'POST',
@@ -282,6 +288,7 @@ async function confirmarEnviarCozinha() {
     showToast(`${data.itensEnviados} item(ns) enviados para a cozinha!`);
     await carregarComanda();
   } catch (e) { showToast('Erro ao enviar para cozinha'); }
+  finally { enviandoCozinha = false; if (btn) btn.disabled = false; }
 }
 
 let salvarNomeTimer = null;
@@ -350,12 +357,14 @@ function renderComanda() {
       return `+ ${a.nome} (R$ ${a.preco.toFixed(2)})`;
     }).join(', ');
 
+    const isNovo = !item.enviado_cozinha;
     const badgeEnviado = item.enviado_cozinha 
       ? '<span class="g-badge-enviado">✓ Cozinha</span>' 
-      : '';
-
+      : '<span class="g-badge-novo">🆕 NOVO</span>';
+    const itemClass = isNovo ? 'g-comanda-item g-comanda-item--novo' : 'g-comanda-item';
+    
     return `
-      <div class="g-comanda-item">
+      <div class="${itemClass}">
         <div class="g-comanda-item-header">
           <div style="flex:1">
             <div class="g-item-name">${item.produto_nome} ${badgeEnviado}</div>
@@ -433,16 +442,74 @@ async function carregarAdicionais() {
 function abrirListaProdutos() {
   if (!mesaAtual) return;
   categoriaFiltro = '';
+  configurarPizzaModal('mesa');
   document.getElementById('g-categorias').innerHTML = renderCategoriasBtns('filtrarProduto', '');
-  renderProdutos(produtos);
+  const busca = document.getElementById('g-busca-produto');
+  if (busca) busca.value = '';
+  renderListaMesa();
   mostrarTela('g-page-produtos', 'Adicionar Item');
 }
 
+// Config do modal "Montar sua Pizza" conforme o contexto (mesa ou avulso)
+function configurarPizzaModal(contexto) {
+  if (contexto === 'mesa') {
+    window.__pizzaCfg = {
+      produtos,
+      toast: showToast,
+      async onAdd(item) {
+        try {
+          const res = await authFetch(`/api/comandas/mesa/${mesaAtual.id}/item`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              produto_id: item.produto_id,
+              quantidade: item.quantidade,
+              observacao: item.observacao,
+              adicionais: item.adicionais
+            })
+          });
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            showToast(err.error || 'Erro ao adicionar pizza');
+            return;
+          }
+          showToast(`${item.quantidade}x ${item.produto_nome} adicionado!`);
+          await carregarComanda();
+          mostrarTela('g-page-comanda', mesaAtual.nome || ('Mesa ' + mesaAtual.numero));
+        } catch (e) { showToast('Erro ao adicionar pizza'); }
+      }
+    };
+  } else {
+    window.__pizzaCfg = {
+      produtos,
+      toast: showToast,
+      onAdd(item) {
+        carrinhoAvulso.push(item);
+        renderCarrinhoAvulso();
+        showToast(`${item.quantidade}x ${item.produto_nome} adicionado!`);
+      }
+    };
+  }
+}
+
 function renderCategoriasBtns(fnName, ativa) {
-  const cats = [...new Set(produtos.map(p => p.categoria_nome))];
+  // Colapsar categorias de pizza em uma unica aba "Pizzas"
+  const tabs = [];
+  const vistos = new Set();
+  produtos.forEach(p => {
+    if (vistos.has(p.categoria_id)) return;
+    vistos.add(p.categoria_id);
+    if (PizzaModal.isPizza(p)) {
+      if (!tabs.includes('__pizzas__')) tabs.push('__pizzas__');
+    } else {
+      tabs.push(p.categoria_nome);
+    }
+  });
+
   let html = `<button class="g-cat-btn ${ativa === '' ? 'active' : ''}" onclick="${fnName}('', this)">Todos</button>`;
-  cats.forEach(c => {
-    html += `<button class="g-cat-btn ${ativa === c ? 'active' : ''}" onclick="${fnName}('${c}', this)">${c}</button>`;
+  tabs.forEach(c => {
+    const label = c === '__pizzas__' ? 'Pizzas' : c;
+    html += `<button class="g-cat-btn ${ativa === c ? 'active' : ''}" onclick="${fnName}('${c}', this)">${label}</button>`;
   });
   return html;
 }
@@ -451,19 +518,20 @@ function filtrarProduto(cat, btn) {
   categoriaFiltro = cat;
   document.querySelectorAll('#g-categorias .g-cat-btn').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
-  const filtrados = cat ? produtos.filter(p => p.categoria_nome === cat) : produtos;
-  renderProdutos(filtrados);
+  renderListaMesa();
 }
 
-function renderProdutos(lista) {
-  const container = document.getElementById('g-produtos-lista');
-  if (!lista.length) {
-    container.innerHTML = '<p style="text-align:center;color:var(--gray);padding:30px">Nenhum produto disponível</p>';
-    return;
-  }
+function buscarProdutoMesa() {
+  renderListaMesa();
+}
 
-  container.innerHTML = lista.map(p => `
-    <div class="g-produto-card" onclick="abrirModalQuant(${p.id})">
+// Lista da mesa: aplica categoria + busca por nome, com card de pizza quando couber
+function produtoCardHtmlGarcom(p, contexto) {
+  const onclick = contexto === 'avulso'
+    ? `abrirModalQuant(${p.id}, 'avulso')`
+    : `abrirModalQuant(${p.id})`;
+  return `
+    <div class="g-produto-card" onclick="${onclick}">
       ${p.foto
         ? `<img class="g-produto-img" src="${p.foto}" alt="${p.nome}" loading="lazy">`
         : `<div class="g-produto-placeholder">&#127828;</div>`}
@@ -476,10 +544,79 @@ function renderProdutos(lista) {
         <button class="g-produto-add-icon">+</button>
       </div>
     </div>
-  `).join('');
+  `;
 }
 
-async function abrirModalQuant(produtoId) {
+function renderProdutosAgrupados(lista, contexto) {
+  const grupos = [];
+  const mapa = new Map();
+  lista.forEach(p => {
+    const catId = p.categoria_id;
+    if (!mapa.has(catId)) {
+      const itens = [];
+      mapa.set(catId, itens);
+      grupos.push({ id: catId, nome: p.categoria_nome || 'Outros', pizza: PizzaModal.isPizza(p), itens });
+    }
+    mapa.get(catId).push(p);
+  });
+
+  let pizzasInseridas = false;
+  return grupos.map(g => {
+    if (g.pizza) {
+      if (pizzasInseridas) return '';
+      pizzasInseridas = true;
+      return `
+        <div class="g-category-section">
+          <h2 class="g-category-heading">Pizzas</h2>
+          <div class="g-produtos-lista">
+            ${PizzaModal.cardHtml('garcom')}
+          </div>
+        </div>`;
+    }
+    const itensHtml = g.itens.map(p => produtoCardHtmlGarcom(p, contexto)).join('');
+    return `
+      <div class="g-category-section">
+        <h2 class="g-category-heading">${g.nome}</h2>
+        <div class="g-produtos-lista">
+          ${itensHtml}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function renderListaMesa() {
+  const container = document.getElementById('g-produtos-lista');
+  const busca = (document.getElementById('g-busca-produto')?.value || '').trim().toLowerCase();
+  const buscaPizza = !busca || 'pizza'.includes(busca) || 'montar'.includes(busca);
+
+  let html = '';
+  const agrupar = !categoriaFiltro && !busca;
+
+  if (agrupar) {
+    html += renderProdutosAgrupados(produtos, 'mesa');
+  } else {
+    if (buscaPizza && (!categoriaFiltro || categoriaFiltro === '__pizzas__')) {
+      html += PizzaModal.cardHtml('garcom');
+    }
+    const lista = produtos.filter(p => {
+      if (PizzaModal.isPizza(p)) return false;
+      if (categoriaFiltro === '__pizzas__') return false;
+      if (categoriaFiltro && p.categoria_nome !== categoriaFiltro) return false;
+      if (busca && !p.nome.toLowerCase().includes(busca)) return false;
+      return true;
+    });
+    if (lista.length) {
+      html += `<div class="g-produtos-lista">${lista.map(p => produtoCardHtmlGarcom(p, 'mesa')).join('')}</div>`;
+    }
+  }
+
+  container.innerHTML = html || '<p style="text-align:center;color:var(--gray);padding:30px">Nenhum produto encontrado</p>';
+}
+
+let modalQuantContexto = 'mesa'; // 'mesa' | 'avulso'
+
+async function abrirModalQuant(produtoId, contexto = 'mesa') {
+  modalQuantContexto = contexto;
   produtoSelecionado = produtos.find(p => p.id === produtoId);
   if (!produtoSelecionado) return;
 
@@ -620,8 +757,10 @@ function atualizarTotalQuant() {
   document.getElementById('g-quant-total').textContent = `R$ ${total.toFixed(2)}`;
 }
 
+let adicionandoItem = false;
 async function confirmarAdicionarItem() {
-  if (!mesaAtual || !produtoSelecionado) return;
+  if (adicionandoItem || !produtoSelecionado) return;
+  if (modalQuantContexto === 'mesa' && !mesaAtual) return;
 
   const adicionais = [];
   document.querySelectorAll('#g-quant-adicionais-list input:checked').forEach(c => {
@@ -629,10 +768,29 @@ async function confirmarAdicionarItem() {
   });
 
   const observacao = document.getElementById('g-quant-obs').value.trim();
-  
+
   const porKg = produtoSelecionado.unidade === 'kg';
   const quantidade = porKg ? parseFloat(document.getElementById('g-quant-kg-valor').value) || 1 : quantAtual;
 
+  // Pedido avulso: entra no carrinho local, sem API de comanda
+  if (modalQuantContexto === 'avulso') {
+    carrinhoAvulso.push({
+      produto_id: produtoSelecionado.id,
+      produto_nome: produtoSelecionado.nome,
+      preco_unitario: produtoSelecionado.preco,
+      quantidade,
+      observacao,
+      adicionais
+    });
+    renderCarrinhoAvulso();
+    fecharModalQuant();
+    showToast(`${produtoSelecionado.nome} adicionado!`);
+    return;
+  }
+
+  adicionandoItem = true;
+  const btnAdd = document.querySelector('#g-modal-quant .btn-primary');
+  if (btnAdd) btnAdd.disabled = true;
   try {
     const res = await authFetch(`/api/comandas/mesa/${mesaAtual.id}/item`, {
       method: 'POST',
@@ -656,6 +814,7 @@ async function confirmarAdicionarItem() {
     await carregarComanda();
     mostrarTela('g-page-comanda', mesaAtual.nome || ('Mesa ' + mesaAtual.numero));
   } catch (e) { showToast('Erro ao adicionar item'); }
+  finally { adicionandoItem = false; if (btnAdd) btnAdd.disabled = false; }
 }
 
 // ============= FECHAR COMANDA =============
@@ -722,8 +881,9 @@ function selecionarPagamento(el, tipo) {
   document.getElementById('g-troco-section').style.display = tipo === 'dinheiro' ? 'block' : 'none';
 }
 
+let fechandoComanda = false;
 async function confirmarFechamento() {
-  if (!mesaAtual || !comandaItens.length) return;
+  if (fechandoComanda || !mesaAtual || !comandaItens.length) return;
 
   const body = { registrar_apenas: tipoFechamento === 'sem_pagamento' };
 
@@ -738,6 +898,9 @@ async function confirmarFechamento() {
     }
   }
 
+  fechandoComanda = true;
+  const btnFechar = document.querySelector('#g-modal-fechar .btn-success');
+  if (btnFechar) btnFechar.disabled = true;
   try {
     const res = await authFetch(`/api/comandas/mesa/${mesaAtual.id}/fechar`, {
       method: 'POST',
@@ -760,6 +923,7 @@ async function confirmarFechamento() {
     mostrarTela('g-page-mesas', 'Mesas');
     await carregarMesas();
   } catch (e) { showToast('Erro ao fechar comanda'); }
+  finally { fechandoComanda = false; if (btnFechar) btnFechar.disabled = false; }
 }
 
 // ============= LIBERAR MESA (GARÇOM) =============
@@ -812,10 +976,13 @@ async function confirmarLiberarMesa() {
 function abrirPedidoAvulso() {
   categoriaFiltroAvulso = '';
   carrinhoAvulso = [];
+  configurarPizzaModal('avulso');
   document.getElementById('g-avulso-nome').value = '';
   document.getElementById('g-avulso-telefone').value = '';
   document.getElementById('g-categorias-avulso').innerHTML = renderCategoriasBtns('filtrarAvulso', '');
-  renderProdutosAvulso(produtos);
+  const buscaAvulso = document.getElementById('g-busca-produto-avulso');
+  if (buscaAvulso) buscaAvulso.value = '';
+  renderListaAvulso();
   renderCarrinhoAvulso();
   mostrarTela('g-page-avulso', 'Pedido Avulso');
 }
@@ -824,53 +991,41 @@ function filtrarAvulso(cat, btn) {
   categoriaFiltroAvulso = cat;
   document.querySelectorAll('#g-categorias-avulso .g-cat-btn').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
-  const filtrados = cat ? produtos.filter(p => p.categoria_nome === cat) : produtos;
-  renderProdutosAvulso(filtrados);
+  renderListaAvulso();
 }
 
-function renderProdutosAvulso(lista) {
+function buscarProdutoAvulso() {
+  renderListaAvulso();
+}
+
+// Lista do avulso: aplica categoria + busca por nome, com card de pizza quando couber
+function renderListaAvulso() {
   const container = document.getElementById('g-produtos-avulso');
-  if (!lista.length) {
-    container.innerHTML = '<p style="text-align:center;color:var(--gray);padding:30px">Nenhum produto</p>';
-    return;
-  }
+  const busca = (document.getElementById('g-busca-produto-avulso')?.value || '').trim().toLowerCase();
+  const buscaPizza = !busca || 'pizza'.includes(busca) || 'montar'.includes(busca);
 
-  container.innerHTML = lista.map(p => `
-    <div class="g-produto-card" onclick="adicionarAvulso(${p.id})">
-      ${p.foto
-        ? `<img class="g-produto-img" src="${p.foto}" alt="${p.nome}" loading="lazy">`
-        : `<div class="g-produto-placeholder">&#127828;</div>`}
-      <div class="g-produto-info">
-        <div class="g-produto-text">
-          <div class="g-produto-nome">${p.nome}</div>
-          ${p.descricao ? `<div class="g-produto-desc">${p.descricao}</div>` : ''}
-          <div class="g-produto-preco">R$ ${p.preco.toFixed(2)}</div>
-        </div>
-        <button class="g-produto-add-icon">+</button>
-      </div>
-    </div>
-  `).join('');
-}
+  let html = '';
+  const agrupar = !categoriaFiltroAvulso && !busca;
 
-function adicionarAvulso(produtoId) {
-  const p = produtos.find(x => x.id === produtoId);
-  if (!p) return;
-
-  const noCarrinho = carrinhoAvulso.find(it => it.produto_id === produtoId);
-  if (noCarrinho) {
-    noCarrinho.quantidade++;
+  if (agrupar) {
+    html += renderProdutosAgrupados(produtos, 'avulso');
   } else {
-    carrinhoAvulso.push({
-      produto_id: p.id,
-      produto_nome: p.nome,
-      preco_unitario: p.preco,
-      quantidade: 1,
-      observacao: '',
-      adicionais: []
+    if (buscaPizza && (!categoriaFiltroAvulso || categoriaFiltroAvulso === '__pizzas__')) {
+      html += PizzaModal.cardHtml('garcom');
+    }
+    const lista = produtos.filter(p => {
+      if (PizzaModal.isPizza(p)) return false;
+      if (categoriaFiltroAvulso === '__pizzas__') return false;
+      if (categoriaFiltroAvulso && p.categoria_nome !== categoriaFiltroAvulso) return false;
+      if (busca && !p.nome.toLowerCase().includes(busca)) return false;
+      return true;
     });
+    if (lista.length) {
+      html += `<div class="g-produtos-lista">${lista.map(p => produtoCardHtmlGarcom(p, 'avulso')).join('')}</div>`;
+    }
   }
-  renderCarrinhoAvulso();
-  showToast(`${p.nome} adicionado!`);
+
+  container.innerHTML = html || '<p style="text-align:center;color:var(--gray);padding:30px">Nenhum produto encontrado</p>';
 }
 
 function alterarQtdAvulso(idx, delta) {
@@ -899,6 +1054,7 @@ function renderCarrinhoAvulso() {
     empty.style.display = 'block';
     totalBox.style.display = 'none';
     btnEnviar.style.display = 'none';
+    atualizarFabAvulso();
     return;
   }
 
@@ -930,9 +1086,39 @@ function renderCarrinhoAvulso() {
   }).join('');
 
   document.getElementById('g-avulso-valor').textContent = `R$ ${total.toFixed(2)}`;
+  atualizarFabAvulso();
 }
 
+function atualizarFabAvulso() {
+  const fab = document.getElementById('g-cart-fab-avulso');
+  const badge = document.getElementById('g-cart-badge-avulso');
+  if (!fab || !badge) return;
+  const totalQtd = carrinhoAvulso.reduce((s,i)=>s+i.quantidade,0);
+  const totalVal = carrinhoAvulso.reduce((s,i)=>s + i.preco_unitario * i.quantidade, 0);
+  const isAvulso = document.getElementById('g-page-avulso')?.classList.contains('active');
+  if (totalQtd > 0 && isAvulso) {
+    fab.classList.remove('hidden');
+    badge.textContent = totalQtd;
+    fab.setAttribute('aria-label', `Carrinho: ${totalQtd} itens - R$ ${totalVal.toFixed(2)} - toque para ver`);
+  } else {
+    fab.classList.add('hidden');
+  }
+}
+
+function scrollParaCarrinhoAvulso() {
+  const el = document.getElementById('g-avulso-carrinho');
+  const totalBox = document.getElementById('g-avulso-total');
+  if (el) el.scrollIntoView({behavior:'smooth', block:'start'});
+  if (totalBox) {
+    totalBox.style.transform = 'scale(1.03)';
+    totalBox.style.transition = 'transform 0.2s';
+    setTimeout(()=> totalBox.style.transform='', 300);
+  }
+}
+
+let enviandoAvulso = false;
 async function enviarPedidoAvulso() {
+  if (enviandoAvulso) return;
   if (!carrinhoAvulso.length) { showToast('Carrinho vazio'); return; }
 
   const telefoneRaw = document.getElementById('g-avulso-telefone').value.trim();
@@ -944,6 +1130,9 @@ async function enviarPedidoAvulso() {
 
   const nomeAvulso = document.getElementById('g-avulso-nome').value.trim();
   const forma = document.getElementById('g-avulso-forma').value;
+  const btn = document.getElementById('g-btn-enviar-avulso');
+  enviandoAvulso = true;
+  if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
 
   let clienteId;
   try {
@@ -985,6 +1174,10 @@ async function enviarPedidoAvulso() {
     showToast('Pedido avulso enviado!');
     mostrarTela('g-page-mesas', 'Mesas');
   } catch (e) { showToast('Erro ao enviar pedido'); }
+  finally {
+    enviandoAvulso = false;
+    if (btn) { btn.disabled = false; btn.textContent = 'Enviar Pedido para Cozinha'; }
+  }
 }
 
 // ============= TOAST =============

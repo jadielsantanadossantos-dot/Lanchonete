@@ -1,8 +1,9 @@
 # Dockerfile for Railway/Render deployment with Supabase
 FROM node:20-alpine
 
-# Install dumb-init for proper signal handling
-RUN apk add --no-cache dumb-init
+# Install dumb-init and timezone data
+RUN apk add --no-cache dumb-init tzdata
+ENV TZ=America/Sao_Paulo
 
 # Create app directory
 WORKDIR /app

@@ -271,8 +271,10 @@ body { font-family: var(--font-sans); background: var(--color-bg); color: var(--
 .pedido-obs { font-size: var(--text-sm); color: var(--color-warning); font-style: italic; background: var(--color-warning-soft); padding: var(--space-2) var(--space-3); border-radius: var(--radius); display: inline-flex; align-items: center; gap: var(--space-2); max-width: 100%; }
 
 .pedido-items { background: var(--color-bg-alt); border-radius: var(--radius); padding: var(--space-3); margin-bottom: var(--space-3); font-size: var(--text-sm); max-height: 180px; overflow-y: auto; }
-.pedido-item-line { display: flex; justify-content: space-between; padding: var(--space-1) 0; border-bottom: 1px solid var(--color-border); }
+.pedido-item-line { display: flex; justify-content: space-between; align-items: center; padding: var(--space-1) 0; border-bottom: 1px solid var(--color-border); }
 .pedido-item-line:last-child { border-bottom: none; }
+.pedido-item-line--novo { background: #FFFBEB !important; border: 1px solid #F59E0B !important; border-left: 4px solid #F59E0B !important; border-radius: 8px; padding: 6px 8px !important; margin: 4px 0; animation: pulseNovo 2s infinite; }
+.badge-item-novo { display: inline-flex; align-items: center; background: #F59E0B; color: white; font-size: 0.6rem; font-weight: 800; padding: 1px 6px; border-radius: 9999px; margin-left: 6px; letter-spacing: 0.3px; }
 .pedido-item-name { font-weight: var(--font-medium); color: var(--color-text); flex: 1; min-width: 0; }
 .pedido-item-qty { color: var(--color-text-secondary); margin: 0 var(--space-2); white-space: nowrap; }
 .pedido-item-price { font-weight: var(--font-bold); color: var(--color-primary); white-space: nowrap; }
@@ -432,6 +434,22 @@ textarea.form-control { min-height: 100px; resize: vertical; }
 .toast.error { background: var(--color-danger); }
 .toast.warning { background: var(--color-warning); color: var(--color-text-inverse); }
 .toast.info { background: var(--color-primary); }
+
+/* Toast Admin Melhorado (top-right) */
+.toast-admin { position: fixed; z-index: 9999; }
+@keyframes toastSlideIn { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+@keyframes toastSlideOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(120%); opacity: 0; } }
+@keyframes toastProgress { from { width: 100%; } to { width: 0%; } }
+@keyframes pulseNovo { 0%,100% { box-shadow: 0 0 0 0 rgba(220,38,38,0.4); } 50% { box-shadow: 0 0 0 8px rgba(220,38,38,0); } }
+@keyframes badgePulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+
+/* Pedido Card NOVO */
+.pedido-card--novo { border-left-width: 6px !important; border-color: var(--color-danger) !important; background: linear-gradient(135deg, #FEF2F2 0%, #FFFFFF 100%) !important; animation: pulseNovo 2s infinite; position: relative; }
+.pedido-card--novo::before { content: ''; position: absolute; top: -2px; right: -2px; width: 12px; height: 12px; background: var(--color-danger); border-radius: 50%; border: 2px solid white; animation: badgePulse 1.2s infinite; }
+.badge-novo { display: inline-flex; align-items: center; gap: 4px; background: var(--color-danger); color: white; font-size: 0.65rem; font-weight: 800; padding: 2px 8px; border-radius: 9999px; letter-spacing: 0.5px; animation: badgePulse 1.5s infinite; margin-left: 6px; vertical-align: middle; }
+.badge-mesa { display: inline-flex; align-items: center; background: var(--color-primary-soft); color: var(--color-primary-dark); font-size: 0.65rem; font-weight: 700; padding: 2px 7px; border-radius: 9999px; margin-left: 6px; }
+.badge-avulso { display: inline-flex; align-items: center; background: var(--color-warning-soft); color: var(--color-warning-dark); font-size: 0.65rem; font-weight: 700; padding: 2px 7px; border-radius: 9999px; margin-left: 6px; }
+.badge-pulse { animation: badgePulse 1s infinite; }
 
 /* ============================================
    RESPONSIVE BREAKPOINTS (Mobile-First)

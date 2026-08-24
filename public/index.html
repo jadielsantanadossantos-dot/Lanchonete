@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Lanchonete</title>
-  <link rel="stylesheet" href="/css/style.css?v=20260823">
+  <link rel="stylesheet" href="/css/style.css?v=20260832">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -18,6 +18,7 @@
         </div>
       </div>
       <div class="header-actions">
+        <button class="header-btn" onclick="mostrarPagina('page-acompanhar')" aria-label="Meus pedidos">&#128203;</button>
         <button class="header-btn" onclick="mostrarPagina('page-cadastro')" aria-label="Minha conta">&#128100;</button>
       </div>
     </div>
@@ -49,7 +50,6 @@
         <p id="modal-desc" class="modal-desc"></p>
         <p id="modal-preco" class="modal-price"></p>
         <div id="modal-adicionais" class="adicionais-section" style="display:none">
-          <h3>Adicionais</h3>
           <div id="adicionais-list"></div>
         </div>
         <div class="qty-control" id="modal-kg-control" style="display:none">
@@ -101,7 +101,7 @@
       </div>
     </div>
     <button class="btn btn-primary btn-checkout" id="btn-checkout" style="display:none" onclick="mostrarPagina('page-dados')">
-      Continuar
+      Continuar para entrega &rarr;
     </button>
   </div>
 
@@ -375,8 +375,9 @@
     <span class="cart-badge" id="cart-badge">0</span>
   </button>
 
-<script src="/js/realtime.js?v=20260823"></script>
-  <script src="/js/app.js?v=20260823"></script>
+<script src="/js/realtime.js?v=20260832"></script>
+  <script src="/js/pizza-modal.js?v=20260832"></script>
+<script src="/js/app.js?v=20260832"></script>
   <script>
     // Registrar Service Worker
     if ('serviceWorker' in navigator) {

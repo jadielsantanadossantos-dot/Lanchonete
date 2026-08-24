@@ -9,6 +9,7 @@ types.setTypeParser(20, v => (v === null ? null : parseInt(v, 10)));
 
 let pool = null;
 let isInitialized = false;
+process.env.TZ = process.env.TZ || 'America/Sao_Paulo';
 
 function getPool() {
   if (!pool) {
@@ -159,8 +160,14 @@ const dbWrapper = {
   async initialize() {
     if (isInitialized) return;
     getPool();
+    // Forçar timezone Brasil no Postgres
+    try {
+      await getPool().query("SET TIME ZONE 'America/Sao_Paulo'");
+    } catch (e) {
+      console.warn('Aviso: falha ao definir TIME ZONE:', e.message);
+    }
     isInitialized = true;
-    console.log('✅ Pool PostgreSQL inicializado');
+    console.log('✅ Pool PostgreSQL inicializado (TZ America/Sao_Paulo)');
   }
 };
 

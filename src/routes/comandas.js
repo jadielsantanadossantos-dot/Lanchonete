@@ -5,19 +5,30 @@ const { middlewareGarcom } = require('../auth/auth');
 
 router.use(middlewareGarcom);
 
+function parseAdicionaisJson(v) {
+  if (!v) return [];
+  if (Array.isArray(v)) return v;
+  if (typeof v === 'object') return v;
+  try { return JSON.parse(v); } catch (e) { return []; }
+}
+
+function getBrasilTimestamp() {
+  return new Date().toLocaleString('sv-SE', { timeZone: 'America/Sao_Paulo' });
+}
+
 async function getComandaAberta(mesaId) {
   return db.get('SELECT * FROM comandas WHERE mesa_id = $1 AND status = $2', mesaId, 'aberta');
 }
 
 async function getOuCriaClienteMesa(mesaId, clienteNome) {
   const telefoneMesa = `mesa${mesaId}`;
+  const nomeBase = `Mesa ${mesaId}`;
+  const nomeFormatado = clienteNome ? `${nomeBase} - ${clienteNome}` : nomeBase;
   let cliente = await db.get('SELECT * FROM clientes WHERE telefone = $1', telefoneMesa);
-  const nomeFormatado = `Mesa ${mesaId}${clienteNome ? ' - ' + clienteNome : ''}`;
-
   if (!cliente) {
     const info = await db.run('INSERT INTO clientes (nome, telefone, bairro) VALUES ($1, $2, $3) RETURNING id', nomeFormatado, telefoneMesa, 'Mesa');
     cliente = { id: info.lastInsertRowid, nome: nomeFormatado, telefone: telefoneMesa, bairro: 'Mesa' };
-  } else if (clienteNome && !cliente.nome.includes(' - ') && cliente.nome.startsWith('Mesa ' + mesaId)) {
+  } else if (cliente.nome !== nomeFormatado) {
     await db.run('UPDATE clientes SET nome = $1 WHERE id = $2', nomeFormatado, cliente.id);
     cliente.nome = nomeFormatado;
   }
@@ -42,19 +53,25 @@ async function getPedidoVinculadoComanda(comandaId) {
 }
 
 async function atualizarPedidoComItens(pedidoId, itensComAdicionais, formaPagamento, observacoes, trocoPara) {
-  let subtotal = 0;
+  let subtotalNovos = 0;
   itensComAdicionais.forEach(item => {
     let itemTotal = item.preco_unitario * item.quantidade;
     if (item.adicionais && item.adicionais.length) {
       item.adicionais.forEach(a => { itemTotal += a.preco * item.quantidade; });
     }
-    subtotal += itemTotal;
+    subtotalNovos += itemTotal;
   });
 
+  const pedidoAtual = await db.get('SELECT subtotal, status, observacoes, forma_pagamento FROM pedidos WHERE id=$1', pedidoId);
+  const subtotalAtual = pedidoAtual ? parseFloat(pedidoAtual.subtotal) || 0 : 0;
+  const subtotal = subtotalAtual + subtotalNovos;
   const taxaEntrega = 0;
   const total = subtotal + taxaEntrega;
 
-  let obsFinal = observacoes || '';
+  let obsFinal = pedidoAtual ? (pedidoAtual.observacoes || '') : '';
+  if (observacoes) {
+    obsFinal = obsFinal ? obsFinal + ' | ' + observacoes : observacoes;
+  }
   if (formaPagamento === 'dinheiro' && trocoPara) {
     obsFinal += ` | Troco para R$ ${parseFloat(trocoPara).toFixed(2)}`;
   }
@@ -77,8 +94,10 @@ async function atualizarPedidoComItens(pedidoId, itensComAdicionais, formaPagame
     }
   }
 
+  const novoStatus = (formaPagamento && formaPagamento !== 'mesa') ? 'entregue' : (pedidoAtual ? pedidoAtual.status : 'recebido');
+  const formaFinal = formaPagamento || (pedidoAtual ? pedidoAtual.forma_pagamento : 'mesa');
   await db.run('UPDATE pedidos SET subtotal = $1, total = $2, forma_pagamento = $3, observacoes = $4, status = $5, atualizado_em = NOW() WHERE id = $6',
-    subtotal, total, formaPagamento || 'mesa', obsFinal, 'entregue', pedidoId);
+    subtotal, total, formaFinal, obsFinal, novoStatus, pedidoId);
 
   return db.get(`
     SELECT p.*, c.nome as cliente_nome, c.telefone as cliente_telefone FROM pedidos p
@@ -106,7 +125,7 @@ router.get('/mesa/:mesaId', wrapAsync(async (req, res) => {
 
   const itensComAdicionais = itens.map(item => ({
     ...item,
-    adicionais: item.adicionais_json ? JSON.parse(item.adicionais_json) : []
+    adicionais: parseAdicionaisJson(item.adicionais_json)
   }));
 
   const total = itensComAdicionais.reduce((s, i) => {
@@ -255,7 +274,7 @@ router.post('/mesa/:mesaId/enviar-cozinha', wrapAsync(async (req, res) => {
 
   const itensComAdicionais = itens.map(item => ({
     ...item,
-    adicionais: item.adicionais_json ? JSON.parse(item.adicionais_json) : []
+    adicionais: parseAdicionaisJson(item.adicionais_json)
   }));
 
   // Verificar se já existe pedido vinculado à comanda
@@ -341,11 +360,22 @@ router.post('/mesa/:mesaId/enviar-cozinha', wrapAsync(async (req, res) => {
     await db.run('UPDATE comanda_itens SET enviado_cozinha = true WHERE id = $1', item.id);
   }
 
+  const isAtualizacao = !!pedidoExistente;
   if (req.emitToAdmin) {
-    await req.emitToAdmin('novo-pedido', pedido);
+    if (isAtualizacao) {
+      await req.emitToAdmin('pedido-atualizado', { id: pedido.id, status: pedido.status, _novoItem: true, _mesaId: parseInt(mesaId), _qtdItens: itensComAdicionais.length });
+      // também emitir novo-pedido para compatibilidade com toast existente
+      await req.emitToAdmin('novo-pedido', { ...pedido, _isAtualizacao: true, _mesaId: parseInt(mesaId) });
+    } else {
+      await req.emitToAdmin('novo-pedido', pedido);
+    }
   }
   if (req.emitToGarcom) {
-    await req.emitToGarcom('novo-pedido', pedido);
+    if (isAtualizacao) {
+      await req.emitToGarcom('pedido-atualizado', { id: pedido.id, status: pedido.status });
+    } else {
+      await req.emitToGarcom('novo-pedido', pedido);
+    }
   }
   if (req.emitToMesa) {
     await req.emitToMesa(mesaId, 'comanda-atualizada', { mesaId: parseInt(mesaId) });
@@ -374,12 +404,12 @@ router.post('/mesa/:mesaId/fechar', wrapAsync(async (req, res) => {
 
   const itensComAdicionais = itens.map(item => ({
     ...item,
-    adicionais: item.adicionais_json ? JSON.parse(item.adicionais_json) : []
+    adicionais: parseAdicionaisJson(item.adicionais_json)
   }));
 
   const itensNaoEnviados = itensComAdicionais.filter(i => !i.enviado_cozinha);
 
-  const agora = new Date().toISOString().replace('T', ' ').substring(0, 19);
+  const agora = getBrasilTimestamp();
 
   if (registrar_apenas) {
     await db.run('UPDATE comandas SET status = $1, fechada_em = $2 WHERE id = $3', 'fechada', agora, comanda.id);
@@ -548,7 +578,7 @@ router.post('/mesa/:mesaId/liberar', wrapAsync(async (req, res) => {
   }
 
   // Fecha comanda
-  const agora = new Date().toISOString().replace('T', ' ').substring(0, 19);
+  const agora = getBrasilTimestamp();
   await db.run('UPDATE comandas SET status = $1, fechada_em = $2 WHERE id = $3', 'fechada', agora, comanda.id);
 
   // Atualiza pedidos vinculados para 'entregue'
