@@ -656,21 +656,45 @@ function fecharSeletorCategorias() {
     document.querySelectorAll('.cat-checkbox-adic:checked')
   ).map(cb => parseInt(cb.value));
 
+  // Remover produtos selecionados que não pertencem mais às categorias escolhidas
+  const prodsValidos = new Set(
+    produtosAdmin.filter(p => categoriasAdicionaisSelecionadas.includes(p.categoria_id)).map(p => p.id)
+  );
+  produtosAdicionaisSelecionadas = produtosAdicionaisSelecionadas.filter(id => prodsValidos.has(id));
+
+  atualizarLabelProdutos();
+  atualizarLabelCategorias();
   modal.style.display = 'none';
 }
 
+function atualizarLabelCategorias() {
+  const btn = document.getElementById('btn-seletor-categorias');
+  if (!btn) return;
+  btn.textContent = categoriasAdicionaisSelecionadas.length > 0
+    ? `Categorias: ${categoriasAdicionaisSelecionadas.length} selecionada(s)`
+    : 'Selecionar Categorias';
+}
+
 function abrirSeletorProdutos() {
+  if (categoriasAdicionaisSelecionadas.length === 0) {
+    showToast('Selecione primeiro as categorias');
+    return;
+  }
+
   const modal = document.getElementById('modal-produtos-adic');
   const container = document.getElementById('produtos-checkboxes');
 
-  container.innerHTML = produtosAdmin.map(p => `
+  // Mostrar apenas produtos das categorias selecionadas
+  const produtosFiltrados = produtosAdmin.filter(p => categoriasAdicionaisSelecionadas.includes(p.categoria_id));
+
+  container.innerHTML = produtosFiltrados.length ? produtosFiltrados.map(p => `
     <div style="padding: 8px; border-bottom: 1px solid #e5e5e5;">
       <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; min-height: 40px;">
         <input type="checkbox" value="${p.id}" class="prod-checkbox-adic" ${produtosAdicionaisSelecionadas.includes(p.id) ? 'checked' : ''}>
         <span>${p.nome} <small style="color:var(--gray)">(${categoriasAdmin.find(c => c.id === p.categoria_id)?.nome || 'sem categoria'})</small></span>
       </label>
     </div>
-  `).join('');
+  `).join('') : '<p style="text-align:center;color:var(--gray);padding:20px">Nenhum produto encontrado nas categorias selecionadas</p>';
 
   modal.style.display = 'flex';
 }
@@ -756,6 +780,7 @@ function editarAdicional(a) {
   produtosAdicionaisSelecionadas = (a.produto_ids && a.produto_ids.length) ? a.produto_ids.map(x => parseInt(x)) : (a.produto_id ? [parseInt(a.produto_id)] : []);
   atualizarLabelProdutos();
   categoriasAdicionaisSelecionadas = a.categoria_id ? [parseInt(a.categoria_id)] : [];
+  atualizarLabelCategorias();
 
   document.getElementById('btn-salvar-adic').textContent = 'Atualizar';
   document.getElementById('btn-cancelar-adic').style.display = 'inline-block';
@@ -772,6 +797,7 @@ function cancelarEdicaoAdicional() {
   produtosAdicionaisSelecionadas = [];
   atualizarLabelProdutos();
   categoriasAdicionaisSelecionadas = [];
+  atualizarLabelCategorias();
   document.getElementById('btn-salvar-adic').textContent = 'Adicionar';
   document.getElementById('btn-cancelar-adic').style.display = 'none';
 }
@@ -822,6 +848,7 @@ async function salvarAdicional() {
     produtosAdicionaisSelecionadas = [];
     atualizarLabelProdutos();
     categoriasAdicionaisSelecionadas = [];
+    atualizarLabelCategorias();
     carregarAdicionais();
   } catch (e) {
     console.error('Erro ao salvar adicional:', e);
