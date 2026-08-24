@@ -109,7 +109,7 @@ function showSection(section, el) {
   if (section === 'clientes') carregarClientes();
   if (section === 'bairros') carregarBairrosAdmin();
   if (section === 'mesas') carregarMesasAdmin();
-  if (section === 'motoboys') carregarMotoboys();
+  if (section === 'motoboys') { carregarMotoboys(); carregarRelatorioMotoboys(); }
   if (section === 'usuarios') carregarUsuariosAdmin();
   if (section === 'relatorios') carregarRelatorios();
   if (section === 'config') carregarConfigAdmin();
@@ -356,6 +356,26 @@ async function atribuirMotoboy(pedidoId, motoboyId) {
   } catch (e) {
     showToast(e.message);
   }
+}
+
+async function carregarRelatorioMotoboys() {
+  const periodo = document.getElementById('periodo-motoboys').value;
+  const res = await authFetch(`/api/motoboys/resumo?periodo=${periodo}`);
+  const resumo = await res.json();
+
+  const totalEntregas = resumo.reduce((s, m) => s + Number(m.entregas), 0);
+  const totalTaxas = resumo.reduce((s, m) => s + Number(m.total_taxas), 0);
+
+  document.getElementById('motoboys-stats').innerHTML = `
+    <div class="stat-card"><div class="stat-value">${totalEntregas}</div><div class="stat-label">Entregas</div></div>
+    <div class="stat-card"><div class="stat-value">R$ ${totalTaxas.toFixed(2)}</div><div class="stat-label">Total das taxas</div></div>
+  `;
+
+  document.getElementById('motoboys-resumo').innerHTML = resumo.length ? `<table>
+    <thead><tr><th>Motoboy</th><th>Entregas</th><th>Total das taxas</th></tr></thead>
+    <tbody>${resumo.map(m => `<tr><td><strong>${m.nome}</strong></td><td>${m.entregas}</td><td>R$ ${Number(m.total_taxas).toFixed(2)}</td></tr>`).join('')}</tbody>
+    ${resumo.length > 1 ? `<tfoot><tr><td><strong>Total</strong></td><td><strong>${totalEntregas}</strong></td><td><strong>R$ ${totalTaxas.toFixed(2)}</strong></td></tr></tfoot>` : ''}
+  </table>` : '<p style="color:var(--gray);text-align:center;padding:20px">Nenhuma entrega com motoboy no período</p>';
 }
 
 async function confirmarPix(id) {
@@ -1164,12 +1184,8 @@ async function excluirBairro(id) {
 // RELATÓRIOS
 async function carregarRelatorios() {
   const periodo = document.getElementById('periodo-relatorio').value;
-  const [vendasRes, motoboysRes] = await Promise.all([
-    authFetch(`/api/config/relatorios/vendas?periodo=${periodo}`),
-    authFetch(`/api/motoboys/resumo?periodo=${periodo}`)
-  ]);
-  const data = await vendasRes.json();
-  const resumoMotoboys = await motoboysRes.json();
+  const res = await authFetch(`/api/config/relatorios/vendas?periodo=${periodo}`);
+  const data = await res.json();
 
   document.getElementById('stats-grid').innerHTML = `
     <div class="stat-card"><div class="stat-value">${data.resumo.total_pedidos}</div><div class="stat-label">Pedidos</div></div>
@@ -1191,12 +1207,6 @@ async function carregarRelatorios() {
     <thead><tr><th>Forma</th><th>Qtd</th><th>Valor</th></tr></thead>
     <tbody>${data.porFormaPagamento.map(p => `<tr><td>${payLabels[p.forma_pagamento] || p.forma_pagamento}</td><td>${p.qtd}</td><td>R$ ${p.valor.toFixed(2)}</td></tr>`).join('')}</tbody>
   </table>` : '<p style="color:var(--gray)">Sem dados</p>';
-
-  document.getElementById('motoboys-resumo').innerHTML = resumoMotoboys.length ? `<table>
-    <thead><tr><th>Motoboy</th><th>Entregas</th><th>Total das taxas</th></tr></thead>
-    <tbody>${resumoMotoboys.map(m => `<tr><td><strong>${m.nome}</strong></td><td>${m.entregas}</td><td>R$ ${Number(m.total_taxas).toFixed(2)}</td></tr>`).join('')}</tbody>
-    <tfoot><tr><td><strong>Total</strong></td><td><strong>${resumoMotoboys.reduce((s, m) => s + Number(m.entregas), 0)}</strong></td><td><strong>R$ ${resumoMotoboys.reduce((s, m) => s + Number(m.total_taxas), 0).toFixed(2)}</strong></td></tr></tfoot>
-  </table>` : '<p style="color:var(--gray)">Nenhuma entrega com motoboy no período</p>';
 }
 
 // CONFIGURAÇÕES

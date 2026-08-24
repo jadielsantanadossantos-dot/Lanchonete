@@ -233,6 +233,20 @@
           <button class="btn btn-primary btn-sm" onclick="salvarMotoboy()">Adicionar</button>
         </div>
         <div id="motoboys-list" class="table-container"></div>
+
+        <h2 style="margin: var(--space-6) 0 var(--space-4);">Relatório de Entregas</h2>
+        <div class="filters">
+          <select class="filter-select" id="periodo-motoboys" onchange="carregarRelatorioMotoboys()">
+            <option value="hoje">Hoje</option>
+            <option value="semana">Última semana</option>
+            <option value="mes" selected>Último mês</option>
+          </select>
+        </div>
+        <div class="stats-grid" id="motoboys-stats"></div>
+        <div class="report-section">
+          <h3>Taxas por motoboy</h3>
+          <div id="motoboys-resumo" class="table-container"></div>
+        </div>
       </section>
 
       <!-- CLIENTES -->
@@ -350,10 +364,6 @@
         <div class="report-section">
           <h3>Por forma de pagamento</h3>
           <div id="vendas-pagamento" class="table-container"></div>
-        </div>
-        <div class="report-section">
-          <h3>Entregas por motoboy (taxas)</h3>
-          <div id="motoboys-resumo" class="table-container"></div>
         </div>
       </section>
 
