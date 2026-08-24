@@ -109,7 +109,8 @@ router.get('/ativos', wrapAsync(async (req, res) => {
       
       if (isPizza) {
         // Pizzas/sucos recebem sabores (tipo='sabor') E adicionais com preço
-        if (a.tipo === 'sabor' && (produtoEspecifico || mesmaCategoria)) {
+        // Sabores vinculados a um produto específico nao vazam para outros produtos da mesma categoria
+        if (a.tipo === 'sabor' && (produtoEspecifico || adicionalGlobal)) {
           return true;
         }
         return (produtoEspecifico || adicionalGlobal) && a.tipo === 'adicional' && a.preco > 0;
