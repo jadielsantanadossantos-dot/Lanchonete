@@ -157,7 +157,31 @@ function renderProdutos(lista) {
     grid.innerHTML = '<div class="empty-state"><div class="empty-icon">&#127828;</div><p>Nenhum produto disponível</p></div>';
     return;
   }
-  grid.innerHTML = lista.map(p => `
+
+  // Agrupar por categoria preservando a ordem (categoria -> preco)
+  const grupos = [];
+  const mapa = new Map();
+  lista.forEach(p => {
+    if (!mapa.has(p.categoria_id)) {
+      const itens = [];
+      mapa.set(p.categoria_id, itens);
+      grupos.push({ id: p.categoria_id, nome: p.categoria_nome || 'Outros', itens });
+    }
+    mapa.get(p.categoria_id).push(p);
+  });
+
+  grid.innerHTML = grupos.map(g => `
+    <div class="category-section">
+      <h2 class="category-heading">${g.nome}</h2>
+      <div class="category-items">
+        ${g.itens.map(produtoCardHtml).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+function produtoCardHtml(p) {
+  return `
     <div class="product-card" onclick="abrirProduto(${p.id})">
       ${p.foto
         ? `<img class="product-img" src="${p.foto}" alt="${p.nome}" loading="lazy">`
@@ -173,7 +197,7 @@ function renderProdutos(lista) {
         </div>
       </div>
     </div>
-  `).join('');
+  `;
 }
 
 function formatarPeso(qtd) {

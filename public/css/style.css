@@ -73,6 +73,8 @@ input, select, textarea { font-family: inherit; font-size: inherit; }
 
 /* Products Grid - DESKTOP BASE (flex row) */
 .products-grid { padding: var(--space-4) var(--space-4) var(--space-8); max-width: 480px; margin: 0 auto; }
+.category-section { margin-bottom: var(--space-6); }
+.category-heading { position: sticky; top: calc(var(--header-h) + 52px); z-index: 4; background: var(--color-bg); font-size: var(--text-xl); font-weight: var(--font-bold); color: var(--color-text); margin: 0 0 var(--space-3); padding: var(--space-2) 0; border-bottom: 2px solid var(--color-primary); }
 .product-card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); overflow: hidden; display: flex; margin-bottom: var(--space-4); box-shadow: var(--shadow-sm); transition: all var(--transition); }
 .product-card:active { transform: scale(0.99); }
 @media (min-width: 768px) { .product-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); } }
@@ -277,7 +279,8 @@ textarea.form-control { min-height: 100px; resize: vertical; }
 
 /* Tablet (768px - 1023px) */
 @media (min-width: 768px) and (max-width: 1023px) {
-  #page-cardapio.active .products-grid { max-width: 1000px; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--space-4); }
+  #page-cardapio.active .products-grid { max-width: 1000px; }
+  #page-cardapio.active .category-items { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--space-4); }
   .page-dados, .page-pagamento, .page-pix, .page-sucesso, .page-acompanhar, .page-cadastro, .page-editar-cadastro { max-width: 1000px; padding: var(--space-4); }
   .header-row { max-width: 1000px; }
   .product-card { flex-direction: column; margin-bottom: 0; }
@@ -295,7 +298,8 @@ textarea.form-control { min-height: 100px; resize: vertical; }
 
 /* Desktop (1024px+) */
 @media (min-width: 1024px) {
-  #page-cardapio.active .products-grid { max-width: 1400px; display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: var(--space-4); }
+  #page-cardapio.active .products-grid { max-width: 1400px; }
+  #page-cardapio.active .category-items { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: var(--space-4); }
   .page-dados, .page-pagamento, .page-pix, .page-sucesso, .page-acompanhar, .page-cadastro, .page-editar-cadastro { max-width: 1400px; padding: var(--space-4); }
   .header-row { max-width: 1400px; }
   .product-card { flex-direction: column; margin-bottom: 0; }

@@ -88,7 +88,7 @@ router.get('/ativos', wrapAsync(async (req, res) => {
   const rows = await db.all(`
     SELECT p.*, c.nome as categoria_nome FROM produtos p
     JOIN categorias c ON p.categoria_id = c.id
-    WHERE p.ativo = true ORDER BY p.preco ASC, p.nome
+    WHERE p.ativo = true ORDER BY c.ordem ASC NULLS LAST, p.preco ASC, p.nome
   `);
 
   const adicionais = await db.all('SELECT * FROM adicionais WHERE ativo = true');
