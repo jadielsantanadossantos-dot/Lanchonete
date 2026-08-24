@@ -114,8 +114,8 @@ router.get('/ativos', wrapAsync(async (req, res) => {
         }
         return (produtoEspecifico || adicionalGlobal) && a.tipo === 'adicional' && a.preco > 0;
       } else {
-        // Não-pizzas recebem apenas adicionais sem tipo ou tipo='adicional'
-        return (produtoEspecifico || adicionalGlobal) && (!a.tipo || a.tipo === 'adicional');
+        // Não-pizzas recebem adicionais sem tipo, tipo='adicional' e tipos de açaí (base/cobertura/acompanhamento)
+        return (produtoEspecifico || adicionalGlobal) && (!a.tipo || a.tipo === 'adicional' || ['base', 'cobertura', 'acompanhamento'].includes(a.tipo));
       }
     });
     
