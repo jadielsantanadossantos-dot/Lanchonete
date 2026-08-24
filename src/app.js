@@ -112,6 +112,7 @@ function buildApp() {
   app.use('/api/pedidos', require('./routes/pedidos'));
   app.use('/api/mesas', require('./routes/mesas'));
   app.use('/api/comandas', require('./routes/comandas'));
+  app.use('/api/motoboys', require('./routes/motoboys'));
   app.use('/api/config', require('./routes/config'));
 
   app.get('/health', (req, res) => {

@@ -102,13 +102,14 @@ function showSection(section, el) {
   document.getElementById('page-title').textContent = el ? el.textContent.trim() : section;
   fecharSidebar();
 
-  if (section === 'pedidos') carregarPedidos();
+  if (section === 'pedidos') { carregarPedidos(); carregarMotoboys(); }
   if (section === 'produtos') carregarProdutosAdmin();
   if (section === 'categorias') carregarCategoriasAdmin();
   if (section === 'adicionais') carregarAdicionais();
   if (section === 'clientes') carregarClientes();
   if (section === 'bairros') carregarBairrosAdmin();
   if (section === 'mesas') carregarMesasAdmin();
+  if (section === 'motoboys') carregarMotoboys();
   if (section === 'usuarios') carregarUsuariosAdmin();
   if (section === 'relatorios') carregarRelatorios();
   if (section === 'config') carregarConfigAdmin();
@@ -244,6 +245,17 @@ function renderPedidoCard(p) {
   }
   actionsHtml.push(`<button class="btn btn-primary btn-xs" onclick="imprimirComanda(${p.id})">Imprimir</button>`);
 
+  // Selecao de motoboy para pedidos de entrega
+  const motoboySelect = !p.mesa_id && p.status !== 'cancelado' ? `
+    <div style="margin-top: 8px;">
+      <select class="filter-select" style="width:100%; font-size: 0.78rem; padding: 6px 8px;" onchange="atribuirMotoboy(${p.id}, this.value)">
+        <option value="">🏍️ Motoboy não definido</option>
+        ${motoboysLista.filter(m => m.ativo).map(m => `<option value="${m.id}" ${p.motoboy_id == m.id ? 'selected' : ''}>${m.nome}</option>`).join('')}
+      </select>
+      ${p.motoboy_nome && !motoboysLista.some(m => m.id == p.motoboy_id && m.ativo) ? `<small style="color:var(--gray)">Entregou: ${p.motoboy_nome}</small>` : ''}
+    </div>
+  ` : '';
+
   return `
     <div class="pedido-card status-${p.status}" data-pedido-id="${p.id}">
       <div class="pedido-header">
@@ -265,6 +277,7 @@ function renderPedidoCard(p) {
         </div>
       </div>
       <div class="pedido-actions">${actionsHtml.join('')}</div>
+      ${motoboySelect}
     </div>
   `;
 }
@@ -272,6 +285,77 @@ function renderPedidoCard(p) {
 async function atualizarStatus(id, status) {
   await authFetch(`/api/pedidos/${id}/status`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) });
   carregarPedidos();
+}
+
+// MOTOBOYS
+let motoboysLista = [];
+
+async function carregarMotoboys() {
+  const res = await authFetch('/api/motoboys');
+  motoboysLista = await res.json();
+
+  document.getElementById('motoboys-list').innerHTML = motoboysLista.length ? `<table>
+    <thead><tr><th>Nome</th><th>Telefone</th><th>Status</th><th>Ações</th></tr></thead>
+    <tbody>${motoboysLista.map(m => `
+      <tr style="${m.ativo ? '' : 'opacity:.55'}">
+        <td><strong>${m.nome}</strong></td>
+        <td>${m.telefone || '-'}</td>
+        <td><span class="status-badge ${m.ativo ? 'pix-confirmado' : 'status-cancelado'}">${m.ativo ? 'Ativo' : 'Inativo'}</span></td>
+        <td style="white-space:nowrap">
+          <button class="btn btn-xs ${m.ativo ? 'btn-warning' : 'btn-success'}" onclick="alternarMotoboy(${m.id}, ${m.ativo ? 0 : 1})">${m.ativo ? 'Desativar' : 'Ativar'}</button>
+          <button class="btn btn-xs btn-primary" onclick="editarMotoboy(${m.id})">Editar</button>
+          <button class="btn btn-xs btn-danger" onclick="excluirMotoboy(${m.id})">Excluir</button>
+        </td>
+      </tr>
+    `).join('')}</tbody>
+  </table>` : '<p style="text-align:center;color:var(--gray);padding:30px">Nenhum motoboy cadastrado</p>';
+}
+
+async function salvarMotoboy() {
+  const nome = document.getElementById('motoboy-nome').value.trim();
+  const telefone = document.getElementById('motoboy-telefone').value.trim();
+  if (!nome) { showToast('Informe o nome do motoboy'); return; }
+  try {
+    const res = await authFetch('/api/motoboys', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nome, telefone }) });
+    await verificarResposta(res);
+    document.getElementById('motoboy-nome').value = '';
+    document.getElementById('motoboy-telefone').value = '';
+    carregarMotoboys();
+    showToast('Motoboy cadastrado!');
+  } catch (e) {
+    showToast(e.message === 'Failed to fetch' ? 'Erro de conexão com o servidor' : e.message);
+  }
+}
+
+function editarMotoboy(id) {
+  const m = motoboysLista.find(x => x.id === id);
+  if (!m) return;
+  const novoNome = prompt('Novo nome:', m.nome);
+  if (!novoNome) return;
+  const novoTel = prompt('Novo telefone:', m.telefone || '');
+  authFetch(`/api/motoboys/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nome: novoNome, telefone: novoTel }) })
+    .then(() => { carregarMotoboys(); showToast('Motoboy atualizado!'); });
+}
+
+async function alternarMotoboy(id, novoAtivo) {
+  await authFetch(`/api/motoboys/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ativo: novoAtivo }) });
+  carregarMotoboys();
+}
+
+async function excluirMotoboy(id) {
+  if (!confirm('Excluir este motoboy? Os pedidos associados ficarão sem motoboy.')) return;
+  await authFetch(`/api/motoboys/${id}`, { method: 'DELETE' });
+  carregarMotoboys();
+}
+
+async function atribuirMotoboy(pedidoId, motoboyId) {
+  try {
+    const res = await authFetch(`/api/pedidos/${pedidoId}/motoboy`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ motoboy_id: motoboyId || null }) });
+    await verificarResposta(res);
+    showToast('Motoboy atualizado!');
+  } catch (e) {
+    showToast(e.message);
+  }
 }
 
 async function confirmarPix(id) {
@@ -1080,8 +1164,12 @@ async function excluirBairro(id) {
 // RELATÓRIOS
 async function carregarRelatorios() {
   const periodo = document.getElementById('periodo-relatorio').value;
-  const res = await authFetch(`/api/config/relatorios/vendas?periodo=${periodo}`);
-  const data = await res.json();
+  const [vendasRes, motoboysRes] = await Promise.all([
+    authFetch(`/api/config/relatorios/vendas?periodo=${periodo}`),
+    authFetch(`/api/motoboys/resumo?periodo=${periodo}`)
+  ]);
+  const data = await vendasRes.json();
+  const resumoMotoboys = await motoboysRes.json();
 
   document.getElementById('stats-grid').innerHTML = `
     <div class="stat-card"><div class="stat-value">${data.resumo.total_pedidos}</div><div class="stat-label">Pedidos</div></div>
@@ -1103,6 +1191,12 @@ async function carregarRelatorios() {
     <thead><tr><th>Forma</th><th>Qtd</th><th>Valor</th></tr></thead>
     <tbody>${data.porFormaPagamento.map(p => `<tr><td>${payLabels[p.forma_pagamento] || p.forma_pagamento}</td><td>${p.qtd}</td><td>R$ ${p.valor.toFixed(2)}</td></tr>`).join('')}</tbody>
   </table>` : '<p style="color:var(--gray)">Sem dados</p>';
+
+  document.getElementById('motoboys-resumo').innerHTML = resumoMotoboys.length ? `<table>
+    <thead><tr><th>Motoboy</th><th>Entregas</th><th>Total das taxas</th></tr></thead>
+    <tbody>${resumoMotoboys.map(m => `<tr><td><strong>${m.nome}</strong></td><td>${m.entregas}</td><td>R$ ${Number(m.total_taxas).toFixed(2)}</td></tr>`).join('')}</tbody>
+    <tfoot><tr><td><strong>Total</strong></td><td><strong>${resumoMotoboys.reduce((s, m) => s + Number(m.entregas), 0)}</strong></td><td><strong>R$ ${resumoMotoboys.reduce((s, m) => s + Number(m.total_taxas), 0).toFixed(2)}</strong></td></tr></tfoot>
+  </table>` : '<p style="color:var(--gray)">Nenhuma entrega com motoboy no período</p>';
 }
 
 // CONFIGURAÇÕES

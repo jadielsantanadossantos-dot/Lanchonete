@@ -11,7 +11,7 @@ function wrapAsync(fn) {
 
 router.get('/', middlewareAdmin, wrapAsync(async (req, res) => {
   const { status, data_inicio, data_fim, limite } = req.query;
-  let sql = 'SELECT p.*, c.nome as cliente_nome, c.telefone as cliente_telefone FROM pedidos p JOIN clientes c ON p.cliente_id = c.id';
+  let sql = 'SELECT p.*, c.nome as cliente_nome, c.telefone as cliente_telefone, m.nome as motoboy_nome FROM pedidos p JOIN clientes c ON p.cliente_id = c.id LEFT JOIN motoboys m ON m.id = p.motoboy_id';
   const params = [];
   const conditions = [];
   let paramIndex = 1;
@@ -143,6 +143,17 @@ router.put('/:id/status', middlewareAdmin, wrapAsync(async (req, res) => {
     await req.emitToGarcom('pedido-atualizado', { id: parseInt(req.params.id), status });
   }
 
+  res.json({ success: true });
+}));
+
+router.put('/:id/motoboy', middlewareAdmin, wrapAsync(async (req, res) => {
+  const { motoboy_id } = req.body;
+  const motoboyId = motoboy_id ? parseInt(motoboy_id) : null;
+  if (motoboyId) {
+    const motoboy = await db.get('SELECT id FROM motoboys WHERE id = $1', motoboyId);
+    if (!motoboy) return res.status(404).json({ error: 'Motoboy não encontrado' });
+  }
+  await db.run('UPDATE pedidos SET motoboy_id = $1, atualizado_em = NOW() WHERE id = $2', motoboyId, req.params.id);
   res.json({ success: true });
 }));
 
