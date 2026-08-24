@@ -9,6 +9,8 @@ function wrapAsync(fn) {
   };
 }
 
+const TIPOS_VALIDOS = ['adicional', 'sabor', 'base', 'cobertura', 'acompanhamento'];
+
 router.get('/', wrapAsync(async (req, res) => {
   const categoriaId = req.query.categoria_id ? parseInt(req.query.categoria_id) : null;
   const produtoId = req.query.produto_id ? parseInt(req.query.produto_id) : null;
@@ -37,23 +39,25 @@ router.get('/', wrapAsync(async (req, res) => {
 }));
 
 router.post('/', middlewareAdmin, wrapAsync(async (req, res) => {
-  const { nome, preco, categoria_id, tipo, descricao, produto_id } = req.body;
+  const { nome, preco, categoria_id, tipo, descricao, produto_id, limite } = req.body;
   const catId = categoria_id ? parseInt(categoria_id) : null;
   const prodId = produto_id ? parseInt(produto_id) : null;
-  const tipoAd = tipo && ['adicional', 'sabor'].includes(tipo) ? tipo : 'adicional';
-  const info = await db.run('INSERT INTO adicionais (nome, preco, categoria_id, tipo, descricao, produto_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
-    nome, parseFloat(preco), catId, tipoAd, descricao || null, prodId);
-  res.json({ id: info.lastInsertRowid, nome, preco: parseFloat(preco), categoria_id: catId, tipo: tipoAd, descricao: descricao || null, produto_id: prodId });
+  const tipoAd = tipo && TIPOS_VALIDOS.includes(tipo) ? tipo : 'adicional';
+  const limiteVal = limite !== undefined ? parseInt(limite) : 0;
+  const info = await db.run('INSERT INTO adicionais (nome, preco, categoria_id, tipo, descricao, produto_id, limite) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
+    nome, parseFloat(preco), catId, tipoAd, descricao || null, prodId, limiteVal);
+  res.json({ id: info.lastInsertRowid, nome, preco: parseFloat(preco), categoria_id: catId, tipo: tipoAd, descricao: descricao || null, produto_id: prodId, limite: limiteVal });
 }));
 
 router.put('/:id', middlewareAdmin, wrapAsync(async (req, res) => {
-  const { nome, preco, ativo, categoria_id, tipo, descricao, produto_id } = req.body;
-  const atual = await db.get('SELECT categoria_id, produto_id FROM adicionais WHERE id = $1', req.params.id);
+  const { nome, preco, ativo, categoria_id, tipo, descricao, produto_id, limite } = req.body;
+  const atual = await db.get('SELECT categoria_id, produto_id, limite FROM adicionais WHERE id = $1', req.params.id);
   const catId = categoria_id !== undefined ? (categoria_id ? parseInt(categoria_id) : null) : (atual ? atual.categoria_id : null);
   const prodId = produto_id !== undefined ? (produto_id ? parseInt(produto_id) : null) : (atual ? atual.produto_id : null);
-  const tipoAd = tipo && ['adicional', 'sabor'].includes(tipo) ? tipo : 'adicional';
-  await db.run('UPDATE adicionais SET nome=$1, preco=$2, ativo=$3, categoria_id=$4, tipo=$5, descricao=$6, produto_id=$7 WHERE id=$8',
-    nome, parseFloat(preco), ativo !== undefined ? ativo : true, catId, tipoAd, descricao || null, prodId, req.params.id);
+  const tipoAd = tipo && TIPOS_VALIDOS.includes(tipo) ? tipo : 'adicional';
+  const limiteVal = limite !== undefined ? parseInt(limite) : (atual ? atual.limite : 0);
+  await db.run('UPDATE adicionais SET nome=$1, preco=$2, ativo=$3, categoria_id=$4, tipo=$5, descricao=$6, produto_id=$7, limite=$8 WHERE id=$9',
+    nome, parseFloat(preco), ativo !== undefined ? ativo : true, catId, tipoAd, descricao || null, prodId, limiteVal, req.params.id);
   res.json({ success: true });
 }));
 

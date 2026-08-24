@@ -501,17 +501,90 @@ async function abrirModalQuant(produtoId) {
   const adcSection = document.getElementById('g-quant-adicionais');
   const adcList = document.getElementById('g-quant-adicionais-list');
 
+  // Detectar tipos de açaí
+  const adicionaisAcai = produtoSelecionado.adicionais.filter(a => ['base', 'cobertura', 'acompanhamento'].includes(a.tipo));
+  const isProdutoComTipos = adicionaisAcai.length > 0;
+  const adicionaisTradicionais = produtoSelecionado.adicionais.filter(a => !a.tipo || ['adicional', 'sabor'].includes(a.tipo));
+
   if (produtoSelecionado.adicionais && produtoSelecionado.adicionais.length) {
     adcSection.style.display = 'block';
-    adcList.innerHTML = produtoSelecionado.adicionais.map(a => `
-      <div class="g-adicional-item">
-        <label>
-          <input type="checkbox" value="${a.id}" data-nome="${a.nome}" data-preco="${a.preco}" onchange="atualizarTotalQuant()">
-          ${a.nome}
-        </label>
-        <span class="g-adicional-price">+ R$ ${a.preco.toFixed(2)}</span>
-      </div>
-    `).join('');
+    let html = '';
+
+    if (isProdutoComTipos) {
+      const bases = produtoSelecionado.adicionais.filter(a => a.tipo === 'base');
+      const coberturas = produtoSelecionado.adicionais.filter(a => a.tipo === 'cobertura');
+      const acompanhamentos = produtoSelecionado.adicionais.filter(a => a.tipo === 'acompanhamento');
+
+      if (bases.length) {
+        html += '<div style="margin-bottom:12px;font-size:0.85rem;color:var(--color-text-secondary)">Base</div>';
+        html += bases.map(a => `
+          <div class="g-adicional-item">
+            <label>
+              <input type="radio" name="g-base" value="${a.id}" data-nome="${a.nome}" data-preco="${a.preco}" data-tipo="base" onchange="atualizarTotalQuant()">
+              ${a.nome}
+            </label>
+            <span class="g-adicional-price">${a.preco > 0 ? '+ R$ ' + a.preco.toFixed(2) : 'Incluído'}</span>
+          </div>
+        `).join('');
+      }
+
+      if (coberturas.length) {
+        html += '<div style="margin-bottom:12px;font-size:0.85rem;color:var(--color-text-secondary)">Coberturas</div>';
+        html += coberturas.map(a => `
+          <div class="g-adicional-item">
+            <label>
+              <input type="checkbox" value="${a.id}" data-nome="${a.nome}" data-preco="${a.preco}" data-tipo="cobertura" data-limite="${a.limite || 0}" onchange="atualizarTotalQuant()">
+              ${a.nome}
+            </label>
+            <span class="g-adicional-price">${a.preco > 0 ? '+ R$ ' + a.preco.toFixed(2) : 'Incluído'}</span>
+          </div>
+        `).join('');
+      }
+
+      if (acompanhamentos.length) {
+        html += '<div style="margin-bottom:12px;font-size:0.85rem;color:var(--color-text-secondary)">Acompanhamentos</div>';
+        html += acompanhamentos.map(a => `
+          <div class="g-adicional-item">
+            <label>
+              <input type="checkbox" value="${a.id}" data-nome="${a.nome}" data-preco="${a.preco}" data-tipo="acompanhamento" data-limite="${a.limite || 0}" onchange="atualizarTotalQuant()">
+              ${a.nome}
+            </label>
+            <span class="g-adicional-price">${a.preco > 0 ? '+ R$ ' + a.preco.toFixed(2) : 'Incluído'}</span>
+          </div>
+        `).join('');
+      }
+
+      setTimeout(() => {
+        ['cobertura', 'acompanhamento'].forEach(grupo => {
+          const checks = document.querySelectorAll(`#g-quant-adicionais-list input[data-tipo="${grupo}"]`);
+          checks.forEach(cb => {
+            cb.addEventListener('change', function() {
+              const limite = parseInt(this.dataset.limite) || 0;
+              if (limite > 0) {
+                const checked = document.querySelectorAll(`#g-quant-adicionais-list input[data-tipo="${grupo}"]:checked`).length;
+                if (checked > limite) {
+                  this.checked = false;
+                  showToast(`Máximo ${limite} ${grupo}(s) permitido(s)`);
+                }
+              }
+            });
+          });
+        });
+      }, 10);
+    } else {
+      // Adicionais tradicionais
+      html = adicionaisTradicionais.map(a => `
+        <div class="g-adicional-item">
+          <label>
+            <input type="checkbox" value="${a.id}" data-nome="${a.nome}" data-preco="${a.preco}" onchange="atualizarTotalQuant()">
+            ${a.nome}
+          </label>
+          <span class="g-adicional-price">+ R$ ${a.preco.toFixed(2)}</span>
+        </div>
+      `).join('');
+    }
+
+    adcList.innerHTML = html;
   } else {
     adcSection.style.display = 'none';
   }
@@ -552,7 +625,7 @@ async function confirmarAdicionarItem() {
 
   const adicionais = [];
   document.querySelectorAll('#g-quant-adicionais-list input:checked').forEach(c => {
-    adicionais.push({ id: parseInt(c.value), nome: c.dataset.nome, preco: parseFloat(c.dataset.preco) });
+    adicionais.push({ id: parseInt(c.value), nome: c.dataset.nome, preco: parseFloat(c.dataset.preco), tipo: c.dataset.tipo || 'adicional' });
   });
 
   const observacao = document.getElementById('g-quant-obs').value.trim();

@@ -212,11 +212,74 @@ function abrirProduto(id) {
   const adcSection = document.getElementById('modal-adicionais');
   const adcList = document.getElementById('adicionais-list');
   
+  // Detectar se é produto com tipos de açaí (base/cobertura/acompanhamento)
+  const adicionaisAcai = produtoAtual.adicionais.filter(a => ['base', 'cobertura', 'acompanhamento'].includes(a.tipo));
+  const isProdutoComTipos = adicionaisAcai.length > 0;
+  
+  // Adicionais tradicionais (sabor, adicional)
+  const adicionaisTradicionais = produtoAtual.adicionais.filter(a => !a.tipo || ['adicional', 'sabor'].includes(a.tipo));
+  
+  function renderGrupoAdicionais(items, titulo, inputType, grupo, limite) {
+    if (!items.length) return '';
+    const isRadio = inputType === 'radio';
+    const limiteTexto = limite > 0 ? ` (máx: ${limite})` : '';
+    return `<div style="margin-bottom: 12px; padding-bottom: 12px; ${items === adicionaisAcai.slice(-1)[0] ? '' : 'border-bottom: 1px solid var(--color-border);'}">
+      <div style="font-size: 0.85rem; color: var(--color-text-secondary); margin-bottom: 8px; display: flex; justify-content: space-between;">
+        <span>${titulo}${limiteTexto}</span>
+        ${isRadio ? '<span style="color: var(--color-primary); font-weight: 600;">Escolha 1</span>' : ''}
+      </div>
+      ${items.map(a => `
+        <div class="adicional-item">
+          <label>
+            <input type="${inputType}" name="${grupo}" value="${a.id}" data-nome="${a.nome}" data-preco="${a.preco}" data-tipo="${a.tipo}" data-grupo="${grupo}" data-limite="${limite}" class="${grupo}-checkbox">
+            <div>
+              <span>${a.nome}</span>
+              ${a.descricao ? `<br><small style="color: var(--color-text-secondary); display: block; margin-top: 2px;">${a.descricao}</small>` : ''}
+            </div>
+          </label>
+          <span class="adicional-price">${a.preco > 0 ? '+ R$ ' + a.preco.toFixed(2) : 'Incluído'}</span>
+        </div>
+      `).join('')}
+    </div>`;
+  }
+  
   if (produtoAtual.adicionais && produtoAtual.adicionais.length) {
-    // Separar sabores de adicionais para pizzas e sucos
+    let html = '';
+    
+    // Seções de açaí: base, cobertura, acompanhamento
+    if (isProdutoComTipos) {
+      const bases = produtoAtual.adicionais.filter(a => a.tipo === 'base');
+      const coberturas = produtoAtual.adicionais.filter(a => a.tipo === 'cobertura');
+      const acompanhamentos = produtoAtual.adicionais.filter(a => a.tipo === 'acompanhamento');
+      
+      html += renderGrupoAdicionais(bases, 'Base', 'radio', 'base', 1);
+      html += renderGrupoAdicionais(coberturas, 'Coberturas', 'checkbox', 'cobertura', coberturas[0]?.limite || 0);
+      html += renderGrupoAdicionais(acompanhamentos, 'Acompanhamentos', 'checkbox', 'acompanhamento', acompanhamentos[0]?.limite || 0);
+      
+      // Limitar seleção de coberturas e acompanhamentos
+      setTimeout(() => {
+        ['cobertura', 'acompanhamento'].forEach(grupo => {
+          const checks = document.querySelectorAll(`.${grupo}-checkbox`);
+          checks.forEach(cb => {
+            cb.addEventListener('change', function() {
+              const limite = parseInt(this.dataset.limite) || 0;
+              if (limite > 0) {
+                const checked = document.querySelectorAll(`.${grupo}-checkbox:checked`).length;
+                if (checked > limite) {
+                  this.checked = false;
+                  mostrarToast(`Máximo ${limite} ${grupo}(s) permitido(s)`);
+                }
+              }
+            });
+          });
+        });
+      }, 10);
+    }
+    
+    // Se é pizza/suco: sabores + adicionais extras
     if (isProdutoComSabores) {
       const sabores = produtoAtual.adicionais.filter(a => a.tipo === 'sabor');
-      const adicionaisExtras = produtoAtual.adicionais.filter(a => a.tipo === 'adicional' && a.preco > 0 && a.tipo !== 'sabor');
+      const adicionaisExtras = adicionaisTradicionais.filter(a => a.tipo === 'adicional' && a.preco > 0 && a.tipo !== 'sabor');
       
       let htmlSabores = '';
       let htmlAdicionais = '';
@@ -271,19 +334,13 @@ function abrirProduto(id) {
         </div>`;
       }
       
-      if (htmlSabores || htmlAdicionais) {
-        adcSection.style.display = 'block';
-        adcList.innerHTML = htmlSabores + htmlAdicionais;
-      } else {
-        adcSection.style.display = 'none';
-      }
-    } else {
-      // Para não-pizzas/não-sucos, mostrar todos os adicionais normalmente
-      const adicionaisFiltrados = produtoAtual.adicionais.filter(a => !a.tipo || a.tipo === 'adicional');
+      html += htmlSabores + htmlAdicionais;
+    } else if (!isProdutoComTipos) {
+      // Para não-pizzas/não-sucos/não-açaí, mostrar todos os adicionais normalmente
+      const adicionaisFiltrados = adicionaisTradicionais.filter(a => !a.tipo || a.tipo === 'adicional');
       
       if (adicionaisFiltrados.length) {
-        adcSection.style.display = 'block';
-        adcList.innerHTML = `<div style="margin-bottom: 8px; font-size: 0.85rem; color: var(--color-text-secondary);">Adicionais</div>` +
+        html += `<div style="margin-bottom: 8px; font-size: 0.85rem; color: var(--color-text-secondary);">Adicionais</div>` +
           adicionaisFiltrados.map(a => `
             <div class="adicional-item">
               <label>
@@ -296,9 +353,14 @@ function abrirProduto(id) {
               <span class="adicional-price">${a.preco > 0 ? '+ R$ ' + a.preco.toFixed(2) : 'Incluído'}</span>
             </div>
           `).join('');
-      } else {
-        adcSection.style.display = 'none';
       }
+    }
+    
+    if (html) {
+      adcSection.style.display = 'block';
+      adcList.innerHTML = html;
+    } else {
+      adcSection.style.display = 'none';
     }
   } else {
     adcSection.style.display = 'none';
@@ -359,7 +421,7 @@ function adicionarAoCarrinho() {
 
   const adicionais = [];
   document.querySelectorAll('#adicionais-list input:checked').forEach(c => {
-    adicionais.push({ id: parseInt(c.value), nome: c.dataset.nome, preco: parseFloat(c.dataset.preco) });
+    adicionais.push({ id: parseInt(c.value), nome: c.dataset.nome, preco: parseFloat(c.dataset.preco), tipo: c.dataset.tipo || 'adicional' });
   });
 
   carrinho.push({
@@ -415,17 +477,44 @@ function renderCarrinho() {
   container.innerHTML = carrinho.map((item, i) => {
     let itemTotal = item.preco_unitario * item.quantidade;
     const qtdTexto = item.unidade === 'kg' ? formatarPeso(item.quantidade) : `${item.quantidade}x`;
-    const adcTexto = item.adicionais.map(a => {
+    
+    // Agrupar adicionais por tipo para exibição
+    const tiposAcai = { base: [], cobertura: [], acompanhamento: [] };
+    item.adicionais.forEach(a => {
+      const tipo = a.tipo || 'adicional';
+      if (tiposAcai[tipo]) tiposAcai[tipo].push(a);
+    });
+    const temAcai = tiposAcai.base.length || tiposAcai.cobertura.length || tiposAcai.acompanhamento.length;
+    const adcTradicionais = item.adicionais.filter(a => !tiposAcai[a.tipo || 'adicional']);
+    
+    let adcHtml = '';
+    if (temAcai) {
+      const labels = { base: 'Base', cobertura: 'Coberturas', acompanhamento: 'Acompanhamentos' };
+      ['base', 'cobertura', 'acompanhamento'].forEach(tipo => {
+        if (tiposAcai[tipo].length) {
+          adcHtml += `<div class="cart-item-details">${labels[tipo]}: ${tiposAcai[tipo].map(a => a.nome + (a.preco > 0 ? ` (+R$ ${a.preco.toFixed(2)})` : '')).join(', ')}</div>`;
+        }
+      });
+    }
+    
+    const adcTradicionalHtml = adcTradicionais.map(a => {
       itemTotal += a.preco * item.quantidade;
       return `+ ${a.nome} (R$ ${a.preco.toFixed(2)})`;
     }).join(', ');
-
+    
+    // Recalcular totais para açaí
+    if (temAcai) {
+      item.adicionais.forEach(a => { itemTotal += a.preco * item.quantidade; });
+    }
+    
+    const adcHtmlFinal = adcHtml + (adcTradicionalHtml ? `<div class="cart-item-details">${adcTradicionalHtml}</div>` : '');
+    
     return `
       <div class="cart-item">
         <div class="cart-item-header">
           <div>
             <div class="cart-item-name">${item.produto_nome}</div>
-            ${adcTexto ? `<div class="cart-item-details">${adcTexto}</div>` : ''}
+            ${adcHtmlFinal ? adcHtmlFinal : ''}
             ${item.observacao ? `<div class="cart-item-details">Obs: ${item.observacao}</div>` : ''}
             ${item.unidade === 'un' ? `
               <div class="qty-control" style="margin-top: 8px; justify-content: flex-start;">
