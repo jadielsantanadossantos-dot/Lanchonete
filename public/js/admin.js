@@ -420,14 +420,18 @@ async function carregarProdutosAdmin() {
   const select = document.getElementById('prod-categoria');
   select.innerHTML = categorias.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
 
-  // Popular select de filtro
+  // Popular select de filtro preservando a seleção atual
   const filtroSelect = document.getElementById('filtro-categoria-produtos');
   if (filtroSelect) {
+    const filtroAtual = filtroSelect.value;
     filtroSelect.innerHTML = '<option value="">Todas as categorias</option>' + 
       categorias.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+    if ([...filtroSelect.options].some(o => o.value === filtroAtual)) {
+      filtroSelect.value = filtroAtual;
+    }
   }
 
-  renderizarProdutosAdmin(produtos);
+  filtrarProdutosPorCategoria();
 }
 
 function renderizarProdutosAdmin(produtos) {
@@ -617,14 +621,18 @@ async function carregarAdicionais() {
         produtosAdmin.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
     }
 
-    // Popular filtro de categorias
+    // Popular filtro de categorias preservando a seleção atual
     const filtroSelect = document.getElementById('filtro-categoria-adicionais');
     if (filtroSelect) {
+      const filtroAtual = filtroSelect.value;
       filtroSelect.innerHTML = '<option value="">Todas as categorias</option>' +
         categoriasAdmin.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+      if ([...filtroSelect.options].some(o => o.value === filtroAtual)) {
+        filtroSelect.value = filtroAtual;
+      }
     }
 
-    renderizarAdicionais(adicionaisAdmin);
+    filtrarAdicionaisPorCategoria();
   } catch (e) {
     console.error('Erro ao carregar adicionais:', e);
     showToast('Erro ao carregar adicionais: ' + e.message);
@@ -658,22 +666,32 @@ function fecharSeletorCategorias() {
 }
 
 function renderizarAdicionais(adicionais) {
+  const tipoLabels = {
+    'adicional': { text: 'Adicional', bg: '#fff3e0' },
+    'sabor': { text: '🍕 Sabor', bg: '#e8f5e9' },
+    'base': { text: '🥣 Base', bg: '#e3f2fd' },
+    'cobertura': { text: '🍓 Cobertura', bg: '#fce4ec' },
+    'acompanhamento': { text: '🍟 Acompanhamento', bg: '#f3e5f5' }
+  };
   document.getElementById('adicionais-list').innerHTML = `<table>
-    <thead><tr><th>Nome</th><th>Descrição</th><th>Tipo</th><th>Categoria</th><th>Produto</th><th>Preço</th><th>Status</th><th>Ações</th></tr></thead>
+    <thead><tr><th>Nome</th><th>Descrição</th><th>Tipo</th><th>Limite</th><th>Categoria</th><th>Produto</th><th>Preço</th><th>Status</th><th>Ações</th></tr></thead>
     <tbody>${adicionais.map(a => {
       const produtoNome = a.produto_id ? (produtosAdmin.find(p => p.id == a.produto_id)?.nome || 'ID: ' + a.produto_id) : '-';
+      const tl = tipoLabels[a.tipo] || tipoLabels['adicional'];
+      const limiteText = a.limite > 0 ? a.limite : 'Livre';
       return `
       <tr>
         <td><strong>${a.nome}</strong></td>
         <td><small style="color:var(--color-text-secondary)">${a.descricao || '-'}</small></td>
-        <td><span style="background: ${a.tipo === 'sabor' ? '#e8f5e9' : '#fff3e0'}; padding: 2px 8px; border-radius: 4px; font-size: 12px;">${a.tipo === 'sabor' ? '🍕 Sabor' : 'Adicional'}</span></td>
+        <td><span style="background: ${tl.bg}; padding: 2px 8px; border-radius: 4px; font-size: 12px;">${tl.text}</span></td>
+        <td>${limiteText}</td>
         <td>${a.categoria_nome || 'Todas'}</td>
         <td>${produtoNome}</td>
         <td>R$ ${a.preco.toFixed(2)}</td>
         <td>${a.ativo ? '<span style="color:var(--success)">Ativo</span>' : '<span style="color:var(--danger)">Inativo</span>'}</td>
         <td>
-          <button class="btn btn-xs btn-primary" onclick="editarAdicional(${a.id}, '${a.nome}', '${(a.descricao || '').replace(/'/g, "\\'")}', ${a.preco}, ${a.categoria_id || 'null'}, '${a.tipo}', ${a.produto_id || 'null'})">Editar</button>
-          <button class="btn btn-xs ${a.ativo ? 'btn-warning' : 'btn-success'}" onclick="toggleAdicional(${a.id}, '${a.nome}', ${a.preco}, ${a.ativo ? 0 : 1}, ${a.categoria_id || 'null'}, '${a.tipo}', '${(a.descricao || '').replace(/'/g, "\\'")}', ${a.produto_id || 'null'})">${a.ativo ? 'Desativar' : 'Ativar'}</button>
+          <button class="btn btn-xs btn-primary" onclick="editarAdicional(${a.id}, '${a.nome}', '${(a.descricao || '').replace(/'/g, "\\'")}', ${a.preco}, ${a.categoria_id || 'null'}, '${a.tipo}', ${a.produto_id || 'null'}, ${a.limite || 0})">Editar</button>
+          <button class="btn btn-xs ${a.ativo ? 'btn-warning' : 'btn-success'}" onclick="toggleAdicional(${a.id}, '${a.nome}', ${a.preco}, ${a.ativo ? 0 : 1}, ${a.categoria_id || 'null'}, '${a.tipo}', '${(a.descricao || '').replace(/'/g, "\\'")}', ${a.produto_id || 'null'}, ${a.limite || 0})">${a.ativo ? 'Desativar' : 'Ativar'}</button>
           <button class="btn btn-xs btn-danger" onclick="excluirAdicional(${a.id})">Excluir</button>
         </td>
       </tr>
@@ -692,12 +710,13 @@ function filtrarAdicionaisPorCategoria() {
   renderizarAdicionais(adicionaisFiltrados);
 }
 
-function editarAdicional(id, nome, descricao, preco, categoria_id, tipo, produto_id = null) {
+function editarAdicional(id, nome, descricao, preco, categoria_id, tipo, produto_id = null, limite = 0) {
   adicionalEmEdicao = id;
   document.getElementById('adic-nome').value = nome;
   document.getElementById('adic-descricao').value = descricao || '';
   document.getElementById('adic-preco').value = preco;
   document.getElementById('adic-tipo').value = tipo || 'adicional';
+  document.getElementById('adic-limite').value = limite || 0;
   document.getElementById('adic-produto-select').value = produto_id || '';
   categoriasAdicionaisSelecionadas = categoria_id !== 'null' && categoria_id ? [parseInt(categoria_id)] : [];
   
@@ -712,6 +731,7 @@ function cancelarEdicaoAdicional() {
   document.getElementById('adic-descricao').value = '';
   document.getElementById('adic-preco').value = '0';
   document.getElementById('adic-tipo').value = 'adicional';
+  document.getElementById('adic-limite').value = '0';
   document.getElementById('adic-produto-select').value = '';
   categoriasAdicionaisSelecionadas = [];
   document.getElementById('btn-salvar-adic').textContent = 'Adicionar';
@@ -723,6 +743,7 @@ async function salvarAdicional() {
   const descricao = document.getElementById('adic-descricao').value.trim();
   const precoVal = document.getElementById('adic-preco').value;
   const tipo = document.getElementById('adic-tipo').value;
+  const limite = parseInt(document.getElementById('adic-limite').value) || 0;
   const produtoId = document.getElementById('adic-produto-select').value;
   const produto_id = produtoId ? parseInt(produtoId) : null;
   
@@ -741,7 +762,7 @@ async function salvarAdicional() {
       await authFetch(`/api/adicionais/${adicionalEmEdicao}`, { 
         method: 'PUT', 
         headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify({ nome, preco, categoria_id: catId, tipo, descricao: descricao || null, produto_id }) 
+        body: JSON.stringify({ nome, preco, categoria_id: catId, tipo, descricao: descricao || null, produto_id, limite }) 
       });
       showToast('Item atualizado!');
       cancelarEdicaoAdicional();
@@ -750,7 +771,7 @@ async function salvarAdicional() {
         const res = await authFetch('/api/adicionais', { 
           method: 'POST', 
           headers: { 'Content-Type': 'application/json' }, 
-          body: JSON.stringify({ nome, preco, categoria_id: cat_id, tipo, descricao: descricao || null, produto_id }) 
+          body: JSON.stringify({ nome, preco, categoria_id: cat_id, tipo, descricao: descricao || null, produto_id, limite }) 
         });
         await verificarResposta(res);
       }
@@ -761,6 +782,7 @@ async function salvarAdicional() {
     document.getElementById('adic-descricao').value = '';
     document.getElementById('adic-preco').value = '0';
     document.getElementById('adic-tipo').value = 'adicional';
+    document.getElementById('adic-limite').value = '0';
     document.getElementById('adic-produto-select').value = '';
     categoriasAdicionaisSelecionadas = [];
     carregarAdicionais();
@@ -770,11 +792,11 @@ async function salvarAdicional() {
   }
 }
 
-async function toggleAdicional(id, nome, preco, ativo, categoria_id, tipo, descricao, produto_id = null) {
+async function toggleAdicional(id, nome, preco, ativo, categoria_id, tipo, descricao, produto_id = null, limite = 0) {
   await authFetch(`/api/adicionais/${id}`, { 
     method: 'PUT', 
     headers: { 'Content-Type': 'application/json' }, 
-    body: JSON.stringify({ nome, preco, ativo, categoria_id: categoria_id === 'null' ? null : undefined, tipo: tipo || 'adicional', descricao: descricao || null, produto_id }) 
+    body: JSON.stringify({ nome, preco, ativo, categoria_id: categoria_id === 'null' ? null : undefined, tipo: tipo || 'adicional', descricao: descricao || null, produto_id, limite }) 
   });
   carregarAdicionais();
 }
