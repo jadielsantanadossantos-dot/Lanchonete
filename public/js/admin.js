@@ -445,8 +445,9 @@ function renderizarProdutosAdmin(produtos) {
         <td><strong>${p.nome}</strong><br><small style="color:var(--gray)">${p.descricao || ''}</small></td>
         <td>${p.categoria_nome}</td>
         <td>R$ ${p.preco.toFixed(2)}${p.unidade === 'kg' ? '/kg' : ''}</td>
-        <td>${p.ativo ? '<span style="color:var(--success)">Ativo</span>' : '<span style="color:var(--danger)">Inativo</span>'}</td>
+        <td>${p.ativo ? '<span style="color:var(--success)">Ativo</span>' : '<span style="color:var(--danger)">Inativo</span>'}${p.somente_garcom ? '<br><small style="color:var(--gray)">🏪 Só na loja</small>' : ''}</td>
         <td>
+          <button class="btn btn-sm ${p.ativo ? 'btn-warning' : 'btn-success'}" onclick="alternarProduto(${p.id}, ${p.ativo ? 0 : 1})">${p.ativo ? 'Desativar' : 'Ativar'}</button>
           <button class="btn btn-sm btn-primary" onclick='editarProduto(${JSON.stringify(p).replace(/'/g, "\\'")})'>Editar</button>
           <button class="btn btn-sm btn-danger" onclick="excluirProduto(${p.id})">Excluir</button>
         </td>
@@ -536,6 +537,7 @@ async function abrirFormProduto() {
   document.getElementById('prod-id').value = '';
   document.getElementById('form-produto').reset();
   document.getElementById('prod-ativo').checked = true;
+  document.getElementById('prod-somente-garcom').checked = false;
   document.getElementById('prod-unidade').value = 'un';
   document.getElementById('form-produto-title').textContent = 'Novo Produto';
   document.getElementById('modal-produto-admin').classList.add('active');
@@ -548,6 +550,7 @@ function editarProduto(p) {
   document.getElementById('prod-preco').value = p.preco;
   document.getElementById('prod-unidade').value = p.unidade === 'kg' ? 'kg' : 'un';
   document.getElementById('prod-ativo').checked = !!p.ativo;
+  document.getElementById('prod-somente-garcom').checked = !!p.somente_garcom;
   document.getElementById('form-produto-title').textContent = 'Editar Produto';
 
   setTimeout(() => {
@@ -570,6 +573,7 @@ async function salvarProduto(e) {
   formData.append('preco', document.getElementById('prod-preco').value);
   formData.append('unidade', document.getElementById('prod-unidade').value);
   formData.append('ativo', document.getElementById('prod-ativo').checked ? '1' : '0');
+  formData.append('somente_garcom', document.getElementById('prod-somente-garcom').checked ? '1' : '0');
 
   const foto = document.getElementById('prod-foto').files[0];
   if (foto) formData.append('foto', foto);
@@ -582,6 +586,21 @@ async function salvarProduto(e) {
     fecharModalProduto();
     carregarProdutosAdmin();
     showToast(id ? 'Produto atualizado!' : 'Produto cadastrado!');
+  } catch (e) {
+    showToast(e.message === 'Failed to fetch' ? 'Erro de conexão com o servidor' : e.message);
+  }
+}
+
+async function alternarProduto(id, novoAtivo) {
+  try {
+    const res = await authFetch(`/api/produtos/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ativo: novoAtivo })
+    });
+    await verificarResposta(res);
+    carregarProdutosAdmin();
+    showToast(novoAtivo ? 'Produto ativado!' : 'Produto desativado!');
   } catch (e) {
     showToast(e.message === 'Failed to fetch' ? 'Erro de conexão com o servidor' : e.message);
   }

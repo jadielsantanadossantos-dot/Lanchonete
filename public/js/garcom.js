@@ -413,7 +413,7 @@ async function removerItemComanda(itemId) {
 async function carregarProdutosCategorias() {
   try {
     const [prodRes, catRes] = await Promise.all([
-      fetch('/api/produtos/ativos'),
+      authFetch('/api/produtos/ativos?canal=garcom'),
       fetch('/api/categorias')
     ]);
     // Produtos já vêm com categoria_nome

@@ -93,12 +93,13 @@ function buildApp() {
 
   app.use('/api/auth', require('./routes/auth'));
 
-  app.use('/api', (req, res, next) => {
+  app.use('/api', async (req, res, next) => {
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.substring(7);
-      const usuario = require('./auth/auth').verificarToken(token);
-      if (usuario) req.usuario = usuario;
+      try {
+        const usuario = await require('./auth/auth').verificarToken(authHeader.substring(7));
+        if (usuario) req.usuario = usuario;
+      } catch (e) { /* token invalido: segue anonimo */ }
     }
     next();
   });

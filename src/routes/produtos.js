@@ -85,11 +85,14 @@ router.get('/', wrapAsync(async (req, res) => {
 }));
 
 router.get('/ativos', wrapAsync(async (req, res) => {
+  // Produtos somente_garcom so aparecem para garcom/admin autenticado (canal=garcom)
+  const incluirGarcom = req.query.canal === 'garcom' && req.usuario && ['garcom', 'admin'].includes(req.usuario.perfil);
   const rows = await db.all(`
     SELECT p.*, c.nome as categoria_nome FROM produtos p
     JOIN categorias c ON p.categoria_id = c.id
-    WHERE p.ativo = true ORDER BY c.ordem ASC NULLS LAST, p.preco ASC, p.nome
-  `);
+    WHERE p.ativo = true AND ($1 = true OR p.somente_garcom = false)
+    ORDER BY c.ordem ASC NULLS LAST, p.preco ASC, p.nome
+  `, incluirGarcom);
 
   const adicionais = await db.all('SELECT * FROM adicionais WHERE ativo = true');
 
@@ -153,12 +156,13 @@ router.get('/:id', wrapAsync(async (req, res) => {
 }));
 
 router.post('/', middlewareAdmin, upload.single('foto'), wrapAsync(async (req, res) => {
-  const { nome, categoria_id, descricao, preco, ativo, adicionais_ids, unidade } = req.body;
+  const { nome, categoria_id, descricao, preco, ativo, adicionais_ids, unidade, somente_garcom } = req.body;
   const foto = req.file ? await uploadFoto(req.file) : null;
+  const soGarcom = somente_garcom === true || somente_garcom === '1';
 
   const info = await db.run(
-    'INSERT INTO produtos (nome, categoria_id, descricao, preco, foto, ativo, unidade) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
-    nome, categoria_id, descricao || '', parseFloat(preco), foto, ativo !== undefined ? ativo : true, unidade === 'kg' ? 'kg' : 'un'
+    'INSERT INTO produtos (nome, categoria_id, descricao, preco, foto, ativo, unidade, somente_garcom) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id',
+    nome, categoria_id, descricao || '', parseFloat(preco), foto, ativo !== undefined ? ativo : true, unidade === 'kg' ? 'kg' : 'un', soGarcom
   );
 
   if (adicionais_ids) {
@@ -172,13 +176,24 @@ router.post('/', middlewareAdmin, upload.single('foto'), wrapAsync(async (req, r
 }));
 
 router.put('/:id', middlewareAdmin, upload.single('foto'), wrapAsync(async (req, res) => {
-  const { nome, categoria_id, descricao, preco, ativo, adicionais_ids, unidade } = req.body;
-  const existing = await db.get('SELECT foto FROM produtos WHERE id = $1', req.params.id);
-  const foto = req.file ? await uploadFoto(req.file) : (existing ? existing.foto : null);
+  const { nome, categoria_id, descricao, preco, ativo, adicionais_ids, unidade, somente_garcom } = req.body;
+  // Campos nao enviados sao preservados (permite atualizacoes parciais, ex.: toggle ativo)
+  const existing = await db.get('SELECT foto, nome, categoria_id, descricao, preco, ativo, unidade, somente_garcom FROM produtos WHERE id = $1', req.params.id);
+  if (!existing) return res.status(404).json({ error: 'Produto não encontrado' });
+  const foto = req.file ? await uploadFoto(req.file) : existing.foto;
+  const soGarcom = somente_garcom !== undefined ? (somente_garcom === true || somente_garcom === '1') : existing.somente_garcom;
 
   await db.run(
-    'UPDATE produtos SET nome=$1, categoria_id=$2, descricao=$3, preco=$4, foto=$5, ativo=$6, unidade=$7 WHERE id=$8',
-    nome, categoria_id, descricao || '', parseFloat(preco), foto, ativo !== undefined ? ativo : true, unidade === 'kg' ? 'kg' : 'un', req.params.id
+    'UPDATE produtos SET nome=$1, categoria_id=$2, descricao=$3, preco=$4, foto=$5, ativo=$6, unidade=$7, somente_garcom=$8 WHERE id=$9',
+    nome !== undefined ? nome : existing.nome,
+    categoria_id !== undefined ? categoria_id : existing.categoria_id,
+    descricao !== undefined ? descricao : existing.descricao,
+    preco !== undefined ? parseFloat(preco) : existing.preco,
+    foto,
+    ativo !== undefined ? ativo : existing.ativo,
+    unidade !== undefined ? (unidade === 'kg' ? 'kg' : 'un') : existing.unidade,
+    soGarcom,
+    req.params.id
   );
 
   await db.run('DELETE FROM produto_adicionais WHERE produto_id = $1', req.params.id);
