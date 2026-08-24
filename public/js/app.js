@@ -346,9 +346,26 @@ function abrirProduto(id) {
       
       html += htmlSabores + htmlAdicionais;
     } else if (!isProdutoComTipos) {
-      // Para não-pizzas/não-sucos/não-açaí, mostrar todos os adicionais normalmente
+      // Para não-pizzas/não-sucos/não-açaí, mostrar sabores e adicionais normalmente
+      const sabores = adicionaisTradicionais.filter(a => a.tipo === 'sabor');
       const adicionaisFiltrados = adicionaisTradicionais.filter(a => !a.tipo || a.tipo === 'adicional');
-      
+
+      if (sabores.length) {
+        html += `<div style="margin-bottom: 8px; font-size: 0.85rem; color: var(--color-text-secondary);">Sabores</div>` +
+          sabores.map(a => `
+            <div class="adicional-item">
+              <label>
+                <input type="checkbox" value="${a.id}" data-nome="${a.nome}" data-preco="${a.preco}" data-tipo="sabor">
+                <div>
+                  <span>${a.nome}</span>
+                  ${a.descricao ? `<br><small style="color: var(--color-text-secondary); display: block; margin-top: 2px;">${a.descricao}</small>` : ''}
+                </div>
+              </label>
+              <span class="adicional-price">${a.preco > 0 ? '+ R$ ' + a.preco.toFixed(2) : 'Incluído'}</span>
+            </div>
+          `).join('');
+      }
+
       if (adicionaisFiltrados.length) {
         html += `<div style="margin-bottom: 8px; font-size: 0.85rem; color: var(--color-text-secondary);">Adicionais</div>` +
           adicionaisFiltrados.map(a => `
