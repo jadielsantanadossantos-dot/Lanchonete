@@ -812,17 +812,32 @@ function fecharSeletorCategorias() {
   );
   produtosAdicionaisSelecionadas = produtosAdicionaisSelecionadas.filter(id => prodsValidos.has(id));
 
-  atualizarLabelProdutos();
-  atualizarLabelCategorias();
+  atualizarBtnSelecao();
   modal.style.display = 'none';
+
+  // Fluxo unico: escolheu categorias -> mostra os produtos delas
+  if (categoriasAdicionaisSelecionadas.length > 0) {
+    abrirSeletorProdutos();
+  }
 }
 
-function atualizarLabelCategorias() {
-  const btn = document.getElementById('btn-seletor-categorias');
+function atualizarLabelCategorias() { atualizarBtnSelecao(); }
+
+function atualizarLabelProdutos() { atualizarBtnSelecao(); }
+
+function atualizarBtnSelecao() {
+  const btn = document.getElementById('btn-seletor-alvo');
   if (!btn) return;
-  btn.textContent = categoriasAdicionaisSelecionadas.length > 0
-    ? `Categorias: ${categoriasAdicionaisSelecionadas.length} selecionada(s)`
-    : 'Selecionar Categorias';
+  const nCat = categoriasAdicionaisSelecionadas.length;
+  const nProd = produtosAdicionaisSelecionadas.length;
+
+  if (nCat === 0) {
+    btn.textContent = 'Aplicar a: todas as categorias';
+  } else if (nProd > 0) {
+    btn.textContent = `Aplicar a: ${nProd} produto(s) em ${nCat} categoria(s)`;
+  } else {
+    btn.textContent = `Aplicar a: ${nCat} categoria(s) inteira(s)`;
+  }
 }
 
 function abrirSeletorProdutos() {
@@ -855,20 +870,12 @@ function fecharSeletorProdutos() {
     document.querySelectorAll('.prod-checkbox-adic:checked')
   ).map(cb => parseInt(cb.value));
 
-  atualizarLabelProdutos();
+  atualizarBtnSelecao();
   modal.style.display = 'none';
 }
 
 function limparSelecaoProdutos() {
   document.querySelectorAll('.prod-checkbox-adic').forEach(cb => { cb.checked = false; });
-}
-
-function atualizarLabelProdutos() {
-  const btn = document.getElementById('btn-seletor-produtos');
-  if (!btn) return;
-  btn.textContent = produtosAdicionaisSelecionadas.length > 0
-    ? `Produtos: ${produtosAdicionaisSelecionadas.length} selecionado(s)`
-    : 'Produtos: Todos da categoria';
 }
 
 function renderizarAdicionais(adicionais) {

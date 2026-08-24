@@ -179,8 +179,7 @@
             <option value="acompanhamento">Acompanhamento</option>
           </select>
           <input class="form-control" id="adic-limite" type="number" step="1" min="0" placeholder="Limite (0= livre)" style="width:130px" value="0" title="Quantidade máxima selecionável">
-          <button class="btn btn-secondary btn-sm" id="btn-seletor-produtos" onclick="abrirSeletorProdutos()">Produtos: Todos</button>
-          <button class="btn btn-primary btn-sm" id="btn-seletor-categorias" onclick="abrirSeletorCategorias()">Selecionar Categorias</button>
+          <button class="btn btn-primary btn-sm" id="btn-seletor-alvo" onclick="abrirSeletorCategorias()">Aplicar a: todas as categorias</button>
           <button class="btn btn-primary btn-sm" onclick="salvarAdicional()" id="btn-salvar-adic">Adicionar</button>
           <button class="btn btn-secondary btn-sm" onclick="cancelarEdicaoAdicional()" id="btn-cancelar-adic" style="display:none;">Cancelar</button>
         </div>
@@ -195,7 +194,8 @@
               </div>
               <div class="modal-body" id="categorias-checkboxes" style="max-height: 400px; overflow-y: auto;">
               </div>
-              <div class="modal-footer">
+              <div class="modal-footer" style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+                <small style="color:var(--color-text-muted)">Depois de Pronto, você escolhe os produtos específicos</small>
                 <button class="btn btn-primary" onclick="fecharSeletorCategorias()">Pronto</button>
               </div>
             </div>
