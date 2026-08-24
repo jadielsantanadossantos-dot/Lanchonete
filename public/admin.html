@@ -222,9 +222,12 @@
           </div>
         </div>
 
-        <div class="filters" style="margin-top: 16px; margin-bottom: 16px;">
-          <select class="filter-select" id="filtro-categoria-adicionais" onchange="filtrarAdicionaisPorCategoria()">
+        <div class="filters" style="margin-top: 16px; margin-bottom: 16px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+          <select class="filter-select" id="filtro-categoria-adicionais" onchange="filtrarAdicionaisAdmin()">
             <option value="">Todas as categorias</option>
+          </select>
+          <select class="filter-select" id="filtro-produto-adicionais" onchange="filtrarAdicionaisAdmin()">
+            <option value="">Todos os produtos</option>
           </select>
         </div>
         <div id="adicionais-list" class="table-container"></div>

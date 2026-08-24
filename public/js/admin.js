@@ -765,7 +765,7 @@ async function carregarAdicionais() {
     console.log('Adicionais carregados:', adicionaisAdmin);
     console.log('Produtos carregados:', produtosAdmin);
 
-    // Popular filtro de categorias preservando a seleção atual
+    // Popular filtros preservando a seleção atual
     const filtroSelect = document.getElementById('filtro-categoria-adicionais');
     if (filtroSelect) {
       const filtroAtual = filtroSelect.value;
@@ -776,7 +776,17 @@ async function carregarAdicionais() {
       }
     }
 
-    filtrarAdicionaisPorCategoria();
+    const filtroProd = document.getElementById('filtro-produto-adicionais');
+    if (filtroProd) {
+      const filtroAtualProd = filtroProd.value;
+      filtroProd.innerHTML = '<option value="">Todos os produtos</option>' +
+        produtosAdmin.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
+      if ([...filtroProd.options].some(o => o.value === filtroAtualProd)) {
+        filtroProd.value = filtroAtualProd;
+      }
+    }
+
+    filtrarAdicionaisAdmin();
   } catch (e) {
     console.error('Erro ao carregar adicionais:', e);
     showToast('Erro ao carregar adicionais: ' + e.message);
@@ -879,6 +889,11 @@ function limparSelecaoProdutos() {
 }
 
 function renderizarAdicionais(adicionais) {
+  const container = document.getElementById('adicionais-list');
+  if (!adicionais.length) {
+    container.innerHTML = '<p style="text-align:center;color:var(--gray);padding:30px">Nenhum item encontrado</p>';
+    return;
+  }
   const tipoLabels = {
     'adicional': { text: 'Adicional', bg: '#fff3e0' },
     'sabor': { text: '🍕 Sabor', bg: '#e8f5e9' },
@@ -887,9 +902,20 @@ function renderizarAdicionais(adicionais) {
     'cobertura': { text: '🍓 Cobertura', bg: '#fce4ec' },
     'acompanhamento': { text: '🍟 Acompanhamento', bg: '#f3e5f5' }
   };
-  document.getElementById('adicionais-list').innerHTML = `<table>
+  // Ordenar pela ordem da categoria e, dentro dela, por nome
+  const ordemMap = new Map((categoriasAdmin || []).map(c => [c.id, c.ordem ?? 999]));
+  const ordenados = [...adicionais].sort((a, b) =>
+    ((ordemMap.get(a.categoria_id) ?? 999) - (ordemMap.get(b.categoria_id) ?? 999)) ||
+    (a.nome || '').localeCompare(b.nome || '')
+  );
+
+  container.innerHTML = `
+    <div style="padding: var(--space-2) var(--space-3); color: var(--color-text-muted); font-size: var(--text-xs);">
+      ${ordenados.length} item(ns)
+    </div>
+    <table>
     <thead><tr><th>Nome</th><th>Descrição</th><th>Tipo</th><th>Limite</th><th>Categoria</th><th>Produto</th><th>Preço</th><th>Status</th><th>Ações</th></tr></thead>
-    <tbody>${adicionais.map(a => {
+    <tbody>${ordenados.map(a => {
       const produtoIds = a.produto_ids || (a.produto_id ? [a.produto_id] : []);
       const produtoNome = produtoIds.length
         ? produtoIds.map(pid => produtosAdmin.find(p => p.id == pid)?.nome || 'ID: ' + pid).join(', ')
@@ -916,14 +942,20 @@ function renderizarAdicionais(adicionais) {
   </table>`;
 }
 
-function filtrarAdicionaisPorCategoria() {
+function filtrarAdicionaisAdmin() {
   const categoriaId = document.getElementById('filtro-categoria-adicionais').value;
+  const produtoId = document.getElementById('filtro-produto-adicionais').value;
+
   let adicionaisFiltrados = adicionaisAdmin;
-  
   if (categoriaId) {
     adicionaisFiltrados = adicionaisFiltrados.filter(a => a.categoria_id == categoriaId);
   }
-  
+  if (produtoId) {
+    adicionaisFiltrados = adicionaisFiltrados.filter(a =>
+      (a.produto_ids || []).map(Number).includes(Number(produtoId)) || a.produto_id == produtoId
+    );
+  }
+
   renderizarAdicionais(adicionaisFiltrados);
 }
 
