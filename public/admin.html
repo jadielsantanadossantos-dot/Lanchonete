@@ -142,6 +142,11 @@
                   <input type="checkbox" id="prod-somente-garcom"> Vender só na loja (não aparece no cardápio online, só para o garçom)
                 </label>
               </div>
+              <div class="form-group">
+                <label>Limite de sabores</label>
+                <input class="form-control" id="prod-limite-sabores" type="number" step="1" min="0" value="0" title="0 = automático por tamanho da pizza (P=1, M/G=2, F=3)">
+                <small style="color:var(--color-text-muted)">Use 0 para o padrão automático (pizza P=1, M/G=2, F=3 sabores)</small>
+              </div>
               <button class="btn btn-primary" type="submit">Salvar</button>
             </form>
            </div>

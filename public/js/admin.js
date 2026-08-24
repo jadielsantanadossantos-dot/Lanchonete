@@ -666,6 +666,7 @@ async function abrirFormProduto() {
   document.getElementById('form-produto').reset();
   document.getElementById('prod-ativo').checked = true;
   document.getElementById('prod-somente-garcom').checked = false;
+  document.getElementById('prod-limite-sabores').value = '0';
   document.getElementById('prod-unidade').value = 'un';
   document.getElementById('form-produto-title').textContent = 'Novo Produto';
   document.getElementById('modal-produto-admin').classList.add('active');
@@ -679,6 +680,7 @@ function editarProduto(p) {
   document.getElementById('prod-unidade').value = p.unidade === 'kg' ? 'kg' : 'un';
   document.getElementById('prod-ativo').checked = !!p.ativo;
   document.getElementById('prod-somente-garcom').checked = !!p.somente_garcom;
+  document.getElementById('prod-limite-sabores').value = p.limite_sabores || 0;
   document.getElementById('form-produto-title').textContent = 'Editar Produto';
 
   setTimeout(() => {
@@ -702,6 +704,7 @@ async function salvarProduto(e) {
   formData.append('unidade', document.getElementById('prod-unidade').value);
   formData.append('ativo', document.getElementById('prod-ativo').checked ? '1' : '0');
   formData.append('somente_garcom', document.getElementById('prod-somente-garcom').checked ? '1' : '0');
+  formData.append('limite_sabores', document.getElementById('prod-limite-sabores').value || '0');
 
   const foto = document.getElementById('prod-foto').files[0];
   if (foto) formData.append('foto', foto);
