@@ -86,10 +86,11 @@
       <!-- PRODUTOS -->
       <section id="sec-produtos" class="section">
         <button class="btn btn-primary" onclick="abrirFormProduto()">+ Novo Produto</button>
-        <div class="filters" style="margin-top: 16px; margin-bottom: 16px;">
-          <select class="filter-select" id="filtro-categoria-produtos" onchange="filtrarProdutosPorCategoria()">
+        <div class="filters" style="margin-top: 16px; margin-bottom: 16px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+          <select class="filter-select" id="filtro-categoria-produtos" onchange="filtrarProdutosAdmin()">
             <option value="">Todas as categorias</option>
           </select>
+          <input class="form-control" id="busca-produto" placeholder="Buscar produto por nome..." oninput="filtrarProdutosAdmin()" style="flex: 1; min-width: 180px; max-width: 320px;">
         </div>
         <div id="produtos-list" class="table-container"></div>
 

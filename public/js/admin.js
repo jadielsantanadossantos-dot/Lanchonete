@@ -432,38 +432,62 @@ async function carregarProdutosAdmin() {
     }
   }
 
-  filtrarProdutosPorCategoria();
+  filtrarProdutosAdmin();
 }
 
 function renderizarProdutosAdmin(produtos) {
   const container = document.getElementById('produtos-list');
-  container.innerHTML = `<table>
+  if (!produtos.length) {
+    container.innerHTML = '<p style="text-align:center;color:var(--gray);padding:40px">Nenhum produto encontrado</p>';
+    return;
+  }
+
+  // Ordenar pela ordem da categoria e, dentro dela, por preco
+  const ordemMap = new Map((window.categoriasAdmin || []).map(c => [c.id, c.ordem ?? 999]));
+  const ordenados = [...produtos].sort((a, b) =>
+    ((ordemMap.get(a.categoria_id) ?? 999) - (ordemMap.get(b.categoria_id) ?? 999)) || (a.preco - b.preco)
+  );
+
+  container.innerHTML = `
+    <div style="padding: var(--space-2) var(--space-3); color: var(--color-text-muted); font-size: var(--text-xs);">
+      ${ordenados.length} produto(s)
+    </div>
+    <table>
     <thead><tr><th>Foto</th><th>Nome</th><th>Categoria</th><th>Preço</th><th>Status</th><th>Ações</th></tr></thead>
-    <tbody>${produtos.map(p => `
-      <tr>
-        <td>${p.foto ? `<img src="${p.foto}" style="width:50px;height:50px;object-fit:cover;border-radius:6px">` : '-'}</td>
+    <tbody>${ordenados.map(p => {
+      const categoria = (window.categoriasAdmin || []).find(c => c.id === p.categoria_id);
+      return `
+      <tr style="${p.ativo ? '' : 'opacity:.55'}">
+        <td>${p.foto ? `<img src="${p.foto}" style="width:50px;height:50px;object-fit:cover;border-radius:6px">` : '<div style="width:50px;height:50px;border-radius:6px;background:var(--color-bg-alt);display:flex;align-items:center;justify-content:center;font-size:20px">&#127828;</div>'}</td>
         <td><strong>${p.nome}</strong><br><small style="color:var(--gray)">${p.descricao || ''}</small></td>
-        <td>${p.categoria_nome}</td>
-        <td>R$ ${p.preco.toFixed(2)}${p.unidade === 'kg' ? '/kg' : ''}</td>
-        <td>${p.ativo ? '<span style="color:var(--success)">Ativo</span>' : '<span style="color:var(--danger)">Inativo</span>'}${p.somente_garcom ? '<br><small style="color:var(--gray)">🏪 Só na loja</small>' : ''}</td>
+        <td><span class="pix-badge" style="background:var(--color-bg-alt);color:var(--color-text-secondary)">${p.categoria_nome}${categoria ? ` (#${categoria.ordem})` : ''}</span></td>
+        <td><strong>R$ ${p.preco.toFixed(2)}</strong>${p.unidade === 'kg' ? '/kg' : ''}</td>
         <td>
+          <span class="status-badge ${p.ativo ? 'pix-confirmado' : 'status-cancelado'}">${p.ativo ? 'Ativo' : 'Inativo'}</span>
+          ${p.somente_garcom ? '<span class="status-badge status-em_preparo" style="margin-top:4px">&#127968; Só na loja</span>' : ''}
+        </td>
+        <td style="white-space:nowrap">
           <button class="btn btn-sm ${p.ativo ? 'btn-warning' : 'btn-success'}" onclick="alternarProduto(${p.id}, ${p.ativo ? 0 : 1})">${p.ativo ? 'Desativar' : 'Ativar'}</button>
           <button class="btn btn-sm btn-primary" onclick='editarProduto(${JSON.stringify(p).replace(/'/g, "\\'")})'>Editar</button>
           <button class="btn btn-sm btn-danger" onclick="excluirProduto(${p.id})">Excluir</button>
         </td>
       </tr>
-    `).join('')}</tbody>
+    `}).join('')}</tbody>
   </table>`;
 }
 
-function filtrarProdutosPorCategoria() {
+function filtrarProdutosAdmin() {
   const categoriaId = document.getElementById('filtro-categoria-produtos').value;
+  const busca = (document.getElementById('busca-produto')?.value || '').trim().toLowerCase();
+
   let produtosFiltrados = window.produtosAdmin;
-  
   if (categoriaId) {
     produtosFiltrados = produtosFiltrados.filter(p => p.categoria_id == categoriaId);
   }
-  
+  if (busca) {
+    produtosFiltrados = produtosFiltrados.filter(p => p.nome.toLowerCase().includes(busca));
+  }
+
   renderizarProdutosAdmin(produtosFiltrados);
 }
 
