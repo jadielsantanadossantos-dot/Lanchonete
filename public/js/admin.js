@@ -778,12 +778,7 @@ async function carregarAdicionais() {
 
     const filtroProd = document.getElementById('filtro-produto-adicionais');
     if (filtroProd) {
-      const filtroAtualProd = filtroProd.value;
-      filtroProd.innerHTML = '<option value="">Todos os produtos</option>' +
-        produtosAdmin.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
-      if ([...filtroProd.options].some(o => o.value === filtroAtualProd)) {
-        filtroProd.value = filtroAtualProd;
-      }
+      atualizarFiltroProdutosAdicionais(filtroSelect ? filtroSelect.value : '');
     }
 
     filtrarAdicionaisAdmin();
@@ -946,6 +941,9 @@ function filtrarAdicionaisAdmin() {
   const categoriaId = document.getElementById('filtro-categoria-adicionais').value;
   const produtoId = document.getElementById('filtro-produto-adicionais').value;
 
+  // Filtro de produto mostra apenas itens da(s) categoria selecionada
+  atualizarFiltroProdutosAdicionais(categoriaId);
+
   let adicionaisFiltrados = adicionaisAdmin;
   if (categoriaId) {
     adicionaisFiltrados = adicionaisFiltrados.filter(a => a.categoria_id == categoriaId);
@@ -957,6 +955,24 @@ function filtrarAdicionaisAdmin() {
   }
 
   renderizarAdicionais(adicionaisFiltrados);
+}
+
+function atualizarFiltroProdutosAdicionais(categoriaId) {
+  const filtroProd = document.getElementById('filtro-produto-adicionais');
+  if (!filtroProd) return;
+
+  // Se a opcao escolhida ainda existe na lista filtrada, mantem
+  const valorAtual = filtroProd.value;
+  const produtosDisponiveis = categoriaId
+    ? produtosAdmin.filter(p => p.categoria_id == categoriaId)
+    : produtosAdmin;
+
+  filtroProd.innerHTML = '<option value="">Todos os produtos</option>' +
+    produtosDisponiveis.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
+
+  if ([...filtroProd.options].some(o => o.value === valorAtual)) {
+    filtroProd.value = valorAtual;
+  }
 }
 
 function editarAdicional(a) {
