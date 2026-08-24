@@ -829,15 +829,27 @@ async function salvarAdicional() {
       showToast('Item atualizado!');
       cancelarEdicaoAdicional();
     } else {
-      for (const cat_id of categoriasAdicionaisSelecionadas) {
+      if (produtosAdicionaisSelecionadas.length > 0) {
+        // Com produtos especificos selecionados, um unico registro basta
         const res = await authFetch('/api/adicionais', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ nome, preco, categoria_id: cat_id, tipo, descricao: descricao || null, produto_ids: produtosAdicionaisSelecionadas, limite })
+          body: JSON.stringify({ nome, preco, categoria_id: categoriasAdicionaisSelecionadas[0] || null, tipo, descricao: descricao || null, produto_ids: produtosAdicionaisSelecionadas, limite })
         });
         await verificarResposta(res);
+        showToast('Item cadastrado!');
+      } else {
+        // Sem produtos especificos: cria uma copia global por categoria
+        for (const cat_id of categoriasAdicionaisSelecionadas) {
+          const res = await authFetch('/api/adicionais', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nome, preco, categoria_id: cat_id, tipo, descricao: descricao || null, produto_ids: [], limite })
+          });
+          await verificarResposta(res);
+        }
+        showToast(`Item cadastrado em ${categoriasAdicionaisSelecionadas.length} categoria(s)!`);
       }
-      showToast(`Item cadastrado em ${categoriasAdicionaisSelecionadas.length} categoria(s)!`);
     }
 
     document.getElementById('adic-nome').value = '';

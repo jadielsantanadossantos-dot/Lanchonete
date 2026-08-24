@@ -327,12 +327,15 @@ function abrirProduto(id) {
       }
       
       if (adicionaisExtras.length) {
-        htmlAdicionais = `<div style="margin-top: 12px;">
-          <div style="font-size: 0.85rem; color: var(--color-text-secondary); margin-bottom: 8px;">Adicionais extras</div>
-          ${adicionaisExtras.map(a => `
+        const bordasExtras = adicionaisExtras.filter(a => a.tipo === 'borda');
+        const outrosExtras = adicionaisExtras.filter(a => a.tipo !== 'borda');
+
+        const renderGrupo = (items, titulo) => `<div style="margin-top: 12px;">
+          <div style="font-size: 0.85rem; color: var(--color-text-secondary); margin-bottom: 8px;">${titulo}</div>
+          ${items.map(a => `
             <div class="adicional-item">
               <label>
-                <input type="checkbox" value="${a.id}" data-nome="${a.nome}" data-preco="${a.preco}" data-tipo="adicional">
+                <input type="checkbox" value="${a.id}" data-nome="${a.nome}" data-preco="${a.preco}" data-tipo="${a.tipo}">
                 <div>
                   <span>${a.nome}</span>
                   ${a.descricao ? `<br><small style="color: var(--color-text-secondary); display: block; margin-top: 2px;">${a.descricao}</small>` : ''}
@@ -342,13 +345,17 @@ function abrirProduto(id) {
             </div>
           `).join('')}
         </div>`;
+
+        if (bordasExtras.length) htmlAdicionais += renderGrupo(bordasExtras, 'Borda Recheada');
+        if (outrosExtras.length) htmlAdicionais += renderGrupo(outrosExtras, 'Adicionais extras');
       }
       
       html += htmlSabores + htmlAdicionais;
     } else if (!isProdutoComTipos) {
       // Para não-pizzas/não-sucos/não-açaí, mostrar sabores e adicionais normalmente
       const sabores = adicionaisTradicionais.filter(a => a.tipo === 'sabor');
-      const adicionaisFiltrados = adicionaisTradicionais.filter(a => !a.tipo || ['adicional', 'borda'].includes(a.tipo));
+      const bordas = adicionaisTradicionais.filter(a => a.tipo === 'borda');
+      const adicionaisFiltrados = adicionaisTradicionais.filter(a => !a.tipo || a.tipo === 'adicional');
 
       if (sabores.length) {
         html += `<div style="margin-bottom: 8px; font-size: 0.85rem; color: var(--color-text-secondary);">Sabores</div>` +
@@ -356,6 +363,22 @@ function abrirProduto(id) {
             <div class="adicional-item">
               <label>
                 <input type="checkbox" value="${a.id}" data-nome="${a.nome}" data-preco="${a.preco}" data-tipo="sabor">
+                <div>
+                  <span>${a.nome}</span>
+                  ${a.descricao ? `<br><small style="color: var(--color-text-secondary); display: block; margin-top: 2px;">${a.descricao}</small>` : ''}
+                </div>
+              </label>
+              <span class="adicional-price">${a.preco > 0 ? '+ R$ ' + a.preco.toFixed(2) : 'Incluído'}</span>
+            </div>
+          `).join('');
+      }
+
+      if (bordas.length) {
+        html += `<div style="margin-bottom: 8px; font-size: 0.85rem; color: var(--color-text-secondary);">Borda Recheada</div>` +
+          bordas.map(a => `
+            <div class="adicional-item">
+              <label>
+                <input type="checkbox" value="${a.id}" data-nome="${a.nome}" data-preco="${a.preco}" data-tipo="borda">
                 <div>
                   <span>${a.nome}</span>
                   ${a.descricao ? `<br><small style="color: var(--color-text-secondary); display: block; margin-top: 2px;">${a.descricao}</small>` : ''}
