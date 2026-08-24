@@ -166,14 +166,12 @@
             <option value="acompanhamento">Acompanhamento</option>
           </select>
           <input class="form-control" id="adic-limite" type="number" step="1" min="0" placeholder="Limite (0= livre)" style="width:130px" value="0" title="Quantidade máxima selecionável">
-          <select class="form-control" id="adic-produto-select" style="width:150px" title="Produto específico (opcional)">
-            <option value="">Produto específico</option>
-          </select>
+          <button class="btn btn-secondary btn-sm" id="btn-seletor-produtos" onclick="abrirSeletorProdutos()">Produtos: Todos</button>
           <button class="btn btn-primary btn-sm" onclick="abrirSeletorCategorias()">Selecionar Categorias</button>
           <button class="btn btn-primary btn-sm" onclick="salvarAdicional()" id="btn-salvar-adic">Adicionar</button>
           <button class="btn btn-secondary btn-sm" onclick="cancelarEdicaoAdicional()" id="btn-cancelar-adic" style="display:none;">Cancelar</button>
         </div>
-        
+
         <!-- Modal de seleção de categorias -->
         <div class="modal-overlay" id="modal-categorias-adic" style="display:none;">
           <div class="modal">
@@ -186,6 +184,26 @@
               </div>
               <div class="modal-footer">
                 <button class="btn btn-primary" onclick="fecharSeletorCategorias()">Pronto</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal de seleção de produtos -->
+        <div class="modal-overlay" id="modal-produtos-adic" style="display:none;">
+          <div class="modal">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h3>Selecionar Produtos Específicos</h3>
+                <button class="modal-close" onclick="fecharSeletorProdutos()">&times;</button>
+              </div>
+              <div style="padding: 8px 16px; border-bottom: 1px solid #e5e5e5;">
+                <button class="btn btn-xs btn-secondary" onclick="limparSelecaoProdutos()">Limpar seleção (aplicar a todos da categoria)</button>
+              </div>
+              <div class="modal-body" id="produtos-checkboxes" style="max-height: 400px; overflow-y: auto;">
+              </div>
+              <div class="modal-footer">
+                <button class="btn btn-primary" onclick="fecharSeletorProdutos()">Pronto</button>
               </div>
             </div>
           </div>

@@ -93,19 +93,30 @@ router.get('/ativos', wrapAsync(async (req, res) => {
 
   const adicionais = await db.all('SELECT * FROM adicionais WHERE ativo = true');
 
+  // Vinculos N:N adicional x produto; fallback para coluna legado produto_id
+  const vinculos = await db.all('SELECT adicional_id, produto_id FROM adicional_produtos');
+  const produtosPorAdicional = new Map();
+  vinculos.forEach(v => {
+    if (!produtosPorAdicional.has(v.adicional_id)) produtosPorAdicional.set(v.adicional_id, []);
+    produtosPorAdicional.get(v.adicional_id).push(v.produto_id);
+  });
+
   const produtos = rows.map(p => {
     // Verificar se é pizza ou suco (produtos que recebem sabores)
     const isPizza = p.categoria_nome && ['pizza', 'suco', 'bebida'].some(
       cat => p.categoria_nome.toLowerCase().includes(cat.toLowerCase())
     );
-    
+
     // Para pizzas/sucos: retornar sabores + adicionais. Para outros: apenas adicionais
     const adicionaisFiltrados = adicionais.filter(a => {
       const mesmaCategoria = !a.categoria_id || a.categoria_id === p.categoria_id;
+      const idsVinculados = produtosPorAdicional.has(a.id)
+        ? produtosPorAdicional.get(a.id)
+        : (a.produto_id ? [a.produto_id] : null);
       // Adicionais específicos do produto têm prioridade
-      const produtoEspecifico = a.produto_id === p.id;
-      // Adicionais globais da categoria
-      const adicionalGlobal = (!a.produto_id || a.produto_id === null) && mesmaCategoria;
+      const produtoEspecifico = !!idsVinculados && idsVinculados.includes(p.id);
+      // Adicionais globais da categoria (sem nenhum produto vinculado)
+      const adicionalGlobal = (!idsVinculados || idsVinculados.length === 0) && mesmaCategoria;
       
       if (isPizza) {
         // Pizzas/sucos recebem sabores (tipo='sabor') E adicionais com preço

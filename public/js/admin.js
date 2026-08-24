@@ -6,6 +6,7 @@ let adicionaisAdmin = [];
 let categoriasAdmin = [];
 let produtosAdmin = [];
 let categoriasAdicionaisSelecionadas = [];
+let produtosAdicionaisSelecionadas = [];
 
 document.addEventListener('DOMContentLoaded', async () => {
   if (!verificarAuth('admin')) {
@@ -614,13 +615,6 @@ async function carregarAdicionais() {
     console.log('Adicionais carregados:', adicionaisAdmin);
     console.log('Produtos carregados:', produtosAdmin);
 
-    // Popular select de produtos
-    const prodSelect = document.getElementById('adic-produto-select');
-    if (prodSelect) {
-      prodSelect.innerHTML = '<option value="">Nenhum (global)</option>' +
-        produtosAdmin.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
-    }
-
     // Popular filtro de categorias preservando a seleção atual
     const filtroSelect = document.getElementById('filtro-categoria-adicionais');
     if (filtroSelect) {
@@ -661,8 +655,46 @@ function fecharSeletorCategorias() {
   categoriasAdicionaisSelecionadas = Array.from(
     document.querySelectorAll('.cat-checkbox-adic:checked')
   ).map(cb => parseInt(cb.value));
-  
+
   modal.style.display = 'none';
+}
+
+function abrirSeletorProdutos() {
+  const modal = document.getElementById('modal-produtos-adic');
+  const container = document.getElementById('produtos-checkboxes');
+
+  container.innerHTML = produtosAdmin.map(p => `
+    <div style="padding: 8px; border-bottom: 1px solid #e5e5e5;">
+      <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; min-height: 40px;">
+        <input type="checkbox" value="${p.id}" class="prod-checkbox-adic" ${produtosAdicionaisSelecionadas.includes(p.id) ? 'checked' : ''}>
+        <span>${p.nome} <small style="color:var(--gray)">(${categoriasAdmin.find(c => c.id === p.categoria_id)?.nome || 'sem categoria'})</small></span>
+      </label>
+    </div>
+  `).join('');
+
+  modal.style.display = 'flex';
+}
+
+function fecharSeletorProdutos() {
+  const modal = document.getElementById('modal-produtos-adic');
+  produtosAdicionaisSelecionadas = Array.from(
+    document.querySelectorAll('.prod-checkbox-adic:checked')
+  ).map(cb => parseInt(cb.value));
+
+  atualizarLabelProdutos();
+  modal.style.display = 'none';
+}
+
+function limparSelecaoProdutos() {
+  document.querySelectorAll('.prod-checkbox-adic').forEach(cb => { cb.checked = false; });
+}
+
+function atualizarLabelProdutos() {
+  const btn = document.getElementById('btn-seletor-produtos');
+  if (!btn) return;
+  btn.textContent = produtosAdicionaisSelecionadas.length > 0
+    ? `Produtos: ${produtosAdicionaisSelecionadas.length} selecionado(s)`
+    : 'Produtos: Todos da categoria';
 }
 
 function renderizarAdicionais(adicionais) {
@@ -676,7 +708,10 @@ function renderizarAdicionais(adicionais) {
   document.getElementById('adicionais-list').innerHTML = `<table>
     <thead><tr><th>Nome</th><th>Descrição</th><th>Tipo</th><th>Limite</th><th>Categoria</th><th>Produto</th><th>Preço</th><th>Status</th><th>Ações</th></tr></thead>
     <tbody>${adicionais.map(a => {
-      const produtoNome = a.produto_id ? (produtosAdmin.find(p => p.id == a.produto_id)?.nome || 'ID: ' + a.produto_id) : '-';
+      const produtoIds = a.produto_ids || (a.produto_id ? [a.produto_id] : []);
+      const produtoNome = produtoIds.length
+        ? produtoIds.map(pid => produtosAdmin.find(p => p.id == pid)?.nome || 'ID: ' + pid).join(', ')
+        : '-';
       const tl = tipoLabels[a.tipo] || tipoLabels['adicional'];
       const limiteText = a.limite > 0 ? a.limite : 'Livre';
       return `
@@ -690,8 +725,8 @@ function renderizarAdicionais(adicionais) {
         <td>R$ ${a.preco.toFixed(2)}</td>
         <td>${a.ativo ? '<span style="color:var(--success)">Ativo</span>' : '<span style="color:var(--danger)">Inativo</span>'}</td>
         <td>
-          <button class="btn btn-xs btn-primary" onclick="editarAdicional(${a.id}, '${a.nome}', '${(a.descricao || '').replace(/'/g, "\\'")}', ${a.preco}, ${a.categoria_id || 'null'}, '${a.tipo}', ${a.produto_id || 'null'}, ${a.limite || 0})">Editar</button>
-          <button class="btn btn-xs ${a.ativo ? 'btn-warning' : 'btn-success'}" onclick="toggleAdicional(${a.id}, '${a.nome}', ${a.preco}, ${a.ativo ? 0 : 1}, ${a.categoria_id || 'null'}, '${a.tipo}', '${(a.descricao || '').replace(/'/g, "\\'")}', ${a.produto_id || 'null'}, ${a.limite || 0})">${a.ativo ? 'Desativar' : 'Ativar'}</button>
+          <button class="btn btn-xs btn-primary" onclick='editarAdicional(JSON.parse(decodeURIComponent("${encodeURIComponent(JSON.stringify(a))}")))'>Editar</button>
+          <button class="btn btn-xs ${a.ativo ? 'btn-warning' : 'btn-success'}" onclick='toggleAdicional(JSON.parse(decodeURIComponent("${encodeURIComponent(JSON.stringify(a))}")), ${a.ativo ? 0 : 1})'>${a.ativo ? 'Desativar' : 'Ativar'}</button>
           <button class="btn btn-xs btn-danger" onclick="excluirAdicional(${a.id})">Excluir</button>
         </td>
       </tr>
@@ -710,16 +745,17 @@ function filtrarAdicionaisPorCategoria() {
   renderizarAdicionais(adicionaisFiltrados);
 }
 
-function editarAdicional(id, nome, descricao, preco, categoria_id, tipo, produto_id = null, limite = 0) {
-  adicionalEmEdicao = id;
-  document.getElementById('adic-nome').value = nome;
-  document.getElementById('adic-descricao').value = descricao || '';
-  document.getElementById('adic-preco').value = preco;
-  document.getElementById('adic-tipo').value = tipo || 'adicional';
-  document.getElementById('adic-limite').value = limite || 0;
-  document.getElementById('adic-produto-select').value = produto_id || '';
-  categoriasAdicionaisSelecionadas = categoria_id !== 'null' && categoria_id ? [parseInt(categoria_id)] : [];
-  
+function editarAdicional(a) {
+  adicionalEmEdicao = a.id;
+  document.getElementById('adic-nome').value = a.nome;
+  document.getElementById('adic-descricao').value = a.descricao || '';
+  document.getElementById('adic-preco').value = a.preco;
+  document.getElementById('adic-tipo').value = a.tipo || 'adicional';
+  document.getElementById('adic-limite').value = a.limite || 0;
+  produtosAdicionaisSelecionadas = (a.produto_ids && a.produto_ids.length) ? a.produto_ids.map(x => parseInt(x)) : (a.produto_id ? [parseInt(a.produto_id)] : []);
+  atualizarLabelProdutos();
+  categoriasAdicionaisSelecionadas = a.categoria_id ? [parseInt(a.categoria_id)] : [];
+
   document.getElementById('btn-salvar-adic').textContent = 'Atualizar';
   document.getElementById('btn-cancelar-adic').style.display = 'inline-block';
   document.getElementById('adic-nome').focus();
@@ -732,7 +768,8 @@ function cancelarEdicaoAdicional() {
   document.getElementById('adic-preco').value = '0';
   document.getElementById('adic-tipo').value = 'adicional';
   document.getElementById('adic-limite').value = '0';
-  document.getElementById('adic-produto-select').value = '';
+  produtosAdicionaisSelecionadas = [];
+  atualizarLabelProdutos();
   categoriasAdicionaisSelecionadas = [];
   document.getElementById('btn-salvar-adic').textContent = 'Adicionar';
   document.getElementById('btn-cancelar-adic').style.display = 'none';
@@ -744,59 +781,67 @@ async function salvarAdicional() {
   const precoVal = document.getElementById('adic-preco').value;
   const tipo = document.getElementById('adic-tipo').value;
   const limite = parseInt(document.getElementById('adic-limite').value) || 0;
-  const produtoId = document.getElementById('adic-produto-select').value;
-  const produto_id = produtoId ? parseInt(produtoId) : null;
-  
+
   if (!nome) { showToast('Preencha o nome'); return; }
   if (precoVal === '' || precoVal === null) { showToast('Informe o preço (use 0 para sabor grátis)'); return; }
-  if (!adicionalEmEdicao && categoriasAdicionaisSelecionadas.length === 0) { 
-    showToast('Selecione pelo menos uma categoria'); 
-    return; 
+  if (!adicionalEmEdicao && categoriasAdicionaisSelecionadas.length === 0) {
+    showToast('Selecione pelo menos uma categoria');
+    return;
   }
-  
+
   try {
     const preco = parseFloat(precoVal);
-    
+
     if (adicionalEmEdicao) {
       const catId = categoriasAdicionaisSelecionadas.length > 0 ? categoriasAdicionaisSelecionadas[0] : null;
-      await authFetch(`/api/adicionais/${adicionalEmEdicao}`, { 
-        method: 'PUT', 
-        headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify({ nome, preco, categoria_id: catId, tipo, descricao: descricao || null, produto_id, limite }) 
+      await authFetch(`/api/adicionais/${adicionalEmEdicao}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nome, preco, categoria_id: catId, tipo, descricao: descricao || null, produto_ids: produtosAdicionaisSelecionadas, limite })
       });
       showToast('Item atualizado!');
       cancelarEdicaoAdicional();
     } else {
       for (const cat_id of categoriasAdicionaisSelecionadas) {
-        const res = await authFetch('/api/adicionais', { 
-          method: 'POST', 
-          headers: { 'Content-Type': 'application/json' }, 
-          body: JSON.stringify({ nome, preco, categoria_id: cat_id, tipo, descricao: descricao || null, produto_id, limite }) 
+        const res = await authFetch('/api/adicionais', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nome, preco, categoria_id: cat_id, tipo, descricao: descricao || null, produto_ids: produtosAdicionaisSelecionadas, limite })
         });
         await verificarResposta(res);
       }
       showToast(`Item cadastrado em ${categoriasAdicionaisSelecionadas.length} categoria(s)!`);
     }
-    
+
     document.getElementById('adic-nome').value = '';
     document.getElementById('adic-descricao').value = '';
     document.getElementById('adic-preco').value = '0';
     document.getElementById('adic-tipo').value = 'adicional';
     document.getElementById('adic-limite').value = '0';
-    document.getElementById('adic-produto-select').value = '';
+    produtosAdicionaisSelecionadas = [];
+    atualizarLabelProdutos();
     categoriasAdicionaisSelecionadas = [];
     carregarAdicionais();
-  } catch (e) { 
+  } catch (e) {
     console.error('Erro ao salvar adicional:', e);
-    showToast('Erro: ' + e.message); 
+    showToast('Erro: ' + e.message);
   }
 }
 
-async function toggleAdicional(id, nome, preco, ativo, categoria_id, tipo, descricao, produto_id = null, limite = 0) {
-  await authFetch(`/api/adicionais/${id}`, { 
-    method: 'PUT', 
-    headers: { 'Content-Type': 'application/json' }, 
-    body: JSON.stringify({ nome, preco, ativo, categoria_id: categoria_id === 'null' ? null : undefined, tipo: tipo || 'adicional', descricao: descricao || null, produto_id, limite }) 
+async function toggleAdicional(a, novoAtivo) {
+  await authFetch(`/api/adicionais/${a.id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      nome: a.nome,
+      preco: a.preco,
+      ativo: novoAtivo,
+      categoria_id: a.categoria_id || null,
+      tipo: a.tipo || 'adicional',
+      descricao: a.descricao || null,
+      produto_ids: a.produto_ids || [],
+      limite: a.limite || 0
+    })
   });
   carregarAdicionais();
 }
