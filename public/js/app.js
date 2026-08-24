@@ -226,8 +226,8 @@ function abrirProduto(id) {
   const adicionaisAcai = produtoAtual.adicionais.filter(a => ['base', 'cobertura', 'acompanhamento'].includes(a.tipo));
   const isProdutoComTipos = adicionaisAcai.length > 0;
   
-  // Adicionais tradicionais (sabor, adicional)
-  const adicionaisTradicionais = produtoAtual.adicionais.filter(a => !a.tipo || ['adicional', 'sabor'].includes(a.tipo));
+  // Adicionais tradicionais (sabor, adicional, borda)
+  const adicionaisTradicionais = produtoAtual.adicionais.filter(a => !a.tipo || ['adicional', 'sabor', 'borda'].includes(a.tipo));
   
   function renderGrupoAdicionais(items, titulo, inputType, grupo, limite) {
     if (!items.length) return '';
@@ -289,7 +289,7 @@ function abrirProduto(id) {
     // Se é pizza/suco: sabores + adicionais extras
     if (isProdutoComSabores) {
       const sabores = produtoAtual.adicionais.filter(a => a.tipo === 'sabor');
-      const adicionaisExtras = adicionaisTradicionais.filter(a => a.tipo === 'adicional' && a.preco > 0 && a.tipo !== 'sabor');
+      const adicionaisExtras = adicionaisTradicionais.filter(a => ['adicional', 'borda'].includes(a.tipo) && a.preco > 0);
       
       let htmlSabores = '';
       let htmlAdicionais = '';
@@ -348,7 +348,7 @@ function abrirProduto(id) {
     } else if (!isProdutoComTipos) {
       // Para não-pizzas/não-sucos/não-açaí, mostrar sabores e adicionais normalmente
       const sabores = adicionaisTradicionais.filter(a => a.tipo === 'sabor');
-      const adicionaisFiltrados = adicionaisTradicionais.filter(a => !a.tipo || a.tipo === 'adicional');
+      const adicionaisFiltrados = adicionaisTradicionais.filter(a => !a.tipo || ['adicional', 'borda'].includes(a.tipo));
 
       if (sabores.length) {
         html += `<div style="margin-bottom: 8px; font-size: 0.85rem; color: var(--color-text-secondary);">Sabores</div>` +

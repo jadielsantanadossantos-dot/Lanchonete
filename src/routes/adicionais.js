@@ -9,7 +9,7 @@ function wrapAsync(fn) {
   };
 }
 
-const TIPOS_VALIDOS = ['adicional', 'sabor', 'base', 'cobertura', 'acompanhamento'];
+const TIPOS_VALIDOS = ['adicional', 'sabor', 'base', 'cobertura', 'acompanhamento', 'borda'];
 
 router.get('/', wrapAsync(async (req, res) => {
   const categoriaId = req.query.categoria_id ? parseInt(req.query.categoria_id) : null;

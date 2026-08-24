@@ -701,6 +701,7 @@ function renderizarAdicionais(adicionais) {
   const tipoLabels = {
     'adicional': { text: 'Adicional', bg: '#fff3e0' },
     'sabor': { text: '🍕 Sabor', bg: '#e8f5e9' },
+    'borda': { text: '🧀 Borda Recheada', bg: '#fff8e1' },
     'base': { text: '🥣 Base', bg: '#e3f2fd' },
     'cobertura': { text: '🍓 Cobertura', bg: '#fce4ec' },
     'acompanhamento': { text: '🍟 Acompanhamento', bg: '#f3e5f5' }

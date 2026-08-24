@@ -504,7 +504,7 @@ async function abrirModalQuant(produtoId) {
   // Detectar tipos de açaí
   const adicionaisAcai = produtoSelecionado.adicionais.filter(a => ['base', 'cobertura', 'acompanhamento'].includes(a.tipo));
   const isProdutoComTipos = adicionaisAcai.length > 0;
-  const adicionaisTradicionais = produtoSelecionado.adicionais.filter(a => !a.tipo || ['adicional', 'sabor'].includes(a.tipo));
+  const adicionaisTradicionais = produtoSelecionado.adicionais.filter(a => !a.tipo || ['adicional', 'sabor', 'borda'].includes(a.tipo));
 
   if (produtoSelecionado.adicionais && produtoSelecionado.adicionais.length) {
     adcSection.style.display = 'block';

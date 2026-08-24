@@ -12,3 +12,7 @@ CREATE INDEX IF NOT EXISTS idx_adicional_produtos_produto ON adicional_produtos(
 INSERT INTO adicional_produtos (adicional_id, produto_id)
 SELECT id, produto_id FROM adicionais WHERE produto_id IS NOT NULL
 ON CONFLICT DO NOTHING;
+
+-- Novo tipo de adicional: borda recheada
+ALTER TABLE adicionais DROP CONSTRAINT IF EXISTS check_tipo_valid;
+ALTER TABLE adicionais ADD CONSTRAINT check_tipo_valid CHECK (tipo = ANY (ARRAY['adicional'::text, 'sabor'::text, 'base'::text, 'cobertura'::text, 'acompanhamento'::text, 'borda'::text]));
