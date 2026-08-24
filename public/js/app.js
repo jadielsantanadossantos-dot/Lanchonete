@@ -359,12 +359,16 @@ function abrirProduto(id) {
         const bordasExtras = adicionaisExtras.filter(a => a.tipo === 'borda');
         const outrosExtras = adicionaisExtras.filter(a => a.tipo !== 'borda');
 
-        const renderGrupo = (items, titulo) => `<div style="margin-top: 12px;">
-          <div style="font-size: 0.85rem; color: var(--color-text-secondary); margin-bottom: 8px;">${titulo}</div>
+        // Grupo com limite configurado no painel admin (campo "Limite" do adicional)
+        const renderGrupo = (items, titulo, grupo) => {
+          const limiteGrupo = parseInt(items[0]?.limite) || 0;
+          const tituloTxt = limiteGrupo > 0 ? `${titulo} (máx: ${limiteGrupo})` : titulo;
+          return `<div style="margin-top: 12px;">
+          <div style="font-size: 0.85rem; color: var(--color-text-secondary); margin-bottom: 8px;">${tituloTxt}</div>
           ${items.map(a => `
             <div class="adicional-item">
               <label>
-                <input type="checkbox" value="${a.id}" data-nome="${a.nome}" data-preco="${a.preco}" data-tipo="${a.tipo}">
+                <input type="checkbox" value="${a.id}" data-nome="${a.nome}" data-preco="${a.preco}" data-tipo="${a.tipo}" class="check-lim" data-grupo="${grupo}" data-grupo-label="${titulo.toLowerCase()}" data-max="${limiteGrupo}">
                 <div>
                   <span>${a.nome}</span>
                   ${a.descricao ? `<br><small style="color: var(--color-text-secondary); display: block; margin-top: 2px;">${a.descricao}</small>` : ''}
@@ -374,9 +378,10 @@ function abrirProduto(id) {
             </div>
           `).join('')}
         </div>`;
+        };
 
-        if (bordasExtras.length) htmlAdicionais += renderGrupo(bordasExtras, 'Borda Recheada');
-        if (outrosExtras.length) htmlAdicionais += renderGrupo(outrosExtras, 'Adicionais extras');
+        if (bordasExtras.length) htmlAdicionais += renderGrupo(bordasExtras, 'Borda Recheada', 'borda');
+        if (outrosExtras.length) htmlAdicionais += renderGrupo(outrosExtras, 'Adicionais extras', 'extra');
       }
       
       html += htmlSabores + htmlAdicionais;
@@ -421,11 +426,13 @@ function abrirProduto(id) {
       }
 
       if (bordas.length) {
-        html += `<div style="margin-bottom: 8px; font-size: 0.85rem; color: var(--color-text-secondary);">Borda Recheada</div>` +
+        const limiteBordas = parseInt(bordas[0]?.limite) || 0;
+        const tituloBordas = limiteBordas > 0 ? `Borda Recheada (máx: ${limiteBordas})` : 'Borda Recheada';
+        html += `<div style="margin-bottom: 8px; font-size: 0.85rem; color: var(--color-text-secondary);">${tituloBordas}</div>` +
           bordas.map(a => `
             <div class="adicional-item">
               <label>
-                <input type="checkbox" value="${a.id}" data-nome="${a.nome}" data-preco="${a.preco}" data-tipo="borda">
+                <input type="checkbox" value="${a.id}" data-nome="${a.nome}" data-preco="${a.preco}" data-tipo="borda" class="check-lim" data-grupo="gen-borda" data-grupo-label="borda recheada" data-max="${limiteBordas}">
                 <div>
                   <span>${a.nome}</span>
                   ${a.descricao ? `<br><small style="color: var(--color-text-secondary); display: block; margin-top: 2px;">${a.descricao}</small>` : ''}
@@ -437,11 +444,13 @@ function abrirProduto(id) {
       }
 
       if (adicionaisFiltrados.length) {
-        html += `<div style="margin-bottom: 8px; font-size: 0.85rem; color: var(--color-text-secondary);">Adicionais</div>` +
+        const limiteAdic = parseInt(adicionaisFiltrados[0]?.limite) || 0;
+        const tituloAdic = limiteAdic > 0 ? `Adicionais (máx: ${limiteAdic})` : 'Adicionais';
+        html += `<div style="margin-bottom: 8px; font-size: 0.85rem; color: var(--color-text-secondary);">${tituloAdic}</div>` +
           adicionaisFiltrados.map(a => `
             <div class="adicional-item">
               <label>
-                <input type="checkbox" value="${a.id}" data-nome="${a.nome}" data-preco="${a.preco}" data-tipo="adicional">
+                <input type="checkbox" value="${a.id}" data-nome="${a.nome}" data-preco="${a.preco}" data-tipo="adicional" class="check-lim" data-grupo="gen-adic" data-grupo-label="adicional" data-max="${limiteAdic}">
                 <div>
                   <span>${a.nome}</span>
                   ${a.descricao ? `<br><small style="color: var(--color-text-secondary); display: block; margin-top: 2px;">${a.descricao}</small>` : ''}
@@ -456,6 +465,21 @@ function abrirProduto(id) {
     if (html) {
       adcSection.style.display = 'block';
       adcList.innerHTML = html;
+
+      // Aplicar limites por grupo (campo "Limite" do adicional)
+      setTimeout(() => {
+        document.querySelectorAll('#adicionais-list .check-lim').forEach(cb => {
+          cb.addEventListener('change', function() {
+            const max = parseInt(this.dataset.max) || 0;
+            if (max <= 0) return;
+            const checked = document.querySelectorAll(`#adicionais-list .check-lim[data-grupo="${this.dataset.grupo}"]:checked`).length;
+            if (checked > max) {
+              this.checked = false;
+              mostrarToast(`Máximo ${max} ${this.dataset.grupoLabel || 'item'}(s) permitido(s)`);
+            }
+          });
+        });
+      }, 10);
     } else {
       adcSection.style.display = 'none';
     }
