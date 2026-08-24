@@ -382,11 +382,14 @@ function abrirProduto(id) {
       const adicionaisFiltrados = adicionaisTradicionais.filter(a => !a.tipo || a.tipo === 'adicional');
 
       if (sabores.length) {
-        html += `<div style="margin-bottom: 8px; font-size: 0.85rem; color: var(--color-text-secondary);">Sabores</div>` +
+        // Limite configurado no painel admin (campo "Limite" do adicional)
+        const limiteSabores = parseInt(sabores[0]?.limite) || 0;
+        const tituloSabores = limiteSabores > 0 ? `Sabores (máx: ${limiteSabores})` : 'Sabores';
+        html += `<div style="margin-bottom: 8px; font-size: 0.85rem; color: var(--color-text-secondary);">${tituloSabores}</div>` +
           sabores.map(a => `
             <div class="adicional-item">
               <label>
-                <input type="checkbox" value="${a.id}" data-nome="${a.nome}" data-preco="${a.preco}" data-tipo="sabor">
+                <input type="checkbox" value="${a.id}" data-nome="${a.nome}" data-preco="${a.preco}" data-tipo="sabor" class="sabor-check-gen" data-max="${limiteSabores}">
                 <div>
                   <span>${a.nome}</span>
                   ${a.descricao ? `<br><small style="color: var(--color-text-secondary); display: block; margin-top: 2px;">${a.descricao}</small>` : ''}
@@ -395,6 +398,21 @@ function abrirProduto(id) {
               <span class="adicional-price">${a.preco > 0 ? '+ R$ ' + a.preco.toFixed(2) : 'Incluído'}</span>
             </div>
           `).join('');
+
+        setTimeout(() => {
+          document.querySelectorAll('#adicionais-list .sabor-check-gen').forEach(cb => {
+            cb.addEventListener('change', function() {
+              const max = parseInt(this.dataset.max) || 0;
+              if (max > 0) {
+                const checked = document.querySelectorAll('#adicionais-list .sabor-check-gen:checked').length;
+                if (checked > max) {
+                  this.checked = false;
+                  mostrarToast(`Máximo ${max} sabor(es) permitido(s)`);
+                }
+              }
+            });
+          });
+        }, 10);
       }
 
       if (bordas.length) {
