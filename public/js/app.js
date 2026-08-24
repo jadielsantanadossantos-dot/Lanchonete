@@ -395,11 +395,11 @@ function abrirProduto(id) {
         // Limite configurado no painel admin (campo "Limite" do adicional)
         const limiteSabores = parseInt(sabores[0]?.limite) || 0;
         const tituloSabores = limiteSabores > 0 ? `Sabores (máx: ${limiteSabores})` : 'Sabores';
-        html += `<div style="margin-bottom: 8px; font-size: 0.85rem; color: var(--color-text-secondary);">${tituloSabores}</div>` +
+        html += `<div style="margin-bottom: 8px; font-size: 0.85rem; color: var(--color-text-secondary);" class="titulo-grupo-lim" data-base="${limiteSabores}" data-label="Sabores">${tituloSabores}</div>` +
           sabores.map(a => `
             <div class="adicional-item">
               <label>
-                <input type="checkbox" value="${a.id}" data-nome="${a.nome}" data-preco="${a.preco}" data-tipo="sabor" class="sabor-check-gen" data-max="${limiteSabores}">
+                <input type="checkbox" value="${a.id}" data-nome="${a.nome}" data-preco="${a.preco}" data-tipo="sabor" class="sabor-check-gen" data-max="${limiteSabores}" data-base-max="${limiteSabores}">
                 <div>
                   <span>${a.nome}</span>
                   ${a.descricao ? `<br><small style="color: var(--color-text-secondary); display: block; margin-top: 2px;">${a.descricao}</small>` : ''}
@@ -428,11 +428,11 @@ function abrirProduto(id) {
       if (bordas.length) {
         const limiteBordas = parseInt(bordas[0]?.limite) || 0;
         const tituloBordas = limiteBordas > 0 ? `Borda Recheada (máx: ${limiteBordas})` : 'Borda Recheada';
-        html += `<div style="margin-bottom: 8px; font-size: 0.85rem; color: var(--color-text-secondary);">${tituloBordas}</div>` +
+        html += `<div style="margin-bottom: 8px; font-size: 0.85rem; color: var(--color-text-secondary);" class="titulo-grupo-lim" data-base="${limiteBordas}" data-label="Borda Recheada">${tituloBordas}</div>` +
           bordas.map(a => `
             <div class="adicional-item">
               <label>
-                <input type="checkbox" value="${a.id}" data-nome="${a.nome}" data-preco="${a.preco}" data-tipo="borda" class="check-lim" data-grupo="gen-borda" data-grupo-label="borda recheada" data-max="${limiteBordas}">
+                <input type="checkbox" value="${a.id}" data-nome="${a.nome}" data-preco="${a.preco}" data-tipo="borda" class="check-lim" data-grupo="gen-borda" data-grupo-label="borda recheada" data-max="${limiteBordas}" data-base-max="${limiteBordas}">
                 <div>
                   <span>${a.nome}</span>
                   ${a.descricao ? `<br><small style="color: var(--color-text-secondary); display: block; margin-top: 2px;">${a.descricao}</small>` : ''}
@@ -446,11 +446,11 @@ function abrirProduto(id) {
       if (adicionaisFiltrados.length) {
         const limiteAdic = parseInt(adicionaisFiltrados[0]?.limite) || 0;
         const tituloAdic = limiteAdic > 0 ? `Adicionais (máx: ${limiteAdic})` : 'Adicionais';
-        html += `<div style="margin-bottom: 8px; font-size: 0.85rem; color: var(--color-text-secondary);">${tituloAdic}</div>` +
+        html += `<div style="margin-bottom: 8px; font-size: 0.85rem; color: var(--color-text-secondary);" class="titulo-grupo-lim" data-base="${limiteAdic}" data-label="Adicionais">${tituloAdic}</div>` +
           adicionaisFiltrados.map(a => `
             <div class="adicional-item">
               <label>
-                <input type="checkbox" value="${a.id}" data-nome="${a.nome}" data-preco="${a.preco}" data-tipo="adicional" class="check-lim" data-grupo="gen-adic" data-grupo-label="adicional" data-max="${limiteAdic}">
+                <input type="checkbox" value="${a.id}" data-nome="${a.nome}" data-preco="${a.preco}" data-tipo="adicional" class="check-lim" data-grupo="gen-adic" data-grupo-label="adicional" data-max="${limiteAdic}" data-base-max="${limiteAdic}">
                 <div>
                   <span>${a.nome}</span>
                   ${a.descricao ? `<br><small style="color: var(--color-text-secondary); display: block; margin-top: 2px;">${a.descricao}</small>` : ''}
@@ -465,6 +465,7 @@ function abrirProduto(id) {
     if (html) {
       adcSection.style.display = 'block';
       adcList.innerHTML = html;
+      aplicarLimitesDinamicos();
 
       // Aplicar limites por grupo (campo "Limite" do adicional)
       setTimeout(() => {
@@ -499,6 +500,24 @@ function alterarQtd(delta) {
   modalQtd = Math.max(1, modalQtd + delta);
   document.getElementById('modal-qty').textContent = modalQtd;
   atualizarBtnAdd();
+  aplicarLimitesDinamicos();
+}
+
+// Multiplica o limite configurado pela quantidade de itens (2 trufas = ate 2 sabores)
+function aplicarLimitesDinamicos() {
+  if (!produtoAtual || produtoAtual.unidade !== 'un') return;
+  const mult = Math.max(1, modalQtd || 1);
+
+  document.querySelectorAll('#adicionais-list [data-base-max]').forEach(cb => {
+    const base = parseInt(cb.dataset.baseMax) || 0;
+    cb.dataset.max = base > 0 ? base * mult : 0;
+  });
+
+  document.querySelectorAll('#adicionais-list .titulo-grupo-lim').forEach(t => {
+    const base = parseInt(t.dataset.base) || 0;
+    const label = t.dataset.label || '';
+    t.textContent = base > 0 ? `${label} (máx: ${base * mult})` : label;
+  });
 }
 
 function lerValorKg() {
