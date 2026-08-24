@@ -188,7 +188,17 @@ function abrirProduto(id) {
   const isPizza = produtoAtual.categoria_nome && ['Pizza', 'Tradicional', 'Especial', 'Doce'].some(cat => produtoAtual.categoria_nome.toLowerCase().includes(cat.toLowerCase()));
   const isSuco = produtoAtual.categoria_nome && ['suco', 'suco', 'bebida'].some(cat => produtoAtual.categoria_nome.toLowerCase().includes(cat.toLowerCase()));
   const isProdutoComSabores = isPizza || isSuco;
-  const maxSabores = isProdutoComSabores ? (produtoAtual.categoria_nome && produtoAtual.categoria_nome.toLowerCase().includes('pizza') ? 3 : 1) : 999;
+  // Limite de sabores por tamanho da pizza (identificado pela última palavra do nome)
+  let maxSabores = 1;
+  if (isProdutoComSabores && produtoAtual.categoria_nome && produtoAtual.categoria_nome.toLowerCase().includes('pizza')) {
+    const tamMatch = produtoAtual.nome.trim().match(/\s([PMGF])$/i);
+    if (tamMatch) {
+      const tam = tamMatch[1].toUpperCase();
+      maxSabores = tam === 'P' ? 1 : tam === 'F' ? 3 : 2;
+    } else {
+      maxSabores = 3;
+    }
+  }
   document.getElementById('modal-nome').textContent = produtoAtual.nome;
   document.getElementById('modal-desc').textContent = produtoAtual.descricao || '';
   document.getElementById('modal-preco').textContent = `R$ ${produtoAtual.preco.toFixed(2)}${porKg ? ' /kg' : ''}`;
