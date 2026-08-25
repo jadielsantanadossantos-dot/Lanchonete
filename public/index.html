@@ -224,6 +224,11 @@
       <div class="pix-qr" id="pix-qr"></div>
       <div class="pix-key" id="pix-key"></div>
       <button class="copy-btn" onclick="copiarPix()">Copiar código Pix (copia e cola)</button>
+      <button id="btn-enviar-comprovante" class="btn btn-comprovante" onclick="enviarComprovantePix()" style="display:none">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="white" aria-hidden="true"><path d="M19.05 4.94A9.91 9.91 0 0 0 12.04 2C6.55 2 2.08 6.47 2.08 11.96c0 1.75.46 3.46 1.33 4.97L2 22l5.2-1.36a9.96 9.96 0 0 0 4.84 1.23h.01c5.49 0 9.96-4.47 9.96-9.96 0-2.66-1.03-5.16-2.96-7.07Zm-7.01 15.24h-.01a8.13 8.13 0 0 1-4.15-1.14l-.3-.17-3.09.81.82-3.01-.19-.31a8.14 8.14 0 0 1-1.26-4.4c0-4.51 3.67-8.18 8.18-8.18 2.18 0 4.24.85 5.78 2.4a8.12 8.12 0 0 1 2.39 5.78c0 4.51-3.67 8.22-8.18 8.22Zm6.92-6.11c-.38-.19-2.24-1.11-2.59-1.23-.35-.12-.6-.19-.86.19-.25.38-.99 1.23-1.21 1.48-.22.25-.45.28-.83.09-.38-.19-1.6-.59-3.05-1.88-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.13-.13.28-.34.42-.51.14-.17.19-.29.28-.48.09-.19.05-.36-.02-.51-.07-.15-.86-2.07-1.18-2.84-.31-.75-.63-.65-.86-.66l-.73-.01c-.25 0-.66.09-1 .45-.35.36-1.32 1.29-1.32 3.15 0 1.86 1.35 3.65 1.54 3.9.19.25 2.66 4.06 6.44 5.7.9.39 1.6.62 2.15.79.9.29 1.72.25 2.37.15.72-.11 2.24-.92 2.56-1.81.32-.89.32-1.65.22-1.81-.1-.16-.35-.25-.73-.44Z"/></svg>
+        Enviar Comprovante no WhatsApp
+      </button>
+      <p id="pix-comprovante-dica" class="pix-dica" style="display:none">Após pagar, clique no botão acima e <strong>anexe o comprovante</strong> na conversa para a Loja confirmar</p>
       <div class="pix-waiting" id="pix-aguardando">
         <div class="pix-spinner"></div>
         <p>Após pagar, aguarde a confirmação do estabelecimento.<br>Você será avisado automaticamente.</p>

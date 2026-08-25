@@ -29,6 +29,7 @@ function inscreverAcompanhamentoPedido(pedidoId) {
     finalizado = true;
     localStorage.removeItem('ultimoPedidoId');
     localStorage.removeItem('pedidoAguardando');
+    localStorage.removeItem('pedidoPixDetalhes');
     if (pedidoAtivoUnsub) { try { pedidoAtivoUnsub(); } catch (e) {} pedidoAtivoUnsub = null; }
   };
 
@@ -115,6 +116,7 @@ async function init() {
     try {
       const aguardando = JSON.parse(aguardandoRaw);
       await gerarPixQR(aguardando.total);
+      atualizarVisibilidadeComprovante();
       mostrarPagina('page-pix');
     } catch (e) {
       localStorage.removeItem('pedidoAguardando');
@@ -147,6 +149,8 @@ async function carregarConfig() {
       document.title = config.loja_nome;
     }
     atualizarStatusLoja(config.loja_aberta !== 'false');
+    atualizarBotaoWhatsapp(config.loja_telefone);
+    atualizarVisibilidadeComprovante();
     const box = document.getElementById('tempo-espera-box');
     const val = document.getElementById('tempo-espera-valor');
     if (box && val) {
@@ -174,6 +178,31 @@ function atualizarStatusLoja(aberta) {
   lojaAberta = aberta;
   const banner = document.getElementById('loja-fechada-banner');
   if (banner) banner.style.display = aberta ? 'none' : 'block';
+}
+
+function atualizarBotaoWhatsapp(telefone) {
+  const fab = document.getElementById('whatsapp-fab');
+  if (!fab) return;
+  const raw = (telefone || '').trim();
+  if (!raw) {
+    fab.style.display = 'none';
+    fab.classList.add('hidden');
+    fab.removeAttribute('href');
+    return;
+  }
+  const digits = raw.replace(/\D/g, '');
+  if (digits.length < 10) {
+    fab.style.display = 'none';
+    fab.classList.add('hidden');
+    return;
+  }
+  // Normaliza para E.164 brasileiro: se veio 10/11 digitos, prefixa 55
+  let num = digits;
+  if (digits.length === 10 || digits.length === 11) num = '55' + digits;
+  const msg = encodeURIComponent('Olá! Gostaria de fazer um pedido 😊');
+  fab.href = `https://wa.me/${num}?text=${msg}`;
+  fab.style.display = 'flex';
+  fab.classList.remove('hidden');
 }
 
 async function carregarProdutos() {
@@ -1016,6 +1045,33 @@ async function concluirPedido() {
     localStorage.setItem('ultimoPedidoId', String(pedido.id));
     if (formaPagamento === 'pix') {
       localStorage.setItem('pedidoAguardando', JSON.stringify({ id: pedido.id, total: pedido.total }));
+      try {
+        const itensParaComprovante = (pedido.itens && pedido.itens.length) ? pedido.itens.map(it => ({
+          produto_nome: it.produto_nome,
+          quantidade: it.quantidade,
+          preco_unitario: it.preco_unitario,
+          unidade: it.unidade || 'un',
+          observacao: it.observacao || '',
+          adicionais: (it.adicionais || []).map(a => ({ nome: a.adicional_nome || a.nome, preco: a.preco }))
+        })) : carrinho.map(c => ({
+          produto_nome: c.produto_nome,
+          quantidade: c.quantidade,
+          preco_unitario: c.preco_unitario,
+          unidade: c.unidade || 'un',
+          observacao: c.observacao || '',
+          adicionais: (c.adicionais || []).map(a => ({ nome: a.nome, preco: a.preco }))
+        }));
+        const detalhesPix = {
+          id: pedido.id,
+          total: pedido.total,
+          subtotal: pedido.subtotal,
+          taxa_entrega: pedido.taxa_entrega != null ? pedido.taxa_entrega : taxaEntregaAtual,
+          forma_pagamento: 'pix',
+          cliente: { nome, telefone, endereco: enderecoCompleto, bairro: bairroNome },
+          itens: itensParaComprovante
+        };
+        localStorage.setItem('pedidoPixDetalhes', JSON.stringify(detalhesPix));
+      } catch (e) {}
     }
     inscreverAcompanhamentoPedido(pedido.id);
 
@@ -1025,6 +1081,7 @@ async function concluirPedido() {
 
     if (formaPagamento === 'pix') {
       await gerarPixQR(pedido.total);
+      atualizarVisibilidadeComprovante();
       mostrarPagina('page-pix');
     } else {
       document.getElementById('success-msg').textContent = `Seu pedido #${pedido.id} foi recebido com sucesso!`;
@@ -1057,6 +1114,83 @@ async function gerarPixQR(valor) {
 function copiarPix() {
   const codigo = pixPayloadAtual || document.getElementById('pix-key').textContent;
   navigator.clipboard.writeText(codigo).then(() => mostrarToast('Código Pix copiado! Cole no app do seu banco')).catch(() => {});
+}
+
+function atualizarVisibilidadeComprovante() {
+  const btn = document.getElementById('btn-enviar-comprovante');
+  const dica = document.getElementById('pix-comprovante-dica');
+  if (!btn) return;
+  const tel = config && config.loja_telefone ? String(config.loja_telefone).trim() : '';
+  const temTelefone = tel && tel.replace(/\D/g,'').length >= 10;
+  if (temTelefone) {
+    btn.style.display = 'inline-flex';
+    if (dica) dica.style.display = 'block';
+  } else {
+    btn.style.display = 'none';
+    if (dica) dica.style.display = 'none';
+  }
+}
+
+function enviarComprovantePix() {
+  const telRaw = config && config.loja_telefone ? String(config.loja_telefone).trim() : '';
+  if (!telRaw) {
+    mostrarToast('WhatsApp da loja não configurado. Contate o estabelecimento.');
+    return;
+  }
+  const digits = telRaw.replace(/\D/g, '');
+  if (digits.length < 10) {
+    mostrarToast('Telefone da loja inválido');
+    return;
+  }
+  let num = digits;
+  if (digits.length === 10 || digits.length === 11) num = '55' + digits;
+
+  let detalhes = null;
+  try { detalhes = JSON.parse(localStorage.getItem('pedidoPixDetalhes') || 'null'); } catch (e) {}
+  if (!detalhes) {
+    try {
+      const pend = JSON.parse(localStorage.getItem('pedidoAguardando') || 'null');
+      if (pend && pend.id) detalhes = { id: pend.id, total: pend.total, itens: [], cliente: { nome: document.getElementById('cli-nome').value.trim(), telefone: document.getElementById('cli-telefone').value.trim(), endereco: '', bairro: '' } };
+    } catch (e) {}
+  }
+  if (!detalhes || !detalhes.id) {
+    const pid = localStorage.getItem('ultimoPedidoId');
+    if (pid) detalhes = { id: parseInt(pid), total: 0, itens: [], cliente: { nome: '', telefone: '' } };
+  }
+  if (!detalhes || !detalhes.id) {
+    mostrarToast('Pedido não encontrado para envio do comprovante');
+    return;
+  }
+
+  const lojaNome = config.loja_nome || 'Loja';
+  let raw = `Olá ${lojaNome}! Acabei de pagar via Pix e estou enviando o comprovante.\n\n`;
+  raw += `*Pedido #${detalhes.id}*\n`;
+  if (detalhes.itens && detalhes.itens.length) {
+    raw += `*Itens:*\n`;
+    detalhes.itens.forEach(it => {
+      const qtd = it.unidade === 'kg' ? formatarPeso(Number(it.quantidade)) : `${it.quantidade}x`;
+      raw += `• ${qtd} ${it.produto_nome} - R$ ${(Number(it.preco_unitario) * Number(it.quantidade)).toFixed(2)}\n`;
+      if (it.adicionais && it.adicionais.length) {
+        it.adicionais.forEach(a => {
+          const nomeAd = a.nome || a.adicional_nome || '';
+          raw += `  + ${nomeAd} (R$ ${Number(a.preco).toFixed(2)})\n`;
+        });
+      }
+      if (it.observacao) raw += `  Obs: ${it.observacao}\n`;
+    });
+  }
+  if (detalhes.total) raw += `\n*Total: R$ ${Number(detalhes.total).toFixed(2)}*\n`;
+  if (detalhes.taxa_entrega && Number(detalhes.taxa_entrega) > 0) raw += `Taxa entrega: R$ ${Number(detalhes.taxa_entrega).toFixed(2)}\n`;
+  if (detalhes.cliente) {
+    const c = detalhes.cliente;
+    if (c.nome || c.telefone) raw += `\n*Cliente:* ${c.nome || ''}${c.telefone ? ' - ' + c.telefone : ''}\n`;
+    if (c.endereco) raw += `Endereço: ${c.endereco}${c.bairro ? ' - ' + c.bairro : ''}\n`;
+  }
+  raw += `\n*Forma de pagamento:* Pix\n`;
+  raw += `\n_Anexo o comprovante nesta conversa para confirmação_ 🙏`;
+
+  const url = `https://wa.me/${num}?text=${encodeURIComponent(raw)}`;
+  window.open(url, '_blank', 'noopener');
 }
 
 function novoPedido() {

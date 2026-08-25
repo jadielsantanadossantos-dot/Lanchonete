@@ -1410,7 +1410,63 @@ async function carregarConfigAdmin() {
   document.getElementById('cfg-pix-tipo').value = cfg.pix_tipo || 'cpf';
   document.getElementById('cfg-pix-chave').value = cfg.pix_chave || '';
   document.getElementById('cfg-pix-nome').value = cfg.pix_nome || '';
+  // Pix Automático (Banco)
+  const prov = cfg.psp_provider || 'desativado';
+  const elProv = document.getElementById('cfg-psp-provider');
+  if (elProv) elProv.value = prov;
+  const elAmb = document.getElementById('cfg-psp-ambiente');
+  if (elAmb) elAmb.value = cfg.psp_ambiente || 'producao';
+  const elCid = document.getElementById('cfg-psp-client-id');
+  if (elCid) elCid.value = cfg.psp_client_id || '';
+  const elCsec = document.getElementById('cfg-psp-client-secret');
+  if (elCsec) elCsec.value = cfg.psp_client_secret || '';
+  const elPix = document.getElementById('cfg-psp-pix-chave');
+  if (elPix) elPix.value = cfg.psp_pix_chave || '';
+  const elExp = document.getElementById('cfg-pix-expiracao');
+  if (elExp) elExp.value = cfg.pix_expiracao || '3600';
+  const elWhs = document.getElementById('cfg-psp-webhook-secret');
+  if (elWhs) elWhs.value = cfg.psp_webhook_secret || '';
+  const elWhu = document.getElementById('cfg-psp-webhook-url');
+  if (elWhu) elWhu.value = `${window.location.origin}/api/webhooks/pix`;
+  const status = document.getElementById('pix-auto-status');
+  if (status) {
+    if (prov === 'desativado') status.textContent = 'Pix automático desativado — usando Pix estático + WhatsApp.';
+    else status.textContent = `Ativo: ${prov} (${cfg.psp_ambiente || 'producao'}) — webhook pronto para colar no banco.`;
+  }
+  togglePspFields();
   carregarSomPrefs();
+}
+
+function togglePspFields() {
+  const prov = document.getElementById('cfg-psp-provider')?.value || 'desativado';
+  const box = document.getElementById('psp-fields');
+  if (box) box.style.display = prov === 'desativado' ? 'none' : 'block';
+}
+
+function toggleSecret(inputId, btn) {
+  const inp = document.getElementById(inputId);
+  if (!inp) return;
+  const isPwd = inp.type === 'password';
+  inp.type = isPwd ? 'text' : 'password';
+  if (btn) btn.textContent = isPwd ? 'Ocultar' : 'Mostrar';
+}
+
+function copiarWebhookUrl() {
+  const inp = document.getElementById('cfg-psp-webhook-url');
+  if (!inp || !inp.value) return;
+  navigator.clipboard.writeText(inp.value).then(() => showToast('URL do webhook copiada! Cole no painel do banco.')).catch(() => {});
+}
+
+async function testarConexaoPsp() {
+  const provider = document.getElementById('cfg-psp-provider')?.value;
+  if (!provider || provider === 'desativado') { showToast('Selecione um banco/provedor antes.'); return; }
+  showToast('Teste de conexão: salve as credenciais e use o webhook. Validação automática será ativada no backend.');
+}
+
+async function registrarWebhookPsp() {
+  const url = document.getElementById('cfg-psp-webhook-url')?.value;
+  if (!url) return;
+  navigator.clipboard.writeText(url).then(() => showToast('URL copiada! Cole no painel do banco em: Config > Webhook Pix.')).catch(() => showToast('Copie manualmente a URL do webhook.'));
 }
 
 async function salvarConfig(e) {
@@ -1421,11 +1477,23 @@ async function salvarConfig(e) {
     tempo_espera: document.getElementById('cfg-tempo-espera').value,
     pix_tipo: document.getElementById('cfg-pix-tipo').value,
     pix_chave: document.getElementById('cfg-pix-chave').value,
-    pix_nome: document.getElementById('cfg-pix-nome').value
+    pix_nome: document.getElementById('cfg-pix-nome').value,
+    psp_provider: document.getElementById('cfg-psp-provider')?.value || 'desativado',
+    psp_ambiente: document.getElementById('cfg-psp-ambiente')?.value || 'producao',
+    psp_client_id: document.getElementById('cfg-psp-client-id')?.value || '',
+    psp_client_secret: document.getElementById('cfg-psp-client-secret')?.value || '',
+    psp_pix_chave: document.getElementById('cfg-psp-pix-chave')?.value || '',
+    pix_expiracao: document.getElementById('cfg-pix-expiracao')?.value || '3600',
+    psp_webhook_secret: document.getElementById('cfg-psp-webhook-secret')?.value || ''
   };
   await authFetch('/api/config', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(config) });
   salvarSomPrefs();
   showToast('Configurações salvas!');
+  const status = document.getElementById('pix-auto-status');
+  if (status) {
+    if (config.psp_provider === 'desativado') status.textContent = 'Pix automático desativado — usando Pix estático + WhatsApp.';
+    else status.textContent = `Ativo: ${config.psp_provider} (${config.psp_ambiente}) — webhook pronto para colar no banco.`;
+  }
 }
 
 // ===== STATUS DA LOJA =====

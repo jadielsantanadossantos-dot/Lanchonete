@@ -512,6 +512,78 @@
               <label>Nome do recebedor</label>
               <input class="form-control" id="cfg-pix-nome">
             </div>
+
+            <!-- PIX AUTOMÁTICO (BANCO) -->
+            <h3 style="margin-top:24px;display:flex;align-items:center;gap:8px">Pix Automático (Banco) <span style="font-size:0.7rem;background:#E8F5E9;color:#2E7D32;padding:2px 8px;border-radius:9999px;font-weight:700">Recomendado: fallback manual</span></h3>
+            <p style="font-size:0.82rem;color:var(--color-text-secondary);margin:-6px 0 12px;line-height:1.4">Quando configurado, o sistema gera cobrança dinâmica e confirma o Pix via webhook do banco. Se desativado ou falhar, o Pix estático + botão WhatsApp continuam funcionando.</p>
+
+            <div class="form-group">
+              <label>Banco / Provedor</label>
+              <select class="form-control" id="cfg-psp-provider" onchange="togglePspFields()">
+                <option value="desativado">Desativado (usar Pix estático)</option>
+                <option value="efi">EFI / Gerencianet</option>
+                <option value="mercado_pago">Mercado Pago</option>
+                <option value="inter">Banco Inter</option>
+                <option value="pagarme">Pagar.me</option>
+                <option value="asaas">ASAAS</option>
+              </select>
+              <small style="color:var(--color-text-muted)">Lista fixa — cole as credenciais abaixo. Nenhum certificado precisa ser enviado, apenas cole.</small>
+            </div>
+
+            <div id="psp-fields" style="display:none">
+              <div class="form-group">
+                <label>Ambiente</label>
+                <select class="form-control" id="cfg-psp-ambiente">
+                  <option value="producao">Produção</option>
+                  <option value="homologacao">Homologação / Teste</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Client ID <span style="color:var(--color-text-muted);font-weight:400">(cole)</span></label>
+                <input class="form-control" id="cfg-psp-client-id" placeholder="Cole o Client ID do banco">
+              </div>
+              <div class="form-group">
+                <label>Client Secret <span style="color:var(--color-text-muted);font-weight:400">(cole)</span></label>
+                <div style="display:flex;gap:8px">
+                  <input class="form-control" id="cfg-psp-client-secret" type="password" placeholder="Cole o Client Secret" style="flex:1">
+                  <button type="button" class="btn btn-outline btn-sm" onclick="toggleSecret('cfg-psp-client-secret', this)" style="white-space:nowrap">Mostrar</button>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Chave Pix vinculada ao PSP (se distinta da chave estática)</label>
+                <input class="form-control" id="cfg-psp-pix-chave" placeholder="Ex: chave aleatória do banco / EvP">
+                <small style="color:var(--color-text-muted)">Deixe vazio para usar a Chave Pix acima.</small>
+              </div>
+              <div class="form-group">
+                <label>Expiração da cobrança (segundos)</label>
+                <input class="form-control" id="cfg-pix-expiracao" type="number" min="60" max="86400" placeholder="3600">
+                <small style="color:var(--color-text-muted)">Tempo para o cliente pagar antes de expirar. Padrão 3600 (1h).</small>
+              </div>
+              <div class="form-group">
+                <label>Webhook Secret (cole — usado para validar assinatura do banco)</label>
+                <div style="display:flex;gap:8px">
+                  <input class="form-control" id="cfg-psp-webhook-secret" type="password" placeholder="Cole o Webhook Secret / Token" style="flex:1">
+                  <button type="button" class="btn btn-outline btn-sm" onclick="toggleSecret('cfg-psp-webhook-secret', this)" style="white-space:nowrap">Mostrar</button>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>URL do Webhook (cole esta URL no painel do banco)</label>
+                <div style="display:flex;gap:8px">
+                  <input class="form-control" id="cfg-psp-webhook-url" readonly placeholder="https://sua-loja.com/api/webhooks/pix" style="flex:1;background:var(--color-bg-alt)">
+                  <button type="button" class="btn btn-outline btn-sm" onclick="copiarWebhookUrl()">Copiar</button>
+                </div>
+                <small id="pix-auto-status" style="color:var(--color-text-muted);display:block;margin-top:6px"></small>
+              </div>
+              <div class="form-group" style="display:flex;gap:8px;flex-wrap:wrap">
+                <button type="button" class="btn btn-outline btn-sm" onclick="testarConexaoPsp()">Testar Conexão</button>
+                <button type="button" class="btn btn-outline btn-sm" onclick="registrarWebhookPsp()">Registrar Webhook</button>
+              </div>
+              <div style="background:#FFF8E1;border:1px solid #FFE082;border-radius:8px;padding:10px 12px;margin-top:8px;font-size:0.82rem;line-height:1.5;color:#5D4037">
+                <strong>Como configurar:</strong> 1) Selecione o banco → 2) Cole Client ID/Secret do painel do banco → 3) Salve → 4) Copie a URL do webhook e cole no painel do banco → 5) Clique em Testar Conexão.
+                <br><span style="color:#6D4C41">Dica: Banco Inter/EFI exigem app criado no portal do banco. Mercado Pago/Pagar.me usam apenas Client ID/Secret.</span>
+              </div>
+            </div>
+
             <h3 style="margin-top:20px">Notificações Sonoras</h3>
             <div class="form-group">
               <label>

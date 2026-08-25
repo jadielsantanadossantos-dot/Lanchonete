@@ -13,9 +13,10 @@ function wrapAsync(fn) {
 router.get('/', wrapAsync(async (req, res) => {
   const rows = await db.all('SELECT * FROM configuracoes');
   const config = {};
-  const sensitiveKeys = ['jwt_secret', 'auth_secret', 'webpush_private_key', 'webpush_public_key'];
+  const sensitiveKeys = ['jwt_secret', 'auth_secret', 'webpush_private_key', 'webpush_public_key', 'psp_client_secret', 'psp_webhook_secret'];
+  const isAdmin = req.usuario && ['admin', 'observador'].includes(req.usuario.perfil);
   rows.forEach(r => {
-    if (!sensitiveKeys.includes(r.chave)) {
+    if (isAdmin || !sensitiveKeys.includes(r.chave)) {
       config[r.chave] = r.valor;
     }
   });
