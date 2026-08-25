@@ -461,11 +461,13 @@ async function imprimirComanda(pedidoId) {
     const statusLabel = statusLabels[p.status] || p.status;
 
     let itensHtml = '';
-    let subtotal = 0;
+    let subtotalItens = 0;
+    let totalAdicionais = 0;
     p.itens.forEach((item, idx) => {
       const itemTotal = item.preco_unitario * item.quantidade;
-      subtotal += itemTotal;
+      subtotalItens += itemTotal;
       const adicionaisTotal = (item.adicionais || []).reduce((s,a)=>s + a.preco * item.quantidade, 0);
+      totalAdicionais += adicionaisTotal;
       const totalComAdic = itemTotal + adicionaisTotal;
       itensHtml += `
         <div class="item-bloco">
@@ -474,17 +476,21 @@ async function imprimirComanda(pedidoId) {
             <span class="item-nome">${item.produto_nome}</span>
             <span class="item-val">R$ ${totalComAdic.toFixed(2)}</span>
           </div>
-          <div class="item-detalhe">R$ ${item.preco_unitario.toFixed(2)} cada ${adicionaisTotal>0?`• Adicionais R$ ${adicionaisTotal.toFixed(2)}`:''}</div>
+          <div class="item-detalhe">R$ ${item.preco_unitario.toFixed(2)} × ${item.quantidade} = R$ ${itemTotal.toFixed(2)} ${adicionaisTotal>0?`• Adicionais R$ ${adicionaisTotal.toFixed(2)}`:''} • <strong>Total do item R$ ${totalComAdic.toFixed(2)}</strong></div>
           ${(item.adicionais && item.adicionais.length) ? `
             <div class="item-adics">
-              ${item.adicionais.map(a=>`<div class="adic-linha"><span class="adic-nome">↳ + ${a.adicional_nome}</span><span class="adic-val">R$ ${(a.preco * item.quantidade).toFixed(2)}</span></div>`).join('')}
+              <div style="font-size:7px; font-weight:800; letter-spacing:0.5px; text-transform:uppercase; margin-bottom:1mm">Adicionais:</div>
+              ${item.adicionais.map(a=>`<div class="adic-linha"><span class="adic-nome">↳ ${a.adicional_nome} — R$ ${a.preco.toFixed(2)} × ${item.quantidade}</span><span class="adic-val">R$ ${(a.preco * item.quantidade).toFixed(2)}</span></div>`).join('')}
             </div>
           ` : ''}
-          ${item.observacao ? `<div class="item-obs">💬 ${item.observacao}</div>` : ''}
+          ${item.observacao ? `<div class="item-obs">💬 OBS: ${item.observacao}</div>` : ''}
         </div>
         ${idx < p.itens.length - 1 ? '<div class="item-sep"></div>' : ''}
       `;
     });
+    // Totais detalhados
+    const totalAdicFmt = `R$ ${totalAdicionais.toFixed(2)}`;
+    const subtotalFmt = `R$ ${subtotalItens.toFixed(2)}`;
 
     let trocoHtml = '';
     if (p.forma_pagamento === 'dinheiro') {
@@ -580,11 +586,13 @@ async function imprimirComanda(pedidoId) {
   <div class="sep-strong"></div>
   <div class="itens-lista"><div class="itens-titulo">🍽️ Itens do Pedido</div>${itensHtml}</div>
   <div class="totals">
-    <div class="linha"><span>Subtotal</span><span>R$ ${p.subtotal.toFixed(2)}</span></div>
-    ${p.taxa_entrega > 0 ? `<div class="linha"><span>Taxa de entrega</span><span>R$ ${p.taxa_entrega.toFixed(2)}</span></div>` : ''}
+    <div class="linha"><span>Subtotal itens</span><span>R$ ${subtotalItens.toFixed(2)}</span></div>
+    ${totalAdicionais > 0 ? `<div class="linha"><span>Adicionais</span><span>R$ ${totalAdicionais.toFixed(2)}</span></div>` : ''}
+    <div class="linha" style="border-top:1px solid #000; padding-top:1mm; margin-top:1mm; font-weight:800"><span>Subtotal geral</span><span>R$ ${(subtotalItens + totalAdicionais).toFixed(2)}</span></div>
+    ${p.taxa_entrega > 0 ? `<div class="linha"><span>Taxa de entrega</span><span>R$ ${p.taxa_entrega.toFixed(2)}</span></div>` : `<div class="linha"><span>Taxa de entrega</span><span>Grátis</span></div>`}
   </div>
   <div class="total-box">
-    <span>TOTAL</span><span>R$ ${p.total.toFixed(2)}</span>
+    <span>TOTAL A PAGAR</span><span>R$ ${p.total.toFixed(2)}</span>
   </div>
   <div class="pay-status">
     <div class="pay-card ${p.forma_pagamento==='pix'?'pix':''}"><div class="label">Pagamento</div><div class="value">${payLabel}</div></div>
