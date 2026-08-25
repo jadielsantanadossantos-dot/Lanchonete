@@ -273,12 +273,11 @@ textarea.form-control { min-height: 100px; resize: vertical; }
 .loja-fechada-banner { margin: var(--space-3) var(--space-3) 0; background: #fdecec; border: 1px solid var(--color-danger); border-radius: var(--radius); }
 .loja-fechada-banner .alert-title, .loja-fechada-banner .alert-message { color: var(--color-danger); }
 
-/* Tempo de espera */
-.tempo-espera-box { display: flex; align-items: center; gap: var(--space-3); background: #FFFBEB; border: 1px solid #FDE68A; border-radius: var(--radius-lg); padding: var(--space-3) var(--space-4); margin: var(--space-3) var(--space-3) 0; max-width: 600px; margin-left: auto; margin-right: auto; box-shadow: var(--shadow-xs); }
-.tempo-icon { font-size: 1.6rem; flex-shrink: 0; }
-.tempo-content { flex: 1; min-width: 0; }
-.tempo-label { font-size: var(--text-xs); color: #92400E; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-.tempo-valor { font-size: var(--text-lg); font-weight: 800; color: #B45309; line-height: 1.2; }
+/* Tempo de espera - topo pequeno */
+.tempo-espera-box { display: flex; align-items: center; justify-content: center; gap: 6px; background: #FFFBEB; border-bottom: 1px solid #FDE68A; padding: 6px 12px; font-size: 0.75rem; font-weight: 600; color: #92400E; text-align: center; position: sticky; top: 0; z-index: 45; }
+.tempo-icon { font-size: 0.9rem; flex-shrink: 0; }
+.tempo-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.3px; font-weight: 600; }
+.tempo-valor { font-size: 0.8rem; font-weight: 800; color: #B45309; }
 
 /* ============================================
    RESPONSIVE BREAKPOINTS (Mobile-First)

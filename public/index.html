@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Lanchonete</title>
-  <link rel="stylesheet" href="/css/style.css?v=20260833">
+  <link rel="stylesheet" href="/css/style.css?v=20260834">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -24,20 +24,18 @@
     </div>
   </header>
 
+  <!-- TEMPO DE ESPERA - topo pequeno -->
+  <div id="tempo-espera-box" class="tempo-espera-box" style="display:none">
+    <span class="tempo-icon">⏱️</span>
+    <span class="tempo-label">Tempo de espera:</span>
+    <span class="tempo-valor" id="tempo-espera-valor">30-40 min</span>
+  </div>
+
   <!-- LOJA FECHADA -->
   <div id="loja-fechada-banner" class="alert alert-danger loja-fechada-banner" style="display:none">
     <div class="alert-content">
       <div class="alert-title">Loja fechada no momento</div>
       <div class="alert-message">Não estamos aceitando pedidos agora. Volte em breve!</div>
-    </div>
-  </div>
-
-  <!-- TEMPO DE ESPERA -->
-  <div id="tempo-espera-box" class="tempo-espera-box" style="display:none">
-    <span class="tempo-icon">⏱️</span>
-    <div class="tempo-content">
-      <div class="tempo-label">Tempo de espera hoje</div>
-      <div class="tempo-valor" id="tempo-espera-valor">30-40 min</div>
     </div>
   </div>
 
@@ -384,9 +382,9 @@
     <span class="cart-badge" id="cart-badge">0</span>
   </button>
 
-<script src="/js/realtime.js?v=20260833"></script>
-  <script src="/js/pizza-modal.js?v=20260833"></script>
-<script src="/js/app.js?v=20260833"></script>
+<script src="/js/realtime.js?v=20260834"></script>
+  <script src="/js/pizza-modal.js?v=20260834"></script>
+<script src="/js/app.js?v=20260834"></script>
   <script>
     // Registrar Service Worker
     if ('serviceWorker' in navigator) {
