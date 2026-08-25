@@ -11,6 +11,7 @@ let config = {};
 let clienteLogado = null;
 let lojaAberta = true;
 let pedidoAtivoUnsub = null;
+let pixPayloadAtual = '';
 
 document.addEventListener('DOMContentLoaded', init);
 
@@ -25,6 +26,7 @@ function inscreverAcompanhamentoPedido(pedidoId) {
   const encerrar = () => {
     finalizado = true;
     localStorage.removeItem('ultimoPedidoId');
+    localStorage.removeItem('pedidoAguardando');
     if (pedidoAtivoUnsub) { try { pedidoAtivoUnsub(); } catch (e) {} pedidoAtivoUnsub = null; }
   };
 
@@ -61,8 +63,8 @@ function inscreverAcompanhamentoPedido(pedidoId) {
   unsubs.push(window.Realtime.subscribePedidoStatus(pedidoId, aoMudarStatus));
 
   // Fallback: polling periodico caso o websocket realtime seja bloqueado
-  const pollTimer = setInterval(async () => {
-    if (finalizado) { clearInterval(pollTimer); return; }
+  const pollar = async () => {
+    if (finalizado) return;
     try {
       const res = await fetch(`/api/pedidos/${pedidoId}/publico`);
       if (!res.ok) return;
@@ -70,7 +72,11 @@ function inscreverAcompanhamentoPedido(pedidoId) {
       if (p.pix_confirmado) { aoConfirmarPix(p); return; }
       if (p.status) aoMudarStatus(p);
     } catch (e) { /* offline: tenta no proximo ciclo */ }
-  }, 10000);
+  };
+
+  // Primeira checagem imediata: pega confirmacao que ocorreu antes da inscricao
+  setTimeout(pollar, 600);
+  const pollTimer = setInterval(pollar, 10000);
 
   pedidoAtivoUnsub = () => { clearInterval(pollTimer); unsubs.forEach(u => { try { u(); } catch (e) {} }); };
 }
@@ -87,6 +93,18 @@ async function init() {
     // Retomar acompanhamento de pedido pendente (sobrevive a refresh da página)
     const pedidoPendente = parseInt(localStorage.getItem('ultimoPedidoId'));
     if (pedidoPendente) inscreverAcompanhamentoPedido(pedidoPendente);
+  }
+
+  // Cliente aguardando confirmacao de Pix: restaura a tela de espera com o QR do valor
+  const aguardandoRaw = localStorage.getItem('pedidoAguardando');
+  if (aguardandoRaw) {
+    try {
+      const aguardando = JSON.parse(aguardandoRaw);
+      await gerarPixQR(aguardando.total);
+      mostrarPagina('page-pix');
+    } catch (e) {
+      localStorage.removeItem('pedidoAguardando');
+    }
   }
 
   // Solicitar permissão para notificações
@@ -986,6 +1004,9 @@ async function concluirPedido() {
     const pedido = await pedidoRes.json();
     ultimoPedidoId = pedido.id;
     localStorage.setItem('ultimoPedidoId', String(pedido.id));
+    if (formaPagamento === 'pix') {
+      localStorage.setItem('pedidoAguardando', JSON.stringify({ id: pedido.id, total: pedido.total }));
+    }
     inscreverAcompanhamentoPedido(pedido.id);
 
     carrinho = [];
@@ -1009,20 +1030,23 @@ async function gerarPixQR(valor) {
     const res = await fetch(`/api/config/pix/qrcode?valor=${valor}`);
     const data = await res.json();
     if (data.qrcode) {
+      pixPayloadAtual = data.payload || '';
       document.getElementById('pix-qr').innerHTML = `<img src="${data.qrcode}" alt="QR Code Pix">`;
       document.getElementById('pix-key').textContent = data.chave;
     } else {
+      pixPayloadAtual = '';
       document.getElementById('pix-qr').innerHTML = '<p>Chave Pix não configurada</p>';
       document.getElementById('pix-key').textContent = 'Configure a chave Pix no painel admin';
     }
   } catch (e) {
+    pixPayloadAtual = '';
     document.getElementById('pix-qr').innerHTML = '<p>Erro ao gerar QR Code</p>';
   }
 }
 
 function copiarPix() {
-  const chave = document.getElementById('pix-key').textContent;
-  navigator.clipboard.writeText(chave).then(() => mostrarToast('Chave Pix copiada!')).catch(() => {});
+  const codigo = pixPayloadAtual || document.getElementById('pix-key').textContent;
+  navigator.clipboard.writeText(codigo).then(() => mostrarToast('Código Pix copiado! Cole no app do seu banco')).catch(() => {});
 }
 
 function novoPedido() {
