@@ -1345,6 +1345,7 @@ async function carregarConfigAdmin() {
   const cfg = await res.json();
   document.getElementById('cfg-loja-nome').value = cfg.loja_nome || '';
   document.getElementById('cfg-loja-telefone').value = cfg.loja_telefone || '';
+  document.getElementById('cfg-tempo-espera').value = cfg.tempo_espera || '';
   document.getElementById('cfg-pix-tipo').value = cfg.pix_tipo || 'cpf';
   document.getElementById('cfg-pix-chave').value = cfg.pix_chave || '';
   document.getElementById('cfg-pix-nome').value = cfg.pix_nome || '';
@@ -1356,6 +1357,7 @@ async function salvarConfig(e) {
   const config = {
     loja_nome: document.getElementById('cfg-loja-nome').value,
     loja_telefone: document.getElementById('cfg-loja-telefone').value,
+    tempo_espera: document.getElementById('cfg-tempo-espera').value,
     pix_tipo: document.getElementById('cfg-pix-tipo').value,
     pix_chave: document.getElementById('cfg-pix-chave').value,
     pix_nome: document.getElementById('cfg-pix-nome').value

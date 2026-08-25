@@ -216,7 +216,8 @@ INSERT INTO configuracoes (chave, valor) VALUES
     ('pix_tipo', 'cpf'),
     ('pix_nome', 'Lanchonete'),
     ('loja_nome', 'Minha Lanchonete'),
-    ('loja_telefone', '')
+    ('loja_telefone', ''),
+    ('tempo_espera', '30-40 min')
 ON CONFLICT (chave) DO NOTHING;
 
 -- Insert default mesas (1-20)

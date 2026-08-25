@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Painel Admin - Lanchonete</title>
-  <link rel="stylesheet" href="/css/admin.css?v=20260832">
+  <link rel="stylesheet" href="/css/admin.css?v=20260833">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     // Redirect imediato para login se acessar /admin diretamente
@@ -387,6 +387,12 @@
             <label>Telefone da loja</label>
             <input class="form-control" id="cfg-loja-telefone">
           </div>
+          <h3 style="margin-top:20px">Tempo de Espera</h3>
+          <div class="form-group">
+            <label>Tempo de espera do dia</label>
+            <input class="form-control" id="cfg-tempo-espera" placeholder="Ex: 30-40 min">
+            <small style="color:var(--color-text-muted)">Exibido para o cliente no cardápio (ex: 30-40 min, 25 min)</small>
+          </div>
           <h3 style="margin-top:20px">Configuração Pix</h3>
           <div class="form-group">
             <label>Tipo da chave</label>
@@ -442,8 +448,8 @@
   <audio id="som-chime" preload="auto"><source src="/sounds/chime.wav" type="audio/wav"></audio>
   <audio id="som-alert" preload="auto"><source src="/sounds/alert.wav" type="audio/wav"></audio>
   <audio id="som-notification" preload="auto"><source src="/sounds/notification.wav" type="audio/wav"></audio>
-  <script src="/js/realtime.js?v=20260832"></script>
-  <script src="/js/auth.js?v=20260832"></script>
-  <script src="/js/admin.js?v=20260832"></script>
+  <script src="/js/realtime.js?v=20260833"></script>
+  <script src="/js/auth.js?v=20260833"></script>
+  <script src="/js/admin.js?v=20260833"></script>
 </body>
 </html>

@@ -93,6 +93,16 @@ async function carregarConfig() {
       document.title = config.loja_nome;
     }
     atualizarStatusLoja(config.loja_aberta !== 'false');
+    const box = document.getElementById('tempo-espera-box');
+    const val = document.getElementById('tempo-espera-valor');
+    if (box && val) {
+      if (config.tempo_espera && config.tempo_espera.trim()) {
+        val.textContent = config.tempo_espera;
+        box.style.display = 'flex';
+      } else {
+        box.style.display = 'none';
+      }
+    }
   } catch (e) {}
 }
 
