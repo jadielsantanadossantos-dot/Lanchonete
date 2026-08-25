@@ -524,19 +524,19 @@ async function imprimirComanda(pedidoId) {
   .sep-strong { border-top: 2px solid #000; margin: 3mm 0; }
   .itens-lista { margin: 2mm 0; }
   .itens-titulo { font-size: 9px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; text-align: center; border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 1.5mm 0; margin-bottom: 2mm; }
-  .item-bloco { padding: 2mm 0; border-bottom: 1px dashed #000; }
-  .item-bloco:last-child { border-bottom: none; }
-  .item-header { display: flex; align-items: baseline; gap: 2mm; font-size: 11px; }
-  .item-qty { border: 1.5px solid #000; font-weight: 900; font-size: 10px; padding: 0.5mm 1.5mm; min-width: 9mm; text-align: center; flex-shrink: 0; }
-  .item-nome { flex: 1; font-weight: 800; font-size: 11px; text-transform: uppercase; }
-  .item-val { font-weight: 900; white-space: nowrap; font-size: 11px; }
-  .item-detalhe { font-size: 8px; margin: 1mm 0 0 11mm; font-style: italic; }
-  .item-adics { margin: 1.5mm 0 0 11mm; border: 1px solid #000; padding: 1.5mm 2mm; }
-  .adic-linha { display: flex; justify-content: space-between; font-size: 9px; padding: 0.8mm 0; border-bottom: 1px dashed #000; }
+  .item-bloco { border: 2px solid #000; padding: 2.5mm; margin: 3mm 0; }
+  .item-header { display: flex; align-items: center; gap: 2mm; font-size: 12px; border-bottom: 1px solid #000; padding-bottom: 1.5mm; margin-bottom: 1.5mm; }
+  .item-qty { background: #000; color: #fff; font-weight: 900; font-size: 11px; padding: 1mm 2mm; min-width: 10mm; text-align: center; flex-shrink: 0; }
+  .item-nome { flex: 1; font-weight: 900; font-size: 13px; text-transform: uppercase; letter-spacing: 0.3px; }
+  .item-val { font-weight: 900; white-space: nowrap; font-size: 12px; border: 1px solid #000; padding: 0.5mm 2mm; }
+  .item-detalhe { font-size: 8px; margin: 1mm 0 0 0; font-style: italic; font-weight: 600; }
+  .item-adics { margin: 2mm 0 0 0; border: 1.5px solid #000; padding: 2mm; }
+  .adic-linha { display: flex; justify-content: space-between; font-size: 9px; padding: 1mm 0; border-bottom: 1px dashed #000; font-weight: 600; }
   .adic-linha:last-child { border-bottom: none; }
   .adic-nome { }
-  .adic-val { font-weight: 800; white-space: nowrap; margin-left: 2mm; }
-  .item-obs { margin: 1.5mm 0 0 11mm; border: 1px solid #000; border-left: 3px solid #000; padding: 1.5mm 2mm; font-size: 9px; font-style: italic; }
+  .adic-val { font-weight: 900; white-space: nowrap; margin-left: 2mm; }
+  .item-obs { margin: 2mm 0 0 0; border: 2px solid #000; padding: 2mm; font-size: 10px; font-weight: 800; font-style: normal; background: #fff; text-transform: uppercase; }
+  .item-obs::before { content: 'OBS: '; font-weight: 900; }
   .item-sep { display: none; }
   .totals { border: 1px solid #000; padding: 2.5mm; margin: 3mm 0; }
   .totals .linha { display: flex; justify-content: space-between; margin: 1mm 0; font-size: 10px; }
@@ -548,8 +548,8 @@ async function imprimirComanda(pedidoId) {
   .pay-card { border: 1px solid #000; padding: 2mm; text-align: center; }
   .pay-card .label { font-size: 7px; font-weight: 800; letter-spacing: 0.8px; text-transform: uppercase; }
   .pay-card .value { font-size: 10px; font-weight: 900; margin-top: 1mm; }
-  .obs-box { border: 1px solid #000; border-left: 3px solid #000; padding: 2.5mm 3mm; margin: 3mm 0; font-size: 10px; }
-  .troco-box { border: 1px solid #000; padding: 2.5mm 3mm; margin: 2mm 0; }
+  .obs-box { border: 2px solid #000; padding: 3mm; margin: 3mm 0; font-size: 11px; font-weight: 900; text-align: center; text-transform: uppercase; }
+  .troco-box { border: 1.5px solid #000; padding: 2.5mm 3mm; margin: 2mm 0; }
   .troco-box .linha { font-size: 10px; }
   .rodape { text-align: center; margin-top: 4mm; padding-top: 3mm; border-top: 2px solid #000; }
   .rodape .obrigado { font-size: 11px; font-weight: 900; letter-spacing: 0.5px; text-transform: uppercase; }
