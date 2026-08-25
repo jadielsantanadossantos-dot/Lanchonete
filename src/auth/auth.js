@@ -88,7 +88,7 @@ async function middleware(req, res, next) {
 
 async function middlewareAdmin(req, res, next) {
   await middleware(req, res, () => {
-    if (req.usuario.perfil !== 'admin') {
+    if (!['admin', 'observador'].includes(req.usuario.perfil)) {
       return res.status(403).json({ error: 'Acesso restrito a administradores' });
     }
     next();
@@ -97,7 +97,7 @@ async function middlewareAdmin(req, res, next) {
 
 async function middlewareGarcom(req, res, next) {
   await middleware(req, res, () => {
-    if (req.usuario.perfil !== 'garcom' && req.usuario.perfil !== 'admin') {
+    if (!['garcom', 'admin', 'observador'].includes(req.usuario.perfil)) {
       return res.status(403).json({ error: 'Acesso restrito a garçons e administradores' });
     }
     next();
