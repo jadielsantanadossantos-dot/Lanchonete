@@ -492,67 +492,100 @@ async function imprimirComanda(pedidoId) {
       obsPedido = obsPedido.replace(/\s*\|\s*Troco para R\$ [\d.,]+/, '').trim();
     }
 
-    const win = window.open('', '_blank', 'width=400,height=600');
+    const win = window.open('', '_blank', 'width=420,height=650');
     win.document.write(`<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
 <title>Comanda #${p.id}</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { width: 80mm; font-family: 'Courier New', monospace; font-size: 12px; color: #000; padding: 4mm; }
-  .header { text-align: center; margin-bottom: 4mm; }
-  .header h1 { font-size: 16px; font-weight: bold; text-transform: uppercase; }
-  .header .sub { font-size: 11px; margin-top: 2mm; }
-  .sep { border-top: 1px dashed #000; margin: 3mm 0; }
-  .linha { display: flex; justify-content: space-between; margin: 1mm 0; }
-  .linha.destaque { font-weight: bold; }
-  .info { margin: 1mm 0; }
-  .info span { font-weight: bold; }
+  body { width: 80mm; font-family: 'Inter', -apple-system, sans-serif; font-size: 11px; color: #1F2937; padding: 0; background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .ticket { padding: 4mm; }
+  .header { text-align: center; padding: 4mm 2mm 3mm; background: linear-gradient(135deg, #004E89 0%, #0066B2 60%, #FF6B35 100%); color: white; margin: -4mm -4mm 0; border-radius: 0 0 12px 12px; position: relative; overflow: hidden; }
+  .header::after { content: ''; position: absolute; right: -10mm; top: -8mm; width: 30mm; height: 30mm; background: rgba(255,255,255,0.08); border-radius: 50%; }
+  .header h1 { font-size: 15px; font-weight: 800; letter-spacing: 0.5px; position: relative; }
+  .header .sub { font-size: 8px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; opacity: 0.9; margin-top: 1mm; position: relative; }
+  .badge-pedido { display: inline-flex; align-items: center; gap: 1.5mm; background: white; color: #004E89; padding: 1.5mm 3.5mm; border-radius: 99px; font-size: 10px; font-weight: 800; margin-top: 3mm; position: relative; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+  .info-card { background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 3mm; margin: 3mm 0; }
+  .info-row { display: flex; gap: 2mm; margin: 1mm 0; font-size: 10px; line-height: 1.4; }
+  .info-label { font-weight: 700; color: #475569; min-width: 16mm; flex-shrink: 0; display: flex; align-items: center; gap: 1mm; }
+  .info-value { flex: 1; font-weight: 600; color: #1E293B; word-break: break-word; }
+  .sep { border: none; border-top: 1px dashed #CBD5E1; margin: 3mm 0; }
+  .sep-strong { border-top: 2px solid #1E293B; margin: 3mm 0; }
   table { width: 100%; border-collapse: collapse; }
-  td { padding: 1mm 0; vertical-align: top; }
-  td.qty { width: 10mm; font-weight: bold; }
-  td.nome { font-weight: bold; }
-  td.val { text-align: right; white-space: nowrap; }
-  tr.adic td { font-size: 11px; padding-left: 8mm; color: #333; }
-  tr.adic td.val { font-size: 11px; }
-  tr.obs td { font-size: 11px; padding-left: 8mm; font-style: italic; color: #444; }
-  .total-box { border: 1px solid #000; padding: 2mm; margin: 3mm 0; }
-  .total-box .linha { font-size: 13px; }
-  .rodape { text-align: center; margin-top: 4mm; font-size: 10px; }
+  td { padding: 1.2mm 0; vertical-align: top; }
+  td.qty { width: 11mm; font-weight: 800; color: #004E89; font-size: 11px; }
+  td.nome { font-weight: 700; font-size: 11px; color: #1E293B; }
+  td.val { text-align: right; white-space: nowrap; font-weight: 700; color: #1E293B; }
+  tr.adic td { font-size: 9.5px; padding: 0.5mm 0 0.5mm 11mm; color: #64748B; }
+  tr.adic td:first-child { color: #94A3B8; }
+  tr.obs td { font-size: 9.5px; padding: 1mm 0 1mm 11mm; font-style: italic; color: #D97706; background: #FFFBEB; border-radius: 4px; }
+  .totals { background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 3mm; margin: 3mm 0; }
+  .totals .linha { display: flex; justify-content: space-between; margin: 1mm 0; font-size: 10px; }
+  .totals .linha span:first-child { color: #64748B; }
+  .totals .linha span:last-child { font-weight: 700; color: #1E293B; }
+  .total-box { background: linear-gradient(135deg, #004E89 0%, #0066B2 100%); color: white; border-radius: 8px; padding: 3mm 3.5mm; margin: 2.5mm 0; display: flex; justify-content: space-between; align-items: center; }
+  .total-box span:first-child { font-size: 11px; font-weight: 700; letter-spacing: 0.5px; }
+  .total-box span:last-child { font-size: 15px; font-weight: 800; }
+  .pay-status { display: grid; grid-template-columns: 1fr 1fr; gap: 2mm; margin: 3mm 0; }
+  .pay-card { background: #F1F5F9; border-radius: 6px; padding: 2mm; text-align: center; }
+  .pay-card .label { font-size: 7px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; color: #64748B; }
+  .pay-card .value { font-size: 10px; font-weight: 800; color: #1E293B; margin-top: 1mm; }
+  .pay-card.pix { background: #F0FDF4; border: 1px solid #BBF7D0; }
+  .pay-card.pix .value { color: #16A34A; }
+  .obs-box { background: #FFFBEB; border-left: 3px solid #F59E0B; border-radius: 6px; padding: 2.5mm 3mm; margin: 3mm 0; font-size: 10px; }
+  .obs-box strong { color: #92400E; }
+  .troco-box { background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 6px; padding: 2.5mm 3mm; margin: 2mm 0; }
+  .troco-box .linha { font-size: 10px; }
+  .rodape { text-align: center; margin-top: 4mm; padding-top: 3mm; border-top: 1px dashed #CBD5E1; }
+  .rodape .obrigado { font-size: 11px; font-weight: 800; color: #004E89; letter-spacing: 0.5px; }
+  .rodape .sub { font-size: 8px; color: #94A3B8; margin-top: 1mm; }
+  .rodape .contato { font-size: 7.5px; color: #64748B; margin-top: 2mm; background: #F8FAFC; padding: 2mm; border-radius: 6px; }
   @media print {
-    body { width: auto; padding: 0; }
+    body { width: auto; }
     @page { size: 80mm auto; margin: 2mm; }
+    .ticket { padding: 0; }
   }
 </style>
 </head>
 <body>
+  <div class="ticket">
   <div class="header">
     <h1 id="loja-nome-comanda">Lanchonete</h1>
-    <div class="sub">Comanda de Pedido</div>
+    <div class="sub">✦ Comanda de Pedido ✦</div>
+    <div class="badge-pedido">PEDIDO #${p.id} • ${statusLabel.toUpperCase()}</div>
   </div>
-  <div class="sep"></div>
-  <div class="linha"><span>Pedido:</span><span><strong>#${p.id}</strong></span></div>
-  <div class="linha"><span>Data:</span><span>${dataHora}</span></div>
-  <div class="sep"></div>
-  <div class="info"><span>Cliente:</span> ${p.cliente_nome}</div>
-  <div class="info"><span>Telefone:</span> ${p.cliente_telefone}</div>
-  ${p.endereco_entrega ? `<div class="info"><span>Entrega:</span> ${p.endereco_entrega}</div>` : ''}
-  ${p.bairro_entrega ? `<div class="info"><span>Bairro:</span> ${p.bairro_entrega}</div>` : ''}
-  <div class="sep"></div>
+  <div style="text-align:center; font-size:8px; color:#64748B; margin:2.5mm 0 1mm">${dataHora}</div>
+  <div class="info-card">
+    <div class="info-row"><span class="info-label">👤 Cliente</span><span class="info-value">${p.cliente_nome}</span></div>
+    <div class="info-row"><span class="info-label">📞 Telefone</span><span class="info-value">${p.cliente_telefone}</span></div>
+    ${p.endereco_entrega ? `<div class="info-row"><span class="info-label">📍 Entrega</span><span class="info-value">${p.endereco_entrega}</span></div>` : ''}
+    ${p.bairro_entrega ? `<div class="info-row"><span class="info-label">🏘️ Bairro</span><span class="info-value">${p.bairro_entrega}</span></div>` : ''}
+    ${p.mesa_id ? `<div class="info-row"><span class="info-label">🪑 Mesa</span><span class="info-value">Mesa ${p.mesa_id}${p.comanda_id ? ` • Comanda #${p.comanda_id}` : ''}</span></div>` : ''}
+  </div>
+  <div class="sep-strong"></div>
   <table>${itensHtml}</table>
-  <div class="sep"></div>
-  <div class="linha"><span>Subtotal:</span><span>R$ ${p.subtotal.toFixed(2)}</span></div>
-  ${p.taxa_entrega > 0 ? `<div class="linha"><span>Taxa de entrega:</span><span>R$ ${p.taxa_entrega.toFixed(2)}</span></div>` : ''}
-  <div class="total-box">
-    <div class="linha destaque"><span>TOTAL:</span><span>R$ ${p.total.toFixed(2)}</span></div>
+  <div class="totals">
+    <div class="linha"><span>Subtotal</span><span>R$ ${p.subtotal.toFixed(2)}</span></div>
+    ${p.taxa_entrega > 0 ? `<div class="linha"><span>Taxa de entrega</span><span>R$ ${p.taxa_entrega.toFixed(2)}</span></div>` : ''}
   </div>
-  <div class="linha"><span>Pagamento:</span><span>${payLabel}</span></div>
-  <div class="linha"><span>Status:</span><span>${statusLabel}</span></div>
-  ${trocoHtml}
-  ${obsPedido ? `<div class="sep"></div><div class="info"><span>Obs:</span> ${obsPedido}</div>` : ''}
-  <div class="sep"></div>
-  <div class="rodape">*** Obrigado pela preferencia ***</div>
+  <div class="total-box">
+    <span>TOTAL</span><span>R$ ${p.total.toFixed(2)}</span>
+  </div>
+  <div class="pay-status">
+    <div class="pay-card ${p.forma_pagamento==='pix'?'pix':''}"><div class="label">Pagamento</div><div class="value">${payLabel}</div></div>
+    <div class="pay-card"><div class="label">Status</div><div class="value">${statusLabel}</div></div>
+  </div>
+  ${trocoHtml ? `<div class="troco-box">${trocoHtml}</div>` : ''}
+  ${obsPedido ? `<div class="obs-box"><strong>Obs:</strong> ${obsPedido}</div>` : ''}
+  <div class="rodape">
+    <div class="obrigado">Obrigado pela preferência! 💛</div>
+    <div class="sub">Volte sempre • Pedido preparado com carinho</div>
+    <div class="contato" id="loja-contato-comanda">Aguardamos seu próximo pedido!</div>
+  </div>
+  </div>
 </body>
 </html>`);
     win.document.close();
@@ -575,6 +608,11 @@ async function CarregarNomeLojaComanda(win) {
     const cfg = await res.json();
     const el = win.document.getElementById('loja-nome-comanda');
     if (el && cfg.loja_nome) el.textContent = cfg.loja_nome;
+    const el2 = win.document.getElementById('loja-contato-comanda');
+    if (el2) {
+      if (cfg.loja_telefone) el2.textContent = `📞 ${cfg.loja_telefone} • Obrigado pela preferência!`;
+      else if (cfg.loja_nome) el2.textContent = `${cfg.loja_nome} • Volte sempre!`;
+    }
   } catch (e) {}
 }
 
