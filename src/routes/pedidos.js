@@ -150,6 +150,13 @@ router.post('/', wrapAsync(async (req, res) => {
   res.json(pedido);
 }));
 
+// Status publico para acompanhamento pelo cliente (sem dados pessoais)
+router.get('/:id/publico', wrapAsync(async (req, res) => {
+  const pedido = await db.get('SELECT id, status, pix_confirmado FROM pedidos WHERE id = $1', req.params.id);
+  if (!pedido) return res.status(404).json({ error: 'Pedido não encontrado' });
+  res.json(pedido);
+}));
+
 router.put('/:id/status', middlewareAdmin, wrapAsync(async (req, res) => {
   const { status } = req.body;
   const validStatuses = ['recebido', 'em_preparo', 'saiu_entrega', 'entregue', 'cancelado'];

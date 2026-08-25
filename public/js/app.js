@@ -19,7 +19,11 @@ function inscreverAcompanhamentoPedido(pedidoId) {
   if (!window.Realtime || !window.Realtime.subscribePedidoStatus) return;
   if (pedidoAtivoUnsub) { try { pedidoAtivoUnsub(); } catch (e) {} pedidoAtivoUnsub = null; }
 
+  let finalizado = false;
+  let statusConhecido = 'recebido';
+
   const encerrar = () => {
+    finalizado = true;
     localStorage.removeItem('ultimoPedidoId');
     if (pedidoAtivoUnsub) { try { pedidoAtivoUnsub(); } catch (e) {} pedidoAtivoUnsub = null; }
   };
@@ -31,30 +35,44 @@ function inscreverAcompanhamentoPedido(pedidoId) {
     }
   };
 
-  const unsubs = [];
-
-  unsubs.push(window.Realtime.subscribePixConfirmado(pedidoId, (pedido) => {
+  const aoConfirmarPix = (p) => {
+    if (finalizado) return;
     encerrar();
     notificar('Pagamento Pix confirmado!');
-    document.getElementById('success-msg').textContent = `Seu pedido #${pedido.id} foi recebido com sucesso!`;
+    document.getElementById('success-msg').textContent = `Seu pedido #${p.id} foi recebido com sucesso!`;
     mostrarPagina('page-sucesso');
-  }));
+  };
 
-  unsubs.push(window.Realtime.subscribePedidoStatus(pedidoId, (data) => {
-    if (!data.status) return;
+  const aoMudarStatus = (data) => {
+    if (finalizado || !data.status || data.status === statusConhecido) return;
+    statusConhecido = data.status;
+    if (data.status === 'entregue' || data.status === 'cancelado') { encerrar(); return; }
     const label = PEDIDO_STATUS_LABELS[data.status] || data.status;
-    if (data.status === 'entregue' || data.status === 'cancelado') {
-      encerrar();
-    } else {
-      notificar(`Pedido #${data.id}: ${label}`);
-      const msgEl = document.getElementById('success-msg');
-      if (msgEl && document.getElementById('page-sucesso').classList.contains('active')) {
-        msgEl.textContent = `Seu pedido #${data.id}: ${label}`;
-      }
+    notificar(`Pedido #${data.id}: ${label}`);
+    const msgEl = document.getElementById('success-msg');
+    if (msgEl && document.getElementById('page-sucesso').classList.contains('active')) {
+      msgEl.textContent = `Seu pedido #${data.id}: ${label}`;
     }
-  }));
+  };
 
-  pedidoAtivoUnsub = () => unsubs.forEach(u => { try { u(); } catch (e) {} });
+  const unsubs = [];
+
+  unsubs.push(window.Realtime.subscribePixConfirmado(pedidoId, aoConfirmarPix));
+  unsubs.push(window.Realtime.subscribePedidoStatus(pedidoId, aoMudarStatus));
+
+  // Fallback: polling periodico caso o websocket realtime seja bloqueado
+  const pollTimer = setInterval(async () => {
+    if (finalizado) { clearInterval(pollTimer); return; }
+    try {
+      const res = await fetch(`/api/pedidos/${pedidoId}/publico`);
+      if (!res.ok) return;
+      const p = await res.json();
+      if (p.pix_confirmado) { aoConfirmarPix(p); return; }
+      if (p.status) aoMudarStatus(p);
+    } catch (e) { /* offline: tenta no proximo ciclo */ }
+  }, 10000);
+
+  pedidoAtivoUnsub = () => { clearInterval(pollTimer); unsubs.forEach(u => { try { u(); } catch (e) {} }); };
 }
 
 async function init() {
@@ -890,7 +908,23 @@ function irParaPagamento() {
   mostrarPagina('page-pagamento');
 }
 
+let finalizandoPedido = false;
+
 async function finalizarPedido() {
+  if (finalizandoPedido) return;
+  finalizandoPedido = true;
+  const btnFinalizar = document.getElementById('btn-finalizar');
+  if (btnFinalizar) { btnFinalizar.disabled = true; btnFinalizar.textContent = 'Enviando pedido...'; }
+
+  try {
+    await concluirPedido();
+  } finally {
+    finalizandoPedido = false;
+    if (btnFinalizar) { btnFinalizar.disabled = false; btnFinalizar.textContent = 'Finalizar pedido'; }
+  }
+}
+
+async function concluirPedido() {
   if (!(await verificarLojaAberta())) {
     mostrarToast('A loja está fechada e não está aceitando pedidos');
     mostrarPagina('page-cardapio');

@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const ver = 'v=20260825a';
+const ver = 'v=20260825b';
 const dir = path.join(__dirname, '..', 'public');
 
 for (const f of fs.readdirSync(dir).filter(f => f.endsWith('.html'))) {
