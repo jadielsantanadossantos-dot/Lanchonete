@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Lanchonete</title>
-  <link rel="stylesheet" href="/css/style.css?v=20260834">
+  <link rel="stylesheet" href="/css/style.css?v=20260835">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -18,8 +18,10 @@
         </div>
       </div>
       <div class="header-actions">
-        <button class="header-btn" onclick="mostrarPagina('page-acompanhar')" aria-label="Meus pedidos">&#128203;</button>
-        <button class="header-btn" onclick="mostrarPagina('page-cadastro')" aria-label="Minha conta">&#128100;</button>
+        <button class="header-btn header-btn--user" onclick="mostrarPagina('page-cadastro')" aria-label="Minha conta">
+          <span class="header-btn-icon">&#128100;</span>
+          <span class="header-btn-label">LOGIN<br>REGISTRAR</span>
+        </button>
       </div>
     </div>
   </header>
@@ -382,9 +384,9 @@
     <span class="cart-badge" id="cart-badge">0</span>
   </button>
 
-<script src="/js/realtime.js?v=20260834"></script>
-  <script src="/js/pizza-modal.js?v=20260834"></script>
-<script src="/js/app.js?v=20260834"></script>
+<script src="/js/realtime.js?v=20260835"></script>
+  <script src="/js/pizza-modal.js?v=20260835"></script>
+<script src="/js/app.js?v=20260835"></script>
   <script>
     // Registrar Service Worker
     if ('serviceWorker' in navigator) {
