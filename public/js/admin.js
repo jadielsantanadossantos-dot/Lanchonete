@@ -462,18 +462,28 @@ async function imprimirComanda(pedidoId) {
 
     let itensHtml = '';
     let subtotal = 0;
-    p.itens.forEach(item => {
+    p.itens.forEach((item, idx) => {
       const itemTotal = item.preco_unitario * item.quantidade;
       subtotal += itemTotal;
-      itensHtml += `<tr><td class="qty">${item.quantidade}x</td><td class="nome">${item.produto_nome}</td><td class="val">R$ ${itemTotal.toFixed(2)}</td></tr>`;
-      if (item.adicionais && item.adicionais.length) {
-        item.adicionais.forEach(a => {
-          itensHtml += `<tr class="adic"><td></td><td>+ ${a.adicional_nome}</td><td class="val">R$ ${(a.preco * item.quantidade).toFixed(2)}</td></tr>`;
-        });
-      }
-      if (item.observacao) {
-        itensHtml += `<tr class="obs"><td></td><td colspan="2">» ${item.observacao}</td></tr>`;
-      }
+      const adicionaisTotal = (item.adicionais || []).reduce((s,a)=>s + a.preco * item.quantidade, 0);
+      const totalComAdic = itemTotal + adicionaisTotal;
+      itensHtml += `
+        <div class="item-bloco">
+          <div class="item-header">
+            <span class="item-qty">${item.quantidade}x</span>
+            <span class="item-nome">${item.produto_nome}</span>
+            <span class="item-val">R$ ${totalComAdic.toFixed(2)}</span>
+          </div>
+          <div class="item-detalhe">R$ ${item.preco_unitario.toFixed(2)} cada ${adicionaisTotal>0?`• Adicionais R$ ${adicionaisTotal.toFixed(2)}`:''}</div>
+          ${(item.adicionais && item.adicionais.length) ? `
+            <div class="item-adics">
+              ${item.adicionais.map(a=>`<div class="adic-linha"><span class="adic-nome">↳ + ${a.adicional_nome}</span><span class="adic-val">R$ ${(a.preco * item.quantidade).toFixed(2)}</span></div>`).join('')}
+            </div>
+          ` : ''}
+          ${item.observacao ? `<div class="item-obs">💬 ${item.observacao}</div>` : ''}
+        </div>
+        ${idx < p.itens.length - 1 ? '<div class="item-sep"></div>' : ''}
+      `;
     });
 
     let trocoHtml = '';
@@ -514,14 +524,22 @@ async function imprimirComanda(pedidoId) {
   .info-value { flex: 1; font-weight: 600; color: #1E293B; word-break: break-word; }
   .sep { border: none; border-top: 1px dashed #CBD5E1; margin: 3mm 0; }
   .sep-strong { border-top: 2px solid #1E293B; margin: 3mm 0; }
-  table { width: 100%; border-collapse: collapse; }
-  td { padding: 1.2mm 0; vertical-align: top; }
-  td.qty { width: 11mm; font-weight: 800; color: #004E89; font-size: 11px; }
-  td.nome { font-weight: 700; font-size: 11px; color: #1E293B; }
-  td.val { text-align: right; white-space: nowrap; font-weight: 700; color: #1E293B; }
-  tr.adic td { font-size: 9.5px; padding: 0.5mm 0 0.5mm 11mm; color: #64748B; }
-  tr.adic td:first-child { color: #94A3B8; }
-  tr.obs td { font-size: 9.5px; padding: 1mm 0 1mm 11mm; font-style: italic; color: #D97706; background: #FFFBEB; border-radius: 4px; }
+  .itens-lista { margin: 2mm 0; }
+  .itens-titulo { font-size: 8px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: #64748B; margin-bottom: 2mm; display: flex; align-items: center; gap: 2mm; }
+  .itens-titulo::after { content: ''; flex: 1; height: 1px; background: #E2E8F0; }
+  .item-bloco { padding: 2.5mm 0; }
+  .item-header { display: flex; align-items: baseline; gap: 2mm; font-size: 11px; }
+  .item-qty { background: #004E89; color: white; font-weight: 800; font-size: 9px; padding: 0.8mm 1.8mm; border-radius: 4px; min-width: 8mm; text-align: center; flex-shrink: 0; }
+  .item-nome { flex: 1; font-weight: 800; color: #1E293B; font-size: 11px; }
+  .item-val { font-weight: 800; color: #1E293B; white-space: nowrap; font-size: 11px; }
+  .item-detalhe { font-size: 8px; color: #64748B; margin: 1mm 0 0 11mm; }
+  .item-adics { margin: 1.5mm 0 0 11mm; background: #F8FAFC; border-radius: 6px; padding: 1.5mm 2mm; }
+  .adic-linha { display: flex; justify-content: space-between; font-size: 9px; padding: 0.8mm 0; border-bottom: 1px dashed #E2E8F0; }
+  .adic-linha:last-child { border-bottom: none; }
+  .adic-nome { color: #475569; }
+  .adic-val { font-weight: 700; color: #334155; white-space: nowrap; margin-left: 2mm; }
+  .item-obs { margin: 1.5mm 0 0 11mm; background: #FFFBEB; border-left: 2.5px solid #F59E0B; border-radius: 0 6px 6px 0; padding: 1.5mm 2mm; font-size: 9px; font-style: italic; color: #92400E; }
+  .item-sep { border-top: 1px dashed #E2E8F0; margin: 2mm 0 2mm 11mm; }
   .totals { background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 3mm; margin: 3mm 0; }
   .totals .linha { display: flex; justify-content: space-between; margin: 1mm 0; font-size: 10px; }
   .totals .linha span:first-child { color: #64748B; }
@@ -566,7 +584,7 @@ async function imprimirComanda(pedidoId) {
     ${p.mesa_id ? `<div class="info-row"><span class="info-label">🪑 Mesa</span><span class="info-value">Mesa ${p.mesa_id}${p.comanda_id ? ` • Comanda #${p.comanda_id}` : ''}</span></div>` : ''}
   </div>
   <div class="sep-strong"></div>
-  <table>${itensHtml}</table>
+  <div class="itens-lista"><div class="itens-titulo">🍽️ Itens do Pedido</div>${itensHtml}</div>
   <div class="totals">
     <div class="linha"><span>Subtotal</span><span>R$ ${p.subtotal.toFixed(2)}</span></div>
     ${p.taxa_entrega > 0 ? `<div class="linha"><span>Taxa de entrega</span><span>R$ ${p.taxa_entrega.toFixed(2)}</span></div>` : ''}
