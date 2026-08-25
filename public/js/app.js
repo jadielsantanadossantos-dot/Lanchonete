@@ -13,6 +13,8 @@ let lojaAberta = true;
 let pedidoAtivoUnsub = null;
 let pixPayloadAtual = '';
 
+function escapeHtml(s){ if(s==null) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
 document.addEventListener('DOMContentLoaded', init);
 
 // Acompanha em tempo real o pedido ativo do cliente (pix confirmado + mudanças de status)
@@ -205,7 +207,7 @@ async function carregarBairros() {
     const select = document.getElementById('cli-bairro');
     select.innerHTML = '<option value="">Selecione o bairro</option>';
     bairros.forEach(b => {
-      select.innerHTML += `<option value="${b.id}" data-taxa="${b.taxa_entrega}">${b.nome} - R$ ${b.taxa_entrega.toFixed(2)}</option>`;
+      select.innerHTML += `<option value="${b.id}" data-taxa="${b.taxa_entrega}">${escapeHtml(b.nome)} - R$ ${b.taxa_entrega.toFixed(2)}</option>`;
     });
   } catch (e) {}
 }
@@ -296,7 +298,7 @@ function renderProdutos(lista) {
     }
     htmlGrupos += `
       <div class="category-section">
-        <h2 class="category-heading">${g.nome}</h2>
+        <h2 class="category-heading">${escapeHtml(g.nome)}</h2>
         <div class="category-items">
           ${g.itens.map(produtoCardHtml).join('')}
         </div>
@@ -311,17 +313,17 @@ function produtoCardHtml(p) {
     <div class="product-card" onclick="abrirProduto(${p.id})">
       <div class="product-media">
         ${p.foto
-          ? `<img class="product-img" src="${p.foto}" alt="${p.nome}" loading="lazy">`
+          ? `<img class="product-img" src="${p.foto}" alt="${escapeHtml(p.nome)}" loading="lazy">`
           : `<div class="product-img-placeholder">&#127828;</div>`}
       </div>
       <div class="product-info">
         <div>
-          <div class="product-name">${p.nome}</div>
-          ${p.descricao ? `<div class="product-desc">${p.descricao}</div>` : ''}
+          <div class="product-name">${escapeHtml(p.nome)}</div>
+          ${p.descricao ? `<div class="product-desc">${escapeHtml(p.descricao)}</div>` : ''}
         </div>
         <div class="product-footer">
           <span class="product-price">R$ ${p.preco.toFixed(2)}${p.unidade === 'kg' ? '/kg' : ''}</span>
-          <button class="btn-add" onclick="event.stopPropagation(); abrirProduto(${p.id})" aria-label="Adicionar ${p.nome}">+</button>
+          <button class="btn-add" onclick="event.stopPropagation(); abrirProduto(${p.id})" aria-label="Adicionar ${escapeHtml(p.nome)}">+</button>
         </div>
       </div>
     </div>
@@ -400,10 +402,10 @@ function abrirProduto(id) {
       ${items.map(a => `
         <div class="adicional-item">
           <label>
-            <input type="${inputType}" name="${grupo}" value="${a.id}" data-nome="${a.nome}" data-preco="${a.preco}" data-tipo="${a.tipo}" data-grupo="${grupo}" data-limite="${limite}" class="${grupo}-checkbox">
+            <input type="${inputType}" name="${grupo}" value="${a.id}" data-nome="${escapeHtml(a.nome)}" data-preco="${a.preco}" data-tipo="${a.tipo}" data-grupo="${grupo}" data-limite="${limite}" class="${grupo}-checkbox">
             <div>
-              <span>${a.nome}</span>
-              ${a.descricao ? `<br><small style="color: var(--color-text-secondary); display: block; margin-top: 2px;">${a.descricao}</small>` : ''}
+              <span>${escapeHtml(a.nome)}</span>
+              ${a.descricao ? `<br><small style="color: var(--color-text-secondary); display: block; margin-top: 2px;">${escapeHtml(a.descricao)}</small>` : ''}
             </div>
           </label>
           <span class="adicional-price">${a.preco > 0 ? '+ R$ ' + a.preco.toFixed(2) : 'Incluído'}</span>
@@ -460,10 +462,10 @@ function abrirProduto(id) {
           ${sabores.map(a => `
             <div class="adicional-item">
               <label>
-                <input type="checkbox" value="${a.id}" data-nome="${a.nome}" data-preco="${a.preco}" data-tipo="sabor" class="sabor-checkbox" data-max="${maxSabores}">
+                <input type="checkbox" value="${a.id}" data-nome="${escapeHtml(a.nome)}" data-preco="${a.preco}" data-tipo="sabor" class="sabor-checkbox" data-max="${maxSabores}">
                 <div>
-                  <span>${a.nome}</span>
-                  ${a.descricao ? `<br><small style="color: var(--color-text-secondary); display: block; margin-top: 2px;">${a.descricao}</small>` : ''}
+                  <span>${escapeHtml(a.nome)}</span>
+                  ${a.descricao ? `<br><small style="color: var(--color-text-secondary); display: block; margin-top: 2px;">${escapeHtml(a.descricao)}</small>` : ''}
                 </div>
               </label>
               <span class="adicional-price">${a.preco > 0 ? '+ R$ ' + a.preco.toFixed(2) : 'Incluído'}</span>
@@ -498,10 +500,10 @@ function abrirProduto(id) {
           ${items.map(a => `
             <div class="adicional-item">
               <label>
-                <input type="checkbox" value="${a.id}" data-nome="${a.nome}" data-preco="${a.preco}" data-tipo="${a.tipo}" class="check-lim" data-grupo="${grupo}" data-grupo-label="${titulo.toLowerCase()}" data-max="${limiteGrupo}">
+                <input type="checkbox" value="${a.id}" data-nome="${escapeHtml(a.nome)}" data-preco="${a.preco}" data-tipo="${a.tipo}" class="check-lim" data-grupo="${grupo}" data-grupo-label="${titulo.toLowerCase()}" data-max="${limiteGrupo}">
                 <div>
-                  <span>${a.nome}</span>
-                  ${a.descricao ? `<br><small style="color: var(--color-text-secondary); display: block; margin-top: 2px;">${a.descricao}</small>` : ''}
+                  <span>${escapeHtml(a.nome)}</span>
+                  ${a.descricao ? `<br><small style="color: var(--color-text-secondary); display: block; margin-top: 2px;">${escapeHtml(a.descricao)}</small>` : ''}
                 </div>
               </label>
               <span class="adicional-price">+ R$ ${a.preco.toFixed(2)}</span>
@@ -529,10 +531,10 @@ function abrirProduto(id) {
           sabores.map(a => `
             <div class="adicional-item">
               <label>
-                <input type="checkbox" value="${a.id}" data-nome="${a.nome}" data-preco="${a.preco}" data-tipo="sabor" class="sabor-check-gen" data-max="${limiteSabores}" data-base-max="${limiteSabores}">
+                <input type="checkbox" value="${a.id}" data-nome="${escapeHtml(a.nome)}" data-preco="${a.preco}" data-tipo="sabor" class="sabor-check-gen" data-max="${limiteSabores}" data-base-max="${limiteSabores}">
                 <div>
-                  <span>${a.nome}</span>
-                  ${a.descricao ? `<br><small style="color: var(--color-text-secondary); display: block; margin-top: 2px;">${a.descricao}</small>` : ''}
+                  <span>${escapeHtml(a.nome)}</span>
+                  ${a.descricao ? `<br><small style="color: var(--color-text-secondary); display: block; margin-top: 2px;">${escapeHtml(a.descricao)}</small>` : ''}
                 </div>
               </label>
               <span class="adicional-price">${a.preco > 0 ? '+ R$ ' + a.preco.toFixed(2) : 'Incluído'}</span>
@@ -562,10 +564,10 @@ function abrirProduto(id) {
           bordas.map(a => `
             <div class="adicional-item">
               <label>
-                <input type="checkbox" value="${a.id}" data-nome="${a.nome}" data-preco="${a.preco}" data-tipo="borda" class="check-lim" data-grupo="gen-borda" data-grupo-label="borda recheada" data-max="${limiteBordas}" data-base-max="${limiteBordas}">
+                <input type="checkbox" value="${a.id}" data-nome="${escapeHtml(a.nome)}" data-preco="${a.preco}" data-tipo="borda" class="check-lim" data-grupo="gen-borda" data-grupo-label="borda recheada" data-max="${limiteBordas}" data-base-max="${limiteBordas}">
                 <div>
-                  <span>${a.nome}</span>
-                  ${a.descricao ? `<br><small style="color: var(--color-text-secondary); display: block; margin-top: 2px;">${a.descricao}</small>` : ''}
+                  <span>${escapeHtml(a.nome)}</span>
+                  ${a.descricao ? `<br><small style="color: var(--color-text-secondary); display: block; margin-top: 2px;">${escapeHtml(a.descricao)}</small>` : ''}
                 </div>
               </label>
               <span class="adicional-price">${a.preco > 0 ? '+ R$ ' + a.preco.toFixed(2) : 'Incluído'}</span>
@@ -575,15 +577,15 @@ function abrirProduto(id) {
 
       if (adicionaisFiltrados.length) {
         const limiteAdic = parseInt(adicionaisFiltrados[0]?.limite) || 0;
-        const tituloAdic = limiteAdic > 0 ? `Adicionais (máx: ${limiteAdic})` : 'Adicionais';
-        html += `<div style="margin-bottom: 8px; font-size: 0.85rem; color: var(--color-text-secondary);" class="titulo-grupo-lim" data-base="${limiteAdic}" data-label="Adicionais">${tituloAdic}</div>` +
+        const tituloAdic = limiteAdic > 0 ? `Adicionais (máx: ${escapeHtml(limiteAdic)})` : 'Adicionais';
+        html += `<div style="margin-bottom: 8px; font-size: 0.85rem; color: var(--color-text-secondary);" class="titulo-grupo-lim" data-base="${escapeHtml(limiteAdic)}" data-label="Adicionais">${escapeHtml(tituloAdic)}</div>` +
           adicionaisFiltrados.map(a => `
             <div class="adicional-item">
               <label>
-                <input type="checkbox" value="${a.id}" data-nome="${a.nome}" data-preco="${a.preco}" data-tipo="adicional" class="check-lim" data-grupo="gen-adic" data-grupo-label="adicional" data-max="${limiteAdic}" data-base-max="${limiteAdic}">
+                <input type="checkbox" value="${a.id}" data-nome="${escapeHtml(a.nome)}" data-preco="${a.preco}" data-tipo="adicional" class="check-lim" data-grupo="gen-adic" data-grupo-label="adicional" data-max="${escapeHtml(limiteAdic)}" data-base-max="${escapeHtml(limiteAdic)}">
                 <div>
-                  <span>${a.nome}</span>
-                  ${a.descricao ? `<br><small style="color: var(--color-text-secondary); display: block; margin-top: 2px;">${a.descricao}</small>` : ''}
+                  <span>${escapeHtml(a.nome)}</span>
+                  ${a.descricao ? `<br><small style="color: var(--color-text-secondary); display: block; margin-top: 2px;">${escapeHtml(a.descricao)}</small>` : ''}
                 </div>
               </label>
               <span class="adicional-price">${a.preco > 0 ? '+ R$ ' + a.preco.toFixed(2) : 'Incluído'}</span>
@@ -775,7 +777,7 @@ function renderCarrinho() {
     
     const adcTradicionalHtml = adcTradicionais.map(a => {
       itemTotal += a.preco * item.quantidade;
-      return `+ ${a.nome} (R$ ${a.preco.toFixed(2)})`;
+      return `+ ${escapeHtml(a.nome)} (R$ ${a.preco.toFixed(2)})`;
     }).join(', ');
     
     // Recalcular totais para açaí
@@ -783,15 +785,15 @@ function renderCarrinho() {
       item.adicionais.forEach(a => { itemTotal += a.preco * item.quantidade; });
     }
     
-    const adcHtmlFinal = adcHtml + (adcTradicionalHtml ? `<div class="cart-item-details">${adcTradicionalHtml}</div>` : '');
+    const adcHtmlFinal = adcHtml + (adcTradicionalHtml ? `<div class="cart-item-details">${escapeHtml(adcTradicionalHtml)}</div>` : '');
     
     return `
       <div class="cart-item">
         <div class="cart-item-header">
           <div>
-            <div class="cart-item-name">${item.produto_nome}</div>
+            <div class="cart-item-name">${escapeHtml(item.produto_nome)}</div>
             ${adcHtmlFinal ? adcHtmlFinal : ''}
-            ${item.observacao ? `<div class="cart-item-details">Obs: ${item.observacao}</div>` : ''}
+            ${item.observacao ? `<div class="cart-item-details">Obs: ${escapeHtml(item.observacao)}</div>` : ''}
             ${item.unidade === 'un' ? `
               <div class="qty-control" style="margin-top: 8px; justify-content: flex-start;">
                 <button class="qty-btn" onclick="alterarQtdCarrinho(${i}, -1)" aria-label="Diminuir" style="width: 28px; height: 28px; font-size: 14px;">-</button>
@@ -857,17 +859,17 @@ function renderResumoPagamento() {
     const qtdTexto = item.unidade === 'kg' ? formatarPeso(item.quantidade) : `${item.quantidade}x`;
     const adcHtml = item.adicionais.map(a => {
       itemTotal += a.preco * item.quantidade;
-      return `<div class="pedido-item-adicional" style="padding-left:12px">+ ${a.nome} (R$ ${a.preco.toFixed(2)})</div>`;
+      return `<div class="pedido-item-adicional" style="padding-left:12px">+ ${escapeHtml(a.nome)} (R$ ${a.preco.toFixed(2)})</div>`;
     }).join('');
 
     return `
       <div class="cart-item">
         <div class="cart-item-header">
-          <div class="cart-item-name">${qtdTexto} ${item.produto_nome}</div>
+          <div class="cart-item-name">${qtdTexto} ${escapeHtml(item.produto_nome)}</div>
           <div class="cart-item-price">R$ ${itemTotal.toFixed(2)}</div>
         </div>
-        ${adcHtml ? `<div>${adcHtml}</div>` : ''}
-        ${item.observacao ? `<div class="cart-item-details">Obs: ${item.observacao}</div>` : ''}
+        ${adcHtml ? `<div>${escapeHtml(adcHtml)}</div>` : ''}
+        ${item.observacao ? `<div class="cart-item-details">Obs: ${escapeHtml(item.observacao)}</div>` : ''}
       </div>
     `;
   }).join('');
@@ -971,8 +973,8 @@ async function concluirPedido() {
   let enderecoCompleto = '';
   if (rua) enderecoCompleto += rua;
   if (numero) enderecoCompleto += `, ${numero}`;
-  if (complemento) enderecoCompleto += ` - ${complemento}`;
-  if (referencia) enderecoCompleto += ` (Ref: ${referencia})`;
+  if (complemento) enderecoCompleto += ` - ${escapeHtml(complemento)}`;
+  if (referencia) enderecoCompleto += ` (Ref: ${escapeHtml(referencia)})`;
 
   try {
     const clienteRes = await fetch('/api/clientes', {
@@ -1174,11 +1176,11 @@ async function carregarDetalhesPedido(pedidoId) {
 
     const itensHtml = p.itens.map(item => {
       const qtdTexto = item.unidade === 'kg' ? formatarPeso(Number(item.quantidade)) : `${item.quantidade}x`;
-      let line = `<div class="pedido-item-line">${qtdTexto} ${item.produto_nome} - R$ ${(item.preco_unitario * item.quantidade).toFixed(2)}</div>`;
+      let line = `<div class="pedido-item-line">${qtdTexto} ${escapeHtml(item.produto_nome)} - R$ ${(item.preco_unitario * item.quantidade).toFixed(2)}</div>`;
       if (item.adicionais && item.adicionais.length) {
-        line += item.adicionais.map(a => `<div class="pedido-item-adicional">+ ${a.adicional_nome} (R$ ${a.preco.toFixed(2)})</div>`).join('');
+        line += item.adicionais.map(a => `<div class="pedido-item-adicional">+ ${escapeHtml(a.adicional_nome)} (R$ ${a.preco.toFixed(2)})</div>`).join('');
       }
-      if (item.observacao) line += `<div class="pedido-item-adicional">Obs: ${item.observacao}</div>`;
+      if (item.observacao) line += `<div class="pedido-item-adicional">Obs: ${escapeHtml(item.observacao)}</div>`;
       return line;
     }).join('');
 
@@ -1208,7 +1210,7 @@ async function carregarDetalhesPedido(pedidoId) {
         <div class="pedido-detalhe-row" style="display:flex;justify-content:space-between;padding:4px 0;font-size:0.85rem">
           <span>Forma de pagamento:</span><span>${payLabels[p.forma_pagamento] || p.forma_pagamento}</span>
         </div>
-        ${p.endereco_entrega ? `<div class="pedido-detalhe-row" style="display:flex;justify-content:space-between;padding:4px 0;font-size:0.85rem"><span>Endereço:</span><span>${p.endereco_entrega} - ${p.bairro_entrega}</span></div>` : ''}
+        ${p.endereco_entrega ? `<div class="pedido-detalhe-row" style="display:flex;justify-content:space-between;padding:4px 0;font-size:0.85rem"><span>Endereço:</span><span>${escapeHtml(p.endereco_entrega)} - ${escapeHtml(p.bairro_entrega)}</span></div>` : ''}
         ${trocoHtml}
         ${p.observacoes && !p.observacoes.includes('Troco para') ? `<div class="pedido-detalhe-row" style="display:flex;justify-content:space-between;padding:4px 0;font-size:0.85rem"><span>Observações:</span><span>${p.observacoes.replace(' | Troco para R$', '').replace(/Troco para R\$ [\d.,]+/,'').trim()}</span></div>` : ''}
         <div class="pedido-detalhe-row" style="display:flex;justify-content:space-between;padding:8px 0;font-size:0.95rem;font-weight:700;border-top:1px solid var(--light);margin-top:8px">
@@ -1315,7 +1317,7 @@ async function preencherSelectBairrosCadastro() {
     select.innerHTML = '<option value="">Selecione o bairro</option>';
     bairros.forEach(b => {
       if (b.atendido) {
-        select.innerHTML += `<option value="${b.id}" data-taxa="${b.taxa_entrega}">${b.nome} - R$ ${b.taxa_entrega.toFixed(2)}</option>`;
+        select.innerHTML += `<option value="${b.id}" data-taxa="${b.taxa_entrega}">${escapeHtml(b.nome)} - R$ ${b.taxa_entrega.toFixed(2)}</option>`;
       }
     });
   });
@@ -1422,10 +1424,10 @@ function mostrarTelaLogado() {
   document.getElementById('perfil-tel').textContent = clienteLogado.telefone;
   let end = '';
   if (clienteLogado.rua) end += clienteLogado.rua;
-  if (clienteLogado.numero) end += `, ${clienteLogado.numero}`;
-  if (clienteLogado.complemento) end += ` - ${clienteLogado.complemento}`;
-  if (clienteLogado.bairro) end += ` - ${clienteLogado.bairro}`;
-  if (clienteLogado.ponto_referencia) end += ` (${clienteLogado.ponto_referencia})`;
+  if (clienteLogado.numero) end += `, ${escapeHtml(clienteLogado.numero)}`;
+  if (clienteLogado.complemento) end += ` - ${escapeHtml(clienteLogado.complemento)}`;
+  if (clienteLogado.bairro) end += ` - ${escapeHtml(clienteLogado.bairro)}`;
+  if (clienteLogado.ponto_referencia) end += ` (${escapeHtml(clienteLogado.ponto_referencia)})`;
   document.getElementById('perfil-end').textContent = end || 'Endereço não cadastrado';
 }
 
@@ -1491,7 +1493,7 @@ async function salvarEdicaoCliente() {
   if (!nome || !telefone) { mostrarToast('Preencha nome e telefone!'); return; }
 
   try {
-    await fetch(`/api/clientes/${clienteLogado.id}`, {
+    await fetch(`/api/clientes/${escapeHtml(clienteLogado.id)}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ nome, telefone, rua, numero, bairro, complemento, ponto_referencia: referencia })

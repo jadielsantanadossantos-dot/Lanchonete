@@ -68,6 +68,27 @@ async function verificarToken(token) {
   }
 }
 
+function hashToken(token) {
+  return crypto.createHash('sha256').update(token).digest('hex');
+}
+
+async function revogarRefreshToken(token, usuarioId) {
+  const h = hashToken(token);
+  try {
+    const payload = jwt.decode(token);
+    const expira = payload && payload.exp ? new Date(payload.exp * 1000).toISOString() : null;
+    await db.run('INSERT INTO refresh_tokens_revogados (token_hash, usuario_id, expira_em) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING', h, usuarioId || null, expira);
+  } catch (e) {}
+}
+
+async function isRefreshRevogado(token) {
+  const h = hashToken(token);
+  try {
+    const row = await db.get('SELECT 1 FROM refresh_tokens_revogados WHERE token_hash = $1', h);
+    return !!row;
+  } catch (e) { return false; }
+}
+
 function extrairToken(req) {
   const authHeader = req.headers.authorization;
   if (authHeader && authHeader.startsWith('Bearer ')) {
@@ -110,6 +131,9 @@ module.exports = {
   gerarToken,
   gerarRefreshToken,
   verificarToken,
+  hashToken,
+  revogarRefreshToken,
+  isRefreshRevogado,
   middleware,
   middlewareAdmin,
   middlewareGarcom,

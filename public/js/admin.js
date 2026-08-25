@@ -10,6 +10,8 @@ let produtosAdmin = [];
 let categoriasAdicionaisSelecionadas = [];
 let produtosAdicionaisSelecionadas = [];
 
+function escapeHtml(s){ if(s==null) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
 document.addEventListener('DOMContentLoaded', async () => {
   if (!verificarAuth('admin')) {
     redirecionarSemAuth('/login-admin');
@@ -44,7 +46,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         setTimeout(() => pedidosNovos.delete(pedido.id), 60000);
       } else {
         pedidosNovos.add(pedido.id);
-        showToast(`Novo pedido recebido! #${pedido.id} - ${pedido.cliente_nome || ''}`, 'success', '🔔');
+        showToast(`Novo pedido recebido! #${pedido.id} - ${escapeHtml(pedido.cliente_nome || '')}`, 'success', '🔔');
         setTimeout(() => pedidosNovos.delete(pedido.id), 60000);
       }
       carregarPedidos();
@@ -71,7 +73,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Escutar itens adicionados na comanda (antes de enviar à cozinha)
     const comandaUnsub = window.Realtime.subscribeComandaAdmin((data) => {
       if (data.tipo === 'novo-item') {
-        showToast(`Garçom adicionou ${data.quantidade}x ${data.produto_nome} na Mesa ${data.mesaId}`, 'info', '📝');
+        showToast(`Garçom adicionou ${data.quantidade}x ${escapeHtml(data.produto_nome)} na Mesa ${data.mesaId}`, 'info', '📝');
         tocarSomNovoPedido();
         // destacar comanda pendente visualmente se houver pedido vinculado, marcar como novo
         if (data.comandaId) {
@@ -267,11 +269,11 @@ function renderPedidoCard(p) {
     })();
     const lineClass = isItemNovo ? 'pedido-item-line pedido-item-line--novo' : 'pedido-item-line';
     const badgeItemNovo = isItemNovo ? `<span class="badge-item-novo">NOVO</span>` : '';
-    let line = `<div class="${lineClass}" ${isItemNovo ? `data-item-id="${i.id}" onclick="marcarItemLido(event, ${p.id}, ${i.id})" style="cursor:pointer" title="Clique para marcar item como lido"` : ''}><span>${i.quantidade}x ${i.produto_nome} ${badgeItemNovo}</span><span>R$ ${(i.preco_unitario * i.quantidade).toFixed(2)}</span></div>`;
+    let line = `<div class="${lineClass}" ${isItemNovo ? `data-item-id="${i.id}" onclick="marcarItemLido(event, ${p.id}, ${i.id})" style="cursor:pointer" title="Clique para marcar item como lido"` : ''}><span>${i.quantidade}x ${escapeHtml(i.produto_nome)} ${badgeItemNovo}</span><span>R$ ${(i.preco_unitario * i.quantidade).toFixed(2)}</span></div>`;
     if (i.adicionais && i.adicionais.length) {
-      line += i.adicionais.map(a => `<div class="pedido-item-adicional">+ ${a.adicional_nome} (R$ ${a.preco.toFixed(2)})</div>`).join('');
+      line += i.adicionais.map(a => `<div class="pedido-item-adicional">+ ${escapeHtml(a.adicional_nome)} (R$ ${a.preco.toFixed(2)})</div>`).join('');
     }
-    if (i.observacao) line += `<div class="pedido-item-adicional">Obs: ${i.observacao}</div>`;
+    if (i.observacao) line += `<div class="pedido-item-adicional">Obs: ${escapeHtml(i.observacao)}</div>`;
     return line;
   }).join('');
 
@@ -312,9 +314,9 @@ function renderPedidoCard(p) {
     <div style="margin-top: 8px;">
       <select class="filter-select" style="width:100%; font-size: 0.78rem; padding: 6px 8px;" onchange="atribuirMotoboy(${p.id}, this.value)">
         <option value="">🏍️ Motoboy não definido</option>
-        ${motoboysLista.filter(m => m.ativo).map(m => `<option value="${m.id}" ${p.motoboy_id == m.id ? 'selected' : ''}>${m.nome}</option>`).join('')}
+        ${motoboysLista.filter(m => m.ativo).map(m => `<option value="${m.id}" ${p.motoboy_id == m.id ? 'selected' : ''}>${escapeHtml(m.nome)}</option>`).join('')}
       </select>
-      ${p.motoboy_nome && !motoboysLista.some(m => m.id == p.motoboy_id && m.ativo) ? `<small style="color:var(--gray)">Entregou: ${p.motoboy_nome}</small>` : ''}
+      ${p.motoboy_nome && !motoboysLista.some(m => m.id == p.motoboy_id && m.ativo) ? `<small style="color:var(--gray)">Entregou: ${escapeHtml(p.motoboy_nome)}</small>` : ''}
     </div>
   ` : '';
 
@@ -329,11 +331,11 @@ function renderPedidoCard(p) {
         <span class="status-badge status-${p.status}">${statusLabels[p.status]}</span>
       </div>
       <div class="pedido-time">${new Date(p.criado_em).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</div>
-      <div class="pedido-cliente">${p.cliente_nome}</div>
-      <div class="pedido-tel">${p.cliente_telefone}</div>
+      <div class="pedido-cliente">${escapeHtml(p.cliente_nome)}</div>
+      <div class="pedido-tel">${escapeHtml(p.cliente_telefone)}</div>
       <div class="pedido-items">${itensHtml}</div>
-      ${p.observacoes ? `<div class="pedido-obs">${p.observacoes}</div>` : ''}
-      ${p.endereco_entrega ? `<div class="pedido-endereco">&#128205; ${p.endereco_entrega} - ${p.bairro_entrega}</div>` : ''}
+      ${p.observacoes ? `<div class="pedido-obs">${escapeHtml(p.observacoes)}</div>` : ''}
+      ${p.endereco_entrega ? `<div class="pedido-endereco">&#128205; ${escapeHtml(p.endereco_entrega)} - ${escapeHtml(p.bairro_entrega)}</div>` : ''}
       <div class="pedido-footer">
         <div>
           <div class="pedido-total">Total: R$ ${p.total.toFixed(2)}</div>
@@ -364,8 +366,8 @@ async function carregarMotoboys() {
     <thead><tr><th>Nome</th><th>Telefone</th><th>Status</th><th>Ações</th></tr></thead>
     <tbody>${motoboysLista.map(m => `
       <tr style="${m.ativo ? '' : 'opacity:.55'}">
-        <td><strong>${m.nome}</strong></td>
-        <td>${m.telefone || '-'}</td>
+        <td><strong>${escapeHtml(m.nome)}</strong></td>
+        <td>${escapeHtml(m.telefone || '-')}</td>
         <td><span class="status-badge ${m.ativo ? 'pix-confirmado' : 'status-cancelado'}">${m.ativo ? 'Ativo' : 'Inativo'}</span></td>
         <td style="white-space:nowrap">
           <button class="btn btn-xs ${m.ativo ? 'btn-warning' : 'btn-success'}" onclick="alternarMotoboy(${m.id}, ${m.ativo ? 0 : 1})">${m.ativo ? 'Desativar' : 'Ativar'}</button>
@@ -439,7 +441,7 @@ async function carregarRelatorioMotoboys() {
 
   document.getElementById('motoboys-resumo').innerHTML = resumo.length ? `<table>
     <thead><tr><th>Motoboy</th><th>Entregas</th><th>Total das taxas</th></tr></thead>
-    <tbody>${resumo.map(m => `<tr><td><strong>${m.nome}</strong></td><td>${m.entregas}</td><td>R$ ${Number(m.total_taxas).toFixed(2)}</td></tr>`).join('')}</tbody>
+    <tbody>${resumo.map(m => `<tr><td><strong>${escapeHtml(m.nome)}</strong></td><td>${m.entregas}</td><td>R$ ${Number(m.total_taxas).toFixed(2)}</td></tr>`).join('')}</tbody>
     ${resumo.length > 1 ? `<tfoot><tr><td><strong>Total</strong></td><td><strong>${totalEntregas}</strong></td><td><strong>R$ ${totalTaxas.toFixed(2)}</strong></td></tr></tfoot>` : ''}
   </table>` : '<p style="color:var(--gray);text-align:center;padding:20px">Nenhuma entrega com motoboy no período</p>';
 }
@@ -473,16 +475,16 @@ async function imprimirComanda(pedidoId) {
         <div class="item-bloco">
           <div class="item-header">
             <span class="item-qty">${item.quantidade}x</span>
-            <span class="item-nome">${item.produto_nome}</span>
+            <span class="item-nome">${escapeHtml(item.produto_nome)}</span>
             <span class="item-val">R$ ${itemTotal.toFixed(2)}</span>
           </div>
           ${(item.adicionais && item.adicionais.length) ? `
             <div class="item-adics">
               <div style="font-size:7px; font-weight:800; letter-spacing:0.5px; text-transform:uppercase; margin-bottom:1mm">Adicionais:</div>
-              ${item.adicionais.map(a=>`<div class="adic-linha"><span class="adic-nome">↳ ${a.adicional_nome} — R$ ${a.preco.toFixed(2)} × ${item.quantidade}</span><span class="adic-val">R$ ${(a.preco * item.quantidade).toFixed(2)}</span></div>`).join('')}
+              ${item.adicionais.map(a=>`<div class="adic-linha"><span class="adic-nome">↳ ${escapeHtml(a.adicional_nome)} — R$ ${a.preco.toFixed(2)} × ${item.quantidade}</span><span class="adic-val">R$ ${(a.preco * item.quantidade).toFixed(2)}</span></div>`).join('')}
             </div>
           ` : ''}
-          ${item.observacao ? `<div class="item-obs">💬 OBS: ${item.observacao}</div>` : ''}
+          ${item.observacao ? `<div class="item-obs">💬 OBS: ${escapeHtml(item.observacao)}</div>` : ''}
         </div>
         ${idx < p.itens.length - 1 ? '<div class="item-sep"></div>' : ''}
       `;
@@ -576,10 +578,10 @@ async function imprimirComanda(pedidoId) {
   </div>
   <div style="text-align:center; font-size:8px; color:#000; margin:2.5mm 0 1mm">${dataHora}</div>
   <div class="info-card">
-    <div class="info-row"><span class="info-label">👤 Cliente</span><span class="info-value">${p.cliente_nome}</span></div>
-    <div class="info-row"><span class="info-label">📞 Telefone</span><span class="info-value">${p.cliente_telefone}</span></div>
-    ${p.endereco_entrega ? `<div class="info-row"><span class="info-label">📍 Entrega</span><span class="info-value">${p.endereco_entrega}</span></div>` : ''}
-    ${p.bairro_entrega ? `<div class="info-row"><span class="info-label">🏘️ Bairro</span><span class="info-value">${p.bairro_entrega}</span></div>` : ''}
+    <div class="info-row"><span class="info-label">👤 Cliente</span><span class="info-value">${escapeHtml(p.cliente_nome)}</span></div>
+    <div class="info-row"><span class="info-label">📞 Telefone</span><span class="info-value">${escapeHtml(p.cliente_telefone)}</span></div>
+    ${p.endereco_entrega ? `<div class="info-row"><span class="info-label">📍 Entrega</span><span class="info-value">${escapeHtml(p.endereco_entrega)}</span></div>` : ''}
+    ${p.bairro_entrega ? `<div class="info-row"><span class="info-label">🏘️ Bairro</span><span class="info-value">${escapeHtml(p.bairro_entrega)}</span></div>` : ''}
     ${p.mesa_id ? `<div class="info-row"><span class="info-label">🪑 Mesa</span><span class="info-value">Mesa ${p.mesa_id}${p.comanda_id ? ` • Comanda #${p.comanda_id}` : ''}</span></div>` : ''}
   </div>
   <div class="sep-strong"></div>
@@ -598,7 +600,7 @@ async function imprimirComanda(pedidoId) {
     <div class="pay-card"><div class="label">Status</div><div class="value">${statusLabel}</div></div>
   </div>
   ${trocoHtml ? `<div class="troco-box">${trocoHtml}</div>` : ''}
-  ${obsPedido ? `<div class="obs-box"><strong>Obs:</strong> ${obsPedido}</div>` : ''}
+  ${obsPedido ? `<div class="obs-box"><strong>Obs:</strong> ${escapeHtml(obsPedido)}</div>` : ''}
   <div class="rodape">
     <div class="obrigado">Obrigado pela preferência! 💛</div>
     <div class="sub">Volte sempre • Pedido preparado com carinho</div>
@@ -646,14 +648,14 @@ async function carregarProdutosAdmin() {
   window.categoriasAdmin = categorias;
 
   const select = document.getElementById('prod-categoria');
-  select.innerHTML = categorias.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+  select.innerHTML = categorias.map(c => `<option value="${c.id}">${escapeHtml(c.nome)}</option>`).join('');
 
   // Popular select de filtro preservando a seleção atual
   const filtroSelect = document.getElementById('filtro-categoria-produtos');
   if (filtroSelect) {
     const filtroAtual = filtroSelect.value;
     filtroSelect.innerHTML = '<option value="">Todas as categorias</option>' + 
-      categorias.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+      categorias.map(c => `<option value="${c.id}">${escapeHtml(c.nome)}</option>`).join('');
     if ([...filtroSelect.options].some(o => o.value === filtroAtual)) {
       filtroSelect.value = filtroAtual;
     }
@@ -686,8 +688,8 @@ function renderizarProdutosAdmin(produtos) {
       return `
       <tr style="${p.ativo ? '' : 'opacity:.55'}">
         <td>${p.foto ? `<img src="${p.foto}" style="width:50px;height:50px;object-fit:cover;border-radius:6px">` : '<div style="width:50px;height:50px;border-radius:6px;background:var(--color-bg-alt);display:flex;align-items:center;justify-content:center;font-size:20px">&#127828;</div>'}</td>
-        <td><strong>${p.nome}</strong><br><small style="color:var(--gray)">${p.descricao || ''}</small></td>
-        <td><span class="pix-badge" style="background:var(--color-bg-alt);color:var(--color-text-secondary)">${p.categoria_nome}${categoria ? ` (#${categoria.ordem})` : ''}</span></td>
+        <td><strong>${escapeHtml(p.nome)}</strong><br><small style="color:var(--gray)">${escapeHtml(p.descricao || '')}</small></td>
+        <td><span class="pix-badge" style="background:var(--color-bg-alt);color:var(--color-text-secondary)">${escapeHtml(p.categoria_nome)}${categoria ? ` (#${categoria.ordem})` : ''}</span></td>
         <td><strong>R$ ${p.preco.toFixed(2)}</strong>${p.unidade === 'kg' ? '/kg' : ''}</td>
         <td>
           <span class="status-badge ${p.ativo ? 'pix-confirmado' : 'status-cancelado'}">${p.ativo ? 'Ativo' : 'Inativo'}</span>
@@ -727,10 +729,10 @@ async function carregarCategoriasAdmin() {
     <thead><tr><th>Nome</th><th>Ordem</th><th>Ações</th></tr></thead>
     <tbody>${categorias.map(c => `
       <tr>
-        <td>${c.nome}</td>
+        <td>${escapeHtml(c.nome)}</td>
         <td>${c.ordem}</td>
         <td>
-          <button class="btn btn-xs btn-primary" onclick="editarCategoria(${c.id}, '${c.nome}', ${c.ordem})">Editar</button>
+          <button class="btn btn-xs btn-primary" onclick="editarCategoria(${c.id}, '${escapeHtml(c.nome)}', ${c.ordem})">Editar</button>
           <button class="btn btn-xs btn-danger" onclick="excluirCategoria(${c.id})">Excluir</button>
         </td>
       </tr>
@@ -899,7 +901,7 @@ async function carregarAdicionais() {
     if (filtroSelect) {
       const filtroAtual = filtroSelect.value;
       filtroSelect.innerHTML = '<option value="">Todas as categorias</option>' +
-        categoriasAdmin.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+        categoriasAdmin.map(c => `<option value="${c.id}">${escapeHtml(c.nome)}</option>`).join('');
       if ([...filtroSelect.options].some(o => o.value === filtroAtual)) {
         filtroSelect.value = filtroAtual;
       }
@@ -925,7 +927,7 @@ function abrirSeletorCategorias() {
     <div style="padding: 8px; border-bottom: 1px solid #e5e5e5;">
       <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; min-height: 40px;">
         <input type="checkbox" value="${c.id}" class="cat-checkbox-adic" ${categoriasAdicionaisSelecionadas.includes(c.id) ? 'checked' : ''}>
-        <span>${c.nome}</span>
+        <span>${escapeHtml(c.nome)}</span>
       </label>
     </div>
   `).join('');
@@ -990,7 +992,7 @@ function abrirSeletorProdutos() {
     <div style="padding: 8px; border-bottom: 1px solid #e5e5e5;">
       <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; min-height: 40px;">
         <input type="checkbox" value="${p.id}" class="prod-checkbox-adic" ${produtosAdicionaisSelecionadas.includes(p.id) ? 'checked' : ''}>
-        <span>${p.nome} <small style="color:var(--gray)">(${categoriasAdmin.find(c => c.id === p.categoria_id)?.nome || 'sem categoria'})</small></span>
+        <span>${escapeHtml(p.nome)} <small style="color:var(--gray)">(${escapeHtml(categoriasAdmin.find(c => c.id === p.categoria_id)?.nome || 'sem categoria')})</small></span>
       </label>
     </div>
   `).join('') : '<p style="text-align:center;color:var(--gray);padding:20px">Nenhum produto encontrado nas categorias selecionadas</p>';
@@ -1050,12 +1052,12 @@ function renderizarAdicionais(adicionais) {
       const limiteText = a.limite > 0 ? a.limite : 'Livre';
       return `
       <tr style="${a.ativo ? '' : 'opacity:.55'}">
-        <td><strong>${a.nome}</strong></td>
-        <td><small style="color:var(--color-text-secondary)">${a.descricao || '-'}</small></td>
+        <td><strong>${escapeHtml(a.nome)}</strong></td>
+        <td><small style="color:var(--color-text-secondary)">${escapeHtml(a.descricao || '-')}</small></td>
         <td><span style="background: ${tl.bg}; padding: 2px 8px; border-radius: 4px; font-size: 12px;">${tl.text}</span></td>
         <td>${limiteText}</td>
-        <td>${a.categoria_nome || 'Todas'}</td>
-        <td>${produtoNome}</td>
+        <td>${escapeHtml(a.categoria_nome || 'Todas')}</td>
+        <td>${escapeHtml(produtoNome)}</td>
         <td>R$ ${a.preco.toFixed(2)}</td>
         <td>${a.ativo ? '<span style="color:var(--success)">Ativo</span>' : '<span style="color:var(--danger)">Inativo</span>'}</td>
         <td>
@@ -1099,7 +1101,7 @@ function atualizarFiltroProdutosAdicionais(categoriaId) {
     : produtosAdmin;
 
   filtroProd.innerHTML = '<option value="">Todos os produtos</option>' +
-    produtosDisponiveis.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
+    produtosDisponiveis.map(p => `<option value="${p.id}">${escapeHtml(p.nome)}</option>`).join('');
 
   if ([...filtroProd.options].some(o => o.value === valorAtual)) {
     filtroProd.value = valorAtual;
@@ -1246,12 +1248,12 @@ function renderClientes(clientes) {
     <thead><tr><th>Nome</th><th>Telefone</th><th>Bairro</th><th>Status</th><th>Ações</th></tr></thead>
     <tbody>${clientes.map(c => `
       <tr style="${c.bloqueado ? 'background-color: #ffe6e6;' : ''}">
-        <td>${c.nome}</td>
-        <td>${c.telefone}</td>
-        <td>${c.bairro || '-'}</td>
+        <td>${escapeHtml(c.nome)}</td>
+        <td>${escapeHtml(c.telefone)}</td>
+        <td>${escapeHtml(c.bairro || '-')}</td>
         <td>${c.bloqueado ? '<span class="status-badge status-cancelado">Bloqueado</span>' : '<span class="status-badge status-entregue">Ativo</span>'}</td>
         <td>
-          <button class="btn btn-xs btn-primary" onclick="verPedidosCliente(${c.id}, '${c.nome}')">Pedidos</button>
+          <button class="btn btn-xs btn-primary" onclick="verPedidosCliente(${c.id}, '${escapeHtml(c.nome)}')">Pedidos</button>
           <button class="btn btn-xs ${c.bloqueado ? 'btn-success' : 'btn-warning'}" onclick="toggleBloqueioCliente(${c.id}, ${c.bloqueado})">
             ${c.bloqueado ? 'Desbloquear' : 'Bloquear'}
           </button>
@@ -1319,16 +1321,16 @@ async function carregarBairrosAdmin() {
     <thead><tr><th>Bairro</th><th>Taxa</th><th>Atendido</th><th>Ações</th></tr></thead>
     <tbody>${bairros.map(b => `
       <tr>
-        <td>${b.nome}</td>
+        <td>${escapeHtml(b.nome)}</td>
         <td>R$ ${b.taxa_entrega.toFixed(2)}</td>
         <td>
           <label class="toggle-switch">
-            <input type="checkbox" ${b.atendido ? 'checked' : ''} onchange="toggleBairro(${b.id}, '${b.nome}', ${b.taxa_entrega}, this.checked ? 1 : 0)">
+            <input type="checkbox" ${b.atendido ? 'checked' : ''} onchange="toggleBairro(${b.id}, '${escapeHtml(b.nome)}', ${b.taxa_entrega}, this.checked ? 1 : 0)">
             <span class="toggle-slider"></span>
           </label>
         </td>
         <td>
-          <button class="btn btn-xs btn-primary" onclick="editarBairroPrompt(${b.id}, '${b.nome}', ${b.taxa_entrega})">Editar</button>
+          <button class="btn btn-xs btn-primary" onclick="editarBairroPrompt(${b.id}, '${escapeHtml(b.nome)}', ${b.taxa_entrega})">Editar</button>
           <button class="btn btn-xs btn-danger" onclick="excluirBairro(${b.id})">Excluir</button>
         </td>
       </tr>
@@ -1389,7 +1391,7 @@ async function carregarRelatorios() {
 
   document.getElementById('produtos-top').innerHTML = data.produtosMaisVendidos.length ? `<table>
     <thead><tr><th>Produto</th><th>Qtd</th><th>Valor</th></tr></thead>
-    <tbody>${data.produtosMaisVendidos.map(p => `<tr><td>${p.produto_nome}</td><td>${p.qtd}</td><td>R$ ${p.valor.toFixed(2)}</td></tr>`).join('')}</tbody>
+    <tbody>${data.produtosMaisVendidos.map(p => `<tr><td>${escapeHtml(p.produto_nome)}</td><td>${p.qtd}</td><td>R$ ${p.valor.toFixed(2)}</td></tr>`).join('')}</tbody>
   </table>` : '<p style="color:var(--gray)">Sem dados</p>';
 
   document.getElementById('vendas-pagamento').innerHTML = data.porFormaPagamento.length ? `<table>
@@ -1507,16 +1509,16 @@ function whatsappProdutoCardHtml(p){
   return `
     <div class="product-card" onclick="abrirModalWhatsAppQtd(${p.id})">
       <div class="product-media">
-        ${p.foto?`<img class="product-img" src="${p.foto}" alt="${p.nome}" loading="lazy">`:`<div class="product-img-placeholder">🍔</div>`}
+        ${p.foto?`<img class="product-img" src="${p.foto}" alt="${escapeHtml(p.nome)}" loading="lazy">`:`<div class="product-img-placeholder">🍔</div>`}
       </div>
       <div class="product-info">
         <div>
-          <div class="product-name">${p.nome}</div>
-          ${p.descricao?`<div class="product-desc">${p.descricao}</div>`:''}
+          <div class="product-name">${escapeHtml(p.nome)}</div>
+          ${p.descricao?`<div class="product-desc">${escapeHtml(p.descricao)}</div>`:''}
         </div>
         <div class="product-footer">
           <span class="product-price">R$ ${p.preco.toFixed(2)}${p.unidade==='kg'?'\/kg':''}</span>
-          <button class="btn-add" onclick="event.stopPropagation(); abrirModalWhatsAppQtd(${p.id})" aria-label="Adicionar ${p.nome}">+</button>
+          <button class="btn-add" onclick="event.stopPropagation(); abrirModalWhatsAppQtd(${p.id})" aria-label="Adicionar ${escapeHtml(p.nome)}">+</button>
         </div>
       </div>
     </div>`;
@@ -1542,13 +1544,13 @@ function whatsappRenderAgrupado(lista){
         window.__pizzaCfgWhatsApp={ produtos: whatsappProdutos, toast: showToast, onAdd:item=>{
           whatsappCarrinho.push(item);
           renderCarrinhoWhatsApp();
-          showToast(`${item.quantidade}x ${item.produto_nome} adicionado!`);
+          showToast(`${item.quantidade}x ${escapeHtml(item.produto_nome)} adicionado!`);
         }};
       }
       const cardHtml = window.PizzaModal ? window.PizzaModal.cardHtml('cliente').replace(/window\.__pizzaCfg/g,'window.__pizzaCfgWhatsApp') : '';
       return `<div class="category-section"><div class="category-heading">Pizzas</div><div class="category-items">${cardHtml}</div></div>`;
     }
-    return `<div class="category-section"><div class="category-heading">${g.nome}</div><div class="category-items">${g.itens.map(p=>whatsappProdutoCardHtml(p)).join('')}</div></div>`;
+    return `<div class="category-section"><div class="category-heading">${escapeHtml(g.nome)}</div><div class="category-items">${g.itens.map(p=>whatsappProdutoCardHtml(p)).join('')}</div></div>`;
   }).join('');
 }
 
@@ -1565,7 +1567,7 @@ async function carregarDadosWhatsApp() {
     // Bairros
     const bairroSel = document.getElementById('whatsapp-cliente-bairro');
     const atual = bairroSel.value;
-    bairroSel.innerHTML = '<option value="">Bairro *</option>' + bairros.filter(b=>b.atendido).map(b=>`<option value="${b.nome}" data-taxa="${b.taxa_entrega}">${b.nome} - R$ ${parseFloat(b.taxa_entrega).toFixed(2)}</option>`).join('');
+    bairroSel.innerHTML = '<option value="">Bairro *</option>' + bairros.filter(b=>b.atendido).map(b=>`<option value="${escapeHtml(b.nome)}" data-taxa="${b.taxa_entrega}">${escapeHtml(b.nome)} - R$ ${parseFloat(b.taxa_entrega).toFixed(2)}</option>`).join('');
     if (atual) bairroSel.value = atual;
     // Categorias - dropdown igual cliente/garçom (Pizzas colapsada)
     const catContainer = document.getElementById('whatsapp-categorias');
@@ -1595,7 +1597,7 @@ async function carregarDadosWhatsApp() {
     catContainer.value = whatsappCategoriaFiltro;
     // Configurar pizza para WhatsApp
     if(window.PizzaModal){
-      window.__pizzaCfgWhatsApp={ produtos: whatsappProdutos, toast: showToast, onAdd:item=>{ whatsappCarrinho.push(item); renderCarrinhoWhatsApp(); showToast(`${item.quantidade}x ${item.produto_nome} adicionado!`); }};
+      window.__pizzaCfgWhatsApp={ produtos: whatsappProdutos, toast: showToast, onAdd:item=>{ whatsappCarrinho.push(item); renderCarrinhoWhatsApp(); showToast(`${item.quantidade}x ${escapeHtml(item.produto_nome)} adicionado!`); }};
     }
     renderProdutosWhatsApp();
   } catch(e){ showToast('Erro ao carregar dados do pedido'); }
@@ -1629,7 +1631,7 @@ function renderProdutosWhatsApp() {
       const temPizza = lista.some(p=>isPizzaWhatsApp(p));
       if(temPizza && window.PizzaModal){
         const prodsPizza = whatsappCategoriaFiltro==='__pizzas__' ? whatsappProdutos.filter(p=>isPizzaWhatsApp(p)) : whatsappProdutos.filter(p=>p.categoria_nome===whatsappCategoriaFiltro);
-        window.__pizzaCfgWhatsApp={ produtos: prodsPizza.length?prodsPizza:whatsappProdutos, toast: showToast, onAdd:item=>{ whatsappCarrinho.push(item); renderCarrinhoWhatsApp(); showToast(`${item.quantidade}x ${item.produto_nome} adicionado!`); }};
+        window.__pizzaCfgWhatsApp={ produtos: prodsPizza.length?prodsPizza:whatsappProdutos, toast: showToast, onAdd:item=>{ whatsappCarrinho.push(item); renderCarrinhoWhatsApp(); showToast(`${item.quantidade}x ${escapeHtml(item.produto_nome)} adicionado!`); }};
         const card = window.PizzaModal.cardHtml('cliente').replace(/window\.__pizzaCfg/g,'window.__pizzaCfgWhatsApp');
         extraPizza = `<div class="category-section"><div class="category-heading">Montar Pizza</div><div class="category-items">${card}</div></div>`;
         // Para Pizzas, não mostrar lista de tamanhos individuais, só o card
@@ -1649,7 +1651,7 @@ function renderProdutosWhatsApp() {
     } else if(whatsappCategoriaFiltro==='__pizzas__' && buscaPizza){
       // Busca vazia + filtro Pizzas sem itens (caso pizza sem produtos, mostrar só card)
       if(window.PizzaModal){
-        window.__pizzaCfgWhatsApp={ produtos: whatsappProdutos.filter(p=>isPizzaWhatsApp(p)), toast: showToast, onAdd:item=>{ whatsappCarrinho.push(item); renderCarrinhoWhatsApp(); showToast(`${item.quantidade}x ${item.produto_nome} adicionado!`); }};
+        window.__pizzaCfgWhatsApp={ produtos: whatsappProdutos.filter(p=>isPizzaWhatsApp(p)), toast: showToast, onAdd:item=>{ whatsappCarrinho.push(item); renderCarrinhoWhatsApp(); showToast(`${item.quantidade}x ${escapeHtml(item.produto_nome)} adicionado!`); }};
         const card = window.PizzaModal.cardHtml('cliente').replace(/window\.__pizzaCfg/g,'window.__pizzaCfgWhatsApp');
         html += `<div class="category-section"><div class="category-heading">Pizzas</div><div class="category-items">${card}</div></div>`;
       }
@@ -1681,8 +1683,8 @@ function abrirModalWhatsAppQtd(prodId) {
         html+=`<div style="margin-bottom:10px; font-size:0.8rem; font-weight:700; color:var(--color-text); border-bottom:1px solid var(--color-border); padding-bottom:4px">Base</div>`;
         html+=bases.map(a=>`
           <label style="display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid #f1f1f1; cursor:pointer">
-            <input type="radio" name="whatsapp-base" value="${a.id}" data-nome="${a.nome}" data-preco="${a.preco}" data-tipo="base" onchange="whatsappAtualizarTotal()">
-            <span style="flex:1; font-size:0.85rem">${a.nome}</span>
+            <input type="radio" name="whatsapp-base" value="${a.id}" data-nome="${escapeHtml(a.nome)}" data-preco="${a.preco}" data-tipo="base" onchange="whatsappAtualizarTotal()">
+            <span style="flex:1; font-size:0.85rem">${escapeHtml(a.nome)}</span>
             <span style="font-size:0.8rem; font-weight:700; color:var(--color-primary)">${a.preco>0?`+ R$ ${a.preco.toFixed(2)}`:'Incluído'}</span>
           </label>
         `).join('');
@@ -1691,8 +1693,8 @@ function abrirModalWhatsAppQtd(prodId) {
         html+=`<div style="margin:10px 0 6px; font-size:0.8rem; font-weight:700; color:var(--color-text); border-bottom:1px solid var(--color-border); padding-bottom:4px">Coberturas</div>`;
         html+=coberturas.map(a=>`
           <label style="display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid #f1f1f1; cursor:pointer">
-            <input type="checkbox" value="${a.id}" data-nome="${a.nome}" data-preco="${a.preco}" data-tipo="cobertura" data-limite="${a.limite||0}" onchange="whatsappAtualizarTotal()">
-            <span style="flex:1; font-size:0.85rem">${a.nome}</span>
+            <input type="checkbox" value="${a.id}" data-nome="${escapeHtml(a.nome)}" data-preco="${a.preco}" data-tipo="cobertura" data-limite="${a.limite||0}" onchange="whatsappAtualizarTotal()">
+            <span style="flex:1; font-size:0.85rem">${escapeHtml(a.nome)}</span>
             <span style="font-size:0.8rem; font-weight:700; color:var(--color-primary)">${a.preco>0?`+ R$ ${a.preco.toFixed(2)}`:'Incluído'}</span>
           </label>
         `).join('');
@@ -1701,8 +1703,8 @@ function abrirModalWhatsAppQtd(prodId) {
         html+=`<div style="margin:10px 0 6px; font-size:0.8rem; font-weight:700; color:var(--color-text); border-bottom:1px solid var(--color-border); padding-bottom:4px">Acompanhamentos</div>`;
         html+=acompanhamentos.map(a=>`
           <label style="display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid #f1f1f1; cursor:pointer">
-            <input type="checkbox" value="${a.id}" data-nome="${a.nome}" data-preco="${a.preco}" data-tipo="acompanhamento" data-limite="${a.limite||0}" onchange="whatsappAtualizarTotal()">
-            <span style="flex:1; font-size:0.85rem">${a.nome}</span>
+            <input type="checkbox" value="${a.id}" data-nome="${escapeHtml(a.nome)}" data-preco="${a.preco}" data-tipo="acompanhamento" data-limite="${a.limite||0}" onchange="whatsappAtualizarTotal()">
+            <span style="flex:1; font-size:0.85rem">${escapeHtml(a.nome)}</span>
             <span style="font-size:0.8rem; font-weight:700; color:var(--color-primary)">${a.preco>0?`+ R$ ${a.preco.toFixed(2)}`:'Incluído'}</span>
           </label>
         `).join('');
@@ -1738,8 +1740,8 @@ function abrirModalWhatsAppQtd(prodId) {
         if(!html.includes('Sabores') && tipo==='sabor' && porTipo[tipo].length) html=`<div style="margin-bottom:6px; font-size:0.8rem; font-weight:700; color:var(--color-text); border-bottom:1px solid var(--color-border); padding-bottom:4px">${titulos[tipo]}</div>`+html;
         html+=porTipo[tipo].map(a=>`
           <label style="display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid #f1f1f1; cursor:pointer">
-            <input type="checkbox" value="${a.id}" data-nome="${a.nome}" data-preco="${a.preco}" data-tipo="${a.tipo||'adicional'}" onchange="whatsappAtualizarTotal()">
-            <span style="flex:1; font-size:0.85rem">${a.nome}</span>
+            <input type="checkbox" value="${a.id}" data-nome="${escapeHtml(a.nome)}" data-preco="${a.preco}" data-tipo="${a.tipo||'adicional'}" onchange="whatsappAtualizarTotal()">
+            <span style="flex:1; font-size:0.85rem">${escapeHtml(a.nome)}</span>
             <span style="font-size:0.8rem; font-weight:700; color:var(--color-primary)">+ R$ ${a.preco.toFixed(2)}</span>
           </label>
         `).join('');
@@ -1750,8 +1752,8 @@ function abrirModalWhatsAppQtd(prodId) {
         html+=`<div style="margin:10px 0 6px; font-size:0.8rem; font-weight:700; color:var(--color-text); border-bottom:1px solid var(--color-border); padding-bottom:4px">${t}</div>`;
         html+=porTipo[t].map(a=>`
           <label style="display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid #f1f1f1; cursor:pointer">
-            <input type="checkbox" value="${a.id}" data-nome="${a.nome}" data-preco="${a.preco}" data-tipo="${a.tipo}" onchange="whatsappAtualizarTotal()">
-            <span style="flex:1; font-size:0.85rem">${a.nome}</span>
+            <input type="checkbox" value="${a.id}" data-nome="${escapeHtml(a.nome)}" data-preco="${a.preco}" data-tipo="${a.tipo}" onchange="whatsappAtualizarTotal()">
+            <span style="flex:1; font-size:0.85rem">${escapeHtml(a.nome)}</span>
             <span style="font-size:0.8rem; font-weight:700; color:var(--color-primary)">+ R$ ${a.preco.toFixed(2)}</span>
           </label>
         `).join('');
@@ -1786,7 +1788,7 @@ function confirmarAddWhatsApp(){
   });
   fecharModalWhatsAppQtd();
   renderCarrinhoWhatsApp();
-  showToast(`${whatsappProdutoSelecionado.nome} adicionado!`);
+  showToast(`${escapeHtml(whatsappProdutoSelecionado.nome)} adicionado!`);
 }
 function renderCarrinhoWhatsApp(){
   const lista=document.getElementById('whatsapp-carrinho-lista');
@@ -1815,13 +1817,13 @@ function renderCarrinhoWhatsApp(){
   lista.innerHTML=whatsappCarrinho.map((it,i)=>{
     const tot=it.preco_unitario*it.quantidade + it.adicionais.reduce((s,a)=>s+a.preco*it.quantidade,0);
     subtotal+=tot;
-    const adic = it.adicionais.map(a=>`+ ${a.nome}`).join(', ');
+    const adic = it.adicionais.map(a=>`+ ${escapeHtml(a.nome)}`).join(', ');
     return `<div style="border:1px solid var(--color-border); border-radius:8px; padding:8px; margin-bottom:8px; background:white">
       <div style="display:flex; justify-content:space-between; gap:8px">
         <div style="flex:1; min-width:0">
-          <div style="font-weight:700; font-size:0.85rem">${it.produto_nome}</div>
-          ${adic?`<div style="font-size:0.75rem; color:var(--color-text-muted)">${adic}</div>`:''}
-          ${it.observacao?`<div style="font-size:0.75rem; color:#D97706; font-style:italic">Obs: ${it.observacao}</div>`:''}
+          <div style="font-weight:700; font-size:0.85rem">${escapeHtml(it.produto_nome)}</div>
+          ${adic?`<div style="font-size:0.75rem; color:var(--color-text-muted)">${escapeHtml(adic)}</div>`:''}
+          ${it.observacao?`<div style="font-size:0.75rem; color:#D97706; font-style:italic">Obs: ${escapeHtml(it.observacao)}</div>`:''}
           <div style="font-size:0.8rem; color:var(--color-text-secondary)">R$ ${it.preco_unitario.toFixed(2)} x ${it.quantidade}</div>
         </div>
         <div style="text-align:right">
@@ -1912,7 +1914,7 @@ async function enviarPedidoWhatsApp(){
     })});
     if(!pedidoRes.ok){ const err=await pedidoRes.json(); throw new Error(err.error||'Erro ao criar pedido'); }
     const pedido=await pedidoRes.json();
-    showToast(`Pedido #${pedido.id} criado! Cliente ${nome} cadastrado.`);
+    showToast(`Pedido #${pedido.id} criado! Cliente ${escapeHtml(nome)} cadastrado.`);
     fecharModalPedidoWhatsApp();
     carregarPedidos();
     carregarClientes();
@@ -1983,7 +1985,7 @@ function showToast(msg, type='info', icon='') {
   const bg = bgMap[type] || bgMap.info;
   toast.className = 'toast-admin toast-'+type;
   toast.style.cssText = `position:fixed;top:20px;right:20px;background:${bg};color:white;padding:14px 18px;border-radius:12px;z-index:9999;animation:toastSlideIn 0.35s cubic-bezier(0.16,1,0.3,1);box-shadow:0 8px 24px rgba(0,0,0,0.18);display:flex;align-items:center;gap:10px;min-width:280px;max-width:420px;font-size:0.9rem;font-weight:600;line-height:1.3;`;
-  toast.innerHTML = `${icon ? `<span style="font-size:1.3rem">${icon}</span>` : ''}<span style="flex:1">${msg}</span><button onclick="this.parentElement.remove()" style="background:rgba(255,255,255,0.2);border:none;color:white;width:28px;height:28px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;line-height:1">×</button><div style="position:absolute;bottom:0;left:0;height:3px;background:rgba(255,255,255,0.5);border-radius:0 0 12px 12px;animation:toastProgress 3.5s linear forwards;right:0"></div>`;
+  toast.innerHTML = `${icon ? `<span style="font-size:1.3rem">${icon}</span>` : ''}<span style="flex:1">${escapeHtml(msg)}</span><button onclick="this.parentElement.remove()" style="background:rgba(255,255,255,0.2);border:none;color:white;width:28px;height:28px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;line-height:1">×</button><div style="position:absolute;bottom:0;left:0;height:3px;background:rgba(255,255,255,0.5);border-radius:0 0 12px 12px;animation:toastProgress 3.5s linear forwards;right:0"></div>`;
   toast.style.position = 'fixed';
   // empilhar
   const offset = document.querySelectorAll('.toast-admin').length * 76;
@@ -2081,7 +2083,7 @@ async function carregarMesasAdmin() {
     <tbody>${mesas.map(m => `
       <tr>
         <td>${m.numero}</td>
-        <td>${m.nome || '-'}</td>
+        <td>${escapeHtml(m.nome || '-')}</td>
         <td>${m.capacidade}</td>
         <td>
           <select class="form-control" onchange="atualizarStatusMesa(${m.id}, this.value)" style="width:auto;display:inline-block">
@@ -2091,7 +2093,7 @@ async function carregarMesasAdmin() {
           </select>
         </td>
         <td>
-          <button class="btn btn-xs btn-primary" onclick="editarMesaPrompt(${m.id}, ${m.numero}, '${(m.nome || '').replace(/'/g, "\\'")}', ${m.capacidade})">Editar</button>
+          <button class="btn btn-xs btn-primary" onclick="editarMesaPrompt(${m.id}, ${m.numero}, '${escapeHtml((m.nome || '').replace(/'/g, "\\'"))}', ${m.capacidade})">Editar</button>
           <button class="btn btn-xs btn-danger" onclick="excluirMesa(${m.id})">Excluir</button>
         </td>
       </tr>
@@ -2109,12 +2111,6 @@ async function salvarMesa() {
   document.getElementById('mesa-nome').value = '';
   document.getElementById('mesa-capacidade').value = '';
   carregarMesasAdmin();
-}
-
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
 }
 
 function formatarHora(iso) {
@@ -2150,9 +2146,9 @@ async function carregarUsuariosAdmin() {
     <thead><tr><th>Nome</th><th>Usuário</th><th>Perfil</th><th>Status</th><th>Trocar senha</th><th>Ações</th></tr></thead>
     <tbody>${usuarios.map(u => `
       <tr>
-        <td>${u.nome}</td>
-        <td>${u.usuario}</td>
-        <td>${u.perfil}</td>
+        <td>${escapeHtml(u.nome)}</td>
+        <td>${escapeHtml(u.usuario)}</td>
+        <td>${escapeHtml(u.perfil)}</td>
         <td>
           <label class="toggle-switch">
             <input type="checkbox" ${u.ativo ? 'checked' : ''} onchange="toggleUsuarioStatus(${u.id}, this.checked)">
@@ -2161,10 +2157,10 @@ async function carregarUsuariosAdmin() {
         </td>
         <td>${u.trocar_senha ? '<span style="color:var(--warning)">Sim</span>' : '<span style="color:var(--success)">Não</span>'}</td>
         <td>
-          <button class="btn btn-xs btn-primary" onclick="editarUsuario(${u.id}, '${u.nome}', '${u.usuario}', '${u.perfil}', ${u.ativo})">Editar</button>
-          <button class="btn btn-xs btn-warning" onclick="redefinirSenhaUsuario(${u.id}, '${u.usuario}')">Redefinir senha (1234)</button>
-          ${u.id !== usuarioLogado.id ? `<button class="btn btn-xs btn-danger" onclick="excluirUsuario(${u.id}, '${u.usuario}')">Desativar</button>
-          <button class="btn btn-xs btn-danger" onclick="excluirUsuarioPermanente(${u.id}, '${u.usuario}')" title="Excluir definitivamente">Excluir</button>` : ''}
+          <button class="btn btn-xs btn-primary" onclick="editarUsuario(${u.id}, '${escapeHtml(u.nome)}', '${escapeHtml(u.usuario)}', '${escapeHtml(u.perfil)}', ${u.ativo})">Editar</button>
+          <button class="btn btn-xs btn-warning" onclick="redefinirSenhaUsuario(${u.id}, '${escapeHtml(u.usuario)}')">Redefinir senha (1234)</button>
+          ${u.id !== usuarioLogado.id ? `<button class="btn btn-xs btn-danger" onclick="excluirUsuario(${u.id}, '${escapeHtml(u.usuario)}')">Desativar</button>
+          <button class="btn btn-xs btn-danger" onclick="excluirUsuarioPermanente(${u.id}, '${escapeHtml(u.usuario)}')" title="Excluir definitivamente">Excluir</button>` : ''}
         </td>
       </tr>
     `).join('')}</tbody>
@@ -2225,7 +2221,7 @@ async function salvarUsuario() {
   try {
     const res = await authPost('/api/auth/usuarios', { nome, usuario, senha, perfil });
     if (!res.ok) { const err = await res.json(); showToast(err.error || err.detalhes?.[0] || 'Erro ao criar usuário'); return; }
-    showToast(`Usuário ${usuario} criado!`);
+    showToast(`Usuário ${escapeHtml(usuario)} criado!`);
     document.getElementById('usr-nome').value = '';
     document.getElementById('usr-usuario').value = '';
     document.getElementById('usr-senha').value = '';

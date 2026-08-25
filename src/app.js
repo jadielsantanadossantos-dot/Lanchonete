@@ -74,6 +74,12 @@ function buildApp() {
   app.use(helmet.xssFilter());
   app.use(helmet.frameguard({ action: 'deny' }));
   app.use(helmet.hidePoweredBy());
+  app.use((req, res, next) => {
+    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
+    res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+    res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
+    next();
+  });
 
   const globalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,

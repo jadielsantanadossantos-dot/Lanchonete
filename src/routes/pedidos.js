@@ -3,6 +3,14 @@ const rateLimit = require('express-rate-limit');
 const router = express.Router();
 const db = require('../db/database');
 const { middlewareAdmin } = require('../auth/auth');
+const { criarValidador, sanitizarString } = require('../utils/validation');
+
+const validarPedido = criarValidador({
+  forma_pagamento: { obrigatorio: true, tipo: 'string', enum: ['pix','dinheiro','cartao','mesa'] },
+  observacoes: { tipo: 'string', tamanho: { min: 0, max: 500 }, sanitizar: true },
+  endereco_entrega: { tipo: 'string', tamanho: { min: 0, max: 300 }, sanitizar: true },
+  bairro_entrega: { tipo: 'string', tamanho: { min: 0, max: 100 }, sanitizar: true }
+});
 
 const isDev = process.env.NODE_ENV !== 'production';
 const publicLimiter = isDev
@@ -66,7 +74,7 @@ router.get('/:id', middlewareAdmin, wrapAsync(async (req, res) => {
   res.json(pedido);
 }));
 
-router.post('/', wrapAsync(async (req, res) => {
+router.post('/', validarPedido, wrapAsync(async (req, res) => {
   // Cliente publico so pede com a loja aberta; garcom/admin (com token) podem sempre
   const cfgLoja = await db.get("SELECT valor FROM configuracoes WHERE chave = 'loja_aberta'");
   const lojaAberta = !cfgLoja || cfgLoja.valor !== 'false';
@@ -75,6 +83,10 @@ router.post('/', wrapAsync(async (req, res) => {
   }
 
   const { cliente_id, itens, forma_pagamento, observacoes, endereco_entrega, bairro_entrega, taxa_entrega, mesa_id } = req.body;
+
+  if (!Array.isArray(itens) || itens.length === 0 || itens.length > 30) {
+    return res.status(400).json({ error: 'Itens inválidos (1 a 30 itens por pedido)' });
+  }
 
   if (cliente_id) {
     const cliente = await db.get('SELECT bloqueado FROM clientes WHERE id = $1', cliente_id);
@@ -129,8 +141,10 @@ router.post('/', wrapAsync(async (req, res) => {
   const itemStmt = db.prepare('INSERT INTO pedido_itens (pedido_id, produto_id, produto_nome, quantidade, preco_unitario, observacao, unidade) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id');
   const adicStmt = db.prepare('INSERT INTO pedido_item_adicionais (pedido_item_id, adicional_nome, preco) VALUES ($1,$2,$3)');
 
+  // sanitiza observação de cada item para mitigar XSS stored
   for (const item of itens) {
-    const itemInfo = await itemStmt.run(pedidoId, item.produto_id, item.produto_nome, item.quantidade, item.preco_unitario, item.observacao || '', item.unidade === 'kg' ? 'kg' : 'un');
+    const obsSanitizada = sanitizarString(item.observacao || '');
+    const itemInfo = await itemStmt.run(pedidoId, item.produto_id, item.produto_nome, item.quantidade, item.preco_unitario, obsSanitizada, item.unidade === 'kg' ? 'kg' : 'un');
     if (item.adicionais) {
       for (const a of item.adicionais) {
         await adicStmt.run(itemInfo.lastInsertRowid, a.nome, a.preco);

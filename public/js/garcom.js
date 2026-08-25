@@ -15,6 +15,8 @@ let carrinhoAvulso = [];
 let categoriaFiltroAvulso = '';
 let usuarioLogado = null;
 
+function escapeHtml(s){ if(s==null) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
 document.addEventListener('DOMContentLoaded', () => init());
 
 async function init() {
@@ -229,7 +231,7 @@ function renderMesas() {
     return `
       <div class="g-mesa-card ${statusClass}" onclick="abrirMesa(${m.id})">
         <div class="g-mesa-icon">${icon}</div>
-        <div class="g-mesa-numero">${m.nome || ('Mesa ' + m.numero)}</div>
+        <div class="g-mesa-numero">${escapeHtml(m.nome || ('Mesa ' + m.numero))}</div>
         ${m.nome && m.nome !== ('Mesa ' + m.numero) ? `<div class="g-mesa-nome">Mesa ${m.numero}</div>` : ''}
         <div class="g-mesa-status">${statusLabel}</div>
       </div>
@@ -265,8 +267,8 @@ async function confirmarEnviarCozinha() {
     return;
   }
 
-  const nomes = itensNaoEnviados.map(i => `${i.quantidade}x ${i.produto_nome}`).join(', ');
-  if (!confirm(`Enviar para a cozinha:\n${nomes}\n\nA comanda continuará aberta para adicionar mais itens.`)) return;
+  const nomes = itensNaoEnviados.map(i => `${i.quantidade}x ${escapeHtml(i.produto_nome)}`).join(', ');
+  if (!confirm(`Enviar para a cozinha:\n${escapeHtml(nomes)}\n\nA comanda continuará aberta para adicionar mais itens.`)) return;
 
   enviandoCozinha = true;
   const btn = document.getElementById('g-btn-enviar-cozinha');
@@ -354,7 +356,7 @@ function renderComanda() {
     let itemTotal = item.preco_unitario * item.quantidade;
     const adcText = (item.adicionais || []).map(a => {
       itemTotal += a.preco * item.quantidade;
-      return `+ ${a.nome} (R$ ${a.preco.toFixed(2)})`;
+      return `+ ${escapeHtml(a.nome)} (R$ ${a.preco.toFixed(2)})`;
     }).join(', ');
 
     const isNovo = !item.enviado_cozinha;
@@ -367,9 +369,9 @@ function renderComanda() {
       <div class="${itemClass}">
         <div class="g-comanda-item-header">
           <div style="flex:1">
-            <div class="g-item-name">${item.produto_nome} ${badgeEnviado}</div>
-            ${adcText ? `<div class="g-item-details">${adcText}</div>` : ''}
-            ${item.observacao ? `<div class="g-item-details">Obs: ${item.observacao}</div>` : ''}
+            <div class="g-item-name">${escapeHtml(item.produto_nome)} ${badgeEnviado}</div>
+            ${adcText ? `<div class="g-item-details">${escapeHtml(adcText)}</div>` : ''}
+            ${item.observacao ? `<div class="g-item-details">Obs: ${escapeHtml(item.observacao)}</div>` : ''}
             ${!item.enviado_cozinha ? `
               <div class="qty-control" style="margin-top: 8px; justify-content: flex-start; display: flex;">
                 <button class="qty-btn" onclick="alterarQtdComanda(${item.id}, ${item.quantidade}, -1)" aria-label="Diminuir" style="width: 24px; height: 24px; font-size: 14px; padding: 0; line-height: 24px;">-</button>
@@ -473,7 +475,7 @@ function configurarPizzaModal(contexto) {
             showToast(err.error || 'Erro ao adicionar pizza');
             return;
           }
-          showToast(`${item.quantidade}x ${item.produto_nome} adicionado!`);
+          showToast(`${item.quantidade}x ${escapeHtml(item.produto_nome)} adicionado!`);
           await carregarComanda();
           mostrarTela('g-page-comanda', mesaAtual.nome || ('Mesa ' + mesaAtual.numero));
         } catch (e) { showToast('Erro ao adicionar pizza'); }
@@ -486,7 +488,7 @@ function configurarPizzaModal(contexto) {
       onAdd(item) {
         carrinhoAvulso.push(item);
         renderCarrinhoAvulso();
-        showToast(`${item.quantidade}x ${item.produto_nome} adicionado!`);
+        showToast(`${item.quantidade}x ${escapeHtml(item.produto_nome)} adicionado!`);
       }
     };
   }
@@ -533,12 +535,12 @@ function produtoCardHtmlGarcom(p, contexto) {
   return `
     <div class="g-produto-card" onclick="${onclick}">
       ${p.foto
-        ? `<img class="g-produto-img" src="${p.foto}" alt="${p.nome}" loading="lazy">`
+        ? `<img class="g-produto-img" src="${p.foto}" alt="${escapeHtml(p.nome)}" loading="lazy">`
         : `<div class="g-produto-placeholder">&#127828;</div>`}
       <div class="g-produto-info">
         <div class="g-produto-text">
-          <div class="g-produto-nome">${p.nome}</div>
-          ${p.descricao ? `<div class="g-produto-desc">${p.descricao}</div>` : ''}
+          <div class="g-produto-nome">${escapeHtml(p.nome)}</div>
+          ${p.descricao ? `<div class="g-produto-desc">${escapeHtml(p.descricao)}</div>` : ''}
           <div class="g-produto-preco">R$ ${p.preco.toFixed(2)}</div>
         </div>
         <button class="g-produto-add-icon">+</button>
@@ -576,7 +578,7 @@ function renderProdutosAgrupados(lista, contexto) {
     const itensHtml = g.itens.map(p => produtoCardHtmlGarcom(p, contexto)).join('');
     return `
       <div class="g-category-section">
-        <h2 class="g-category-heading">${g.nome}</h2>
+        <h2 class="g-category-heading">${escapeHtml(g.nome)}</h2>
         <div class="g-produtos-lista">
           ${itensHtml}
         </div>
@@ -657,8 +659,8 @@ async function abrirModalQuant(produtoId, contexto = 'mesa') {
         html += bases.map(a => `
           <div class="g-adicional-item">
             <label>
-              <input type="radio" name="g-base" value="${a.id}" data-nome="${a.nome}" data-preco="${a.preco}" data-tipo="base" onchange="atualizarTotalQuant()">
-              ${a.nome}
+              <input type="radio" name="g-base" value="${a.id}" data-nome="${escapeHtml(a.nome)}" data-preco="${a.preco}" data-tipo="base" onchange="atualizarTotalQuant()">
+              ${escapeHtml(a.nome)}
             </label>
             <span class="g-adicional-price">${a.preco > 0 ? '+ R$ ' + a.preco.toFixed(2) : 'Incluído'}</span>
           </div>
@@ -670,8 +672,8 @@ async function abrirModalQuant(produtoId, contexto = 'mesa') {
         html += coberturas.map(a => `
           <div class="g-adicional-item">
             <label>
-              <input type="checkbox" value="${a.id}" data-nome="${a.nome}" data-preco="${a.preco}" data-tipo="cobertura" data-limite="${a.limite || 0}" onchange="atualizarTotalQuant()">
-              ${a.nome}
+              <input type="checkbox" value="${a.id}" data-nome="${escapeHtml(a.nome)}" data-preco="${a.preco}" data-tipo="cobertura" data-limite="${a.limite || 0}" onchange="atualizarTotalQuant()">
+              ${escapeHtml(a.nome)}
             </label>
             <span class="g-adicional-price">${a.preco > 0 ? '+ R$ ' + a.preco.toFixed(2) : 'Incluído'}</span>
           </div>
@@ -683,8 +685,8 @@ async function abrirModalQuant(produtoId, contexto = 'mesa') {
         html += acompanhamentos.map(a => `
           <div class="g-adicional-item">
             <label>
-              <input type="checkbox" value="${a.id}" data-nome="${a.nome}" data-preco="${a.preco}" data-tipo="acompanhamento" data-limite="${a.limite || 0}" onchange="atualizarTotalQuant()">
-              ${a.nome}
+              <input type="checkbox" value="${a.id}" data-nome="${escapeHtml(a.nome)}" data-preco="${a.preco}" data-tipo="acompanhamento" data-limite="${a.limite || 0}" onchange="atualizarTotalQuant()">
+              ${escapeHtml(a.nome)}
             </label>
             <span class="g-adicional-price">${a.preco > 0 ? '+ R$ ' + a.preco.toFixed(2) : 'Incluído'}</span>
           </div>
@@ -726,8 +728,8 @@ async function abrirModalQuant(produtoId, contexto = 'mesa') {
         return `
           <div class="g-adicional-item">
             <label>
-              <input type="checkbox" value="${a.id}" data-nome="${a.nome}" data-preco="${a.preco}" data-tipo="${t}" data-base-max="${lim}" data-max="${lim}" onchange="atualizarTotalQuant()">
-              ${a.nome}
+              <input type="checkbox" value="${a.id}" data-nome="${escapeHtml(a.nome)}" data-preco="${a.preco}" data-tipo="${t}" data-base-max="${lim}" data-max="${lim}" onchange="atualizarTotalQuant()">
+              ${escapeHtml(a.nome)}
             </label>
             <span class="g-adicional-price">+ R$ ${a.preco.toFixed(2)}</span>
           </div>
@@ -834,7 +836,7 @@ async function confirmarAdicionarItem() {
     });
     renderCarrinhoAvulso();
     fecharModalQuant();
-    showToast(`${produtoSelecionado.nome} adicionado!`);
+    showToast(`${escapeHtml(produtoSelecionado.nome)} adicionado!`);
     return;
   }
 
@@ -860,7 +862,7 @@ async function confirmarAdicionarItem() {
     }
 
     fecharModalQuant();
-    showToast(`${quantAtual}x ${produtoSelecionado.nome} adicionado!`);
+    showToast(`${quantAtual}x ${escapeHtml(produtoSelecionado.nome)} adicionado!`);
     await carregarComanda();
     mostrarTela('g-page-comanda', mesaAtual.nome || ('Mesa ' + mesaAtual.numero));
   } catch (e) { showToast('Erro ao adicionar item'); }
@@ -984,7 +986,7 @@ async function confirmarLiberarMesa() {
 
   let msg = 'Liberar esta mesa?';
   if (temItensNaoEnviados) {
-    msg = `Ha ${comandaItens.length} item(ns) nao enviado(s) para a cozinha.\nEles serao REMOVIDOS permanentemente.\n\n${msg}`;
+    msg = `Ha ${comandaItens.length} item(ns) nao enviado(s) para a cozinha.\nEles serao REMOVIDOS permanentemente.\n\n${escapeHtml(msg)}`;
   }
 
   if (!confirm(msg)) return;
@@ -1119,7 +1121,7 @@ function renderCarrinhoAvulso() {
     return `
       <div class="g-carrinho-item">
         <div class="g-carrinho-item-info">
-          <div class="g-carrinho-item-nome">${item.produto_nome}</div>
+          <div class="g-carrinho-item-nome">${escapeHtml(item.produto_nome)}</div>
           <div class="g-carrinho-item-detail">R$ ${item.preco_unitario.toFixed(2)} cada</div>
           <div class="g-qty-control" style="justify-content:flex-start;margin-top:6px">
             <button class="g-qty-btn" style="width:32px;height:32px;font-size:1.1rem" onclick="alterarQtdAvulso(${i}, -1)">-</button>

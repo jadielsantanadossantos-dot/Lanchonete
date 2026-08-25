@@ -2,7 +2,7 @@ const express = require('express');
 const rateLimit = require('express-rate-limit');
 const router = express.Router();
 const db = require('../db/database');
-const { gerarHash, verificarSenha, gerarToken, gerarRefreshToken, verificarToken, middleware, middlewareAdmin } = require('../auth/auth');
+const { gerarHash, verificarSenha, gerarToken, gerarRefreshToken, verificarToken, isRefreshRevogado, revogarRefreshToken, middleware, middlewareAdmin } = require('../auth/auth');
 const { criarValidador } = require('../utils/validation');
 const { registrarAuditoria, AUDIT_ACTIONS } = require('../utils/audit');
 
@@ -104,6 +104,10 @@ router.post('/refresh', wrapAsync(async (req, res) => {
   const { refreshToken } = req.body;
   if (!refreshToken) return res.status(400).json({ error: 'Refresh token obrigatório' });
 
+  if (await isRefreshRevogado(refreshToken)) {
+    return res.status(401).json({ error: 'Refresh token revogado' });
+  }
+
   const payload = await verificarToken(refreshToken);
   if (!payload || payload.tipo !== 'refresh') {
     return res.status(401).json({ error: 'Refresh token inválido ou expirado' });
@@ -112,10 +116,23 @@ router.post('/refresh', wrapAsync(async (req, res) => {
   const user = await db.get('SELECT * FROM usuarios WHERE id = $1 AND ativo = true', payload.id);
   if (!user) return res.status(401).json({ error: 'Usuário não encontrado ou inativo' });
 
+  // rotaciona: revoga antigo e emite novo
+  await revogarRefreshToken(refreshToken, user.id);
+
   const token = await gerarToken(user);
   const novoRefreshToken = await gerarRefreshToken(user);
   registrarAuditoria({ usuarioId: user.id, usuarioNome: user.usuario, acao: AUDIT_ACTIONS.TOKEN_REFRESHED, req });
   res.json({ token, refreshToken: novoRefreshToken });
+}));
+
+// LOGOUT — revoga refresh token
+router.post('/logout', wrapAsync(async (req, res) => {
+  const { refreshToken } = req.body;
+  if (refreshToken) {
+    const payload = await verificarToken(refreshToken);
+    await revogarRefreshToken(refreshToken, payload ? payload.id : null);
+  }
+  res.json({ success: true });
 }));
 
 // ME (dados do usuário logado)
