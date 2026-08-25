@@ -95,7 +95,19 @@ async function init() {
     if (pedidoPendente) inscreverAcompanhamentoPedido(pedidoPendente);
   }
 
-  // Cliente aguardando confirmacao de Pix: restaura a tela de espera com o QR do valor
+  // Solicitar permissão para notificações
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+
+  // Restaurar página do hash URL (exceto páginas transitórias)
+  const hash = window.location.hash.replace('#', '');
+  const paginasTransitorias = ['page-pix', 'page-sucesso', 'page-pagamento', 'page-editar-cadastro'];
+  if (hash && document.getElementById(hash) && !paginasTransitorias.includes(hash)) {
+    mostrarPagina(hash);
+  }
+
+  // Cliente aguardando confirmacao de Pix: tem prioridade total sobre qualquer hash
   const aguardandoRaw = localStorage.getItem('pedidoAguardando');
   if (aguardandoRaw) {
     try {
@@ -105,18 +117,6 @@ async function init() {
     } catch (e) {
       localStorage.removeItem('pedidoAguardando');
     }
-  }
-
-  // Solicitar permissão para notificações
-  if ('Notification' in window && Notification.permission === 'default') {
-    Notification.requestPermission();
-  }
-
-  // Restaurar página do hash URL
-  const hash = window.location.hash.replace('#', '');
-  const paginasTransitorias = ['page-pix', 'page-sucesso', 'page-pagamento', 'page-editar-cadastro'];
-  if (hash && document.getElementById(hash) && !paginasTransitorias.includes(hash)) {
-    mostrarPagina(hash);
   }
 
   // Navegação por botão voltar/avançar do navegador
@@ -333,8 +333,10 @@ function formatarPeso(qtd) {
 }
 
 function abrirProduto(id) {
+  try {
   produtoAtual = produtos.find(p => p.id === id);
   if (!produtoAtual) return;
+  if (!Array.isArray(produtoAtual.adicionais)) produtoAtual.adicionais = [];
 
   const porKg = produtoAtual.unidade === 'kg';
   const isPizza = produtoAtual.categoria_nome && ['Pizza', 'Tradicional', 'Especial', 'Doce'].some(cat => produtoAtual.categoria_nome.toLowerCase().includes(cat.toLowerCase()));
@@ -386,7 +388,7 @@ function abrirProduto(id) {
   // Adicionais tradicionais (sabor, adicional, borda)
   const adicionaisTradicionais = produtoAtual.adicionais.filter(a => !a.tipo || ['adicional', 'sabor', 'borda'].includes(a.tipo));
   
-  function renderGrupoAdicionais(items, titulo, inputType, grupo, limite) {
+  const renderGrupoAdicionais = (items, titulo, inputType, grupo, limite) => {
     if (!items.length) return '';
     const isRadio = inputType === 'radio';
     const limiteTexto = limite > 0 ? ` (máx: ${limite})` : '';
@@ -618,6 +620,12 @@ function abrirProduto(id) {
 
   atualizarBtnAdd();
   document.getElementById('modal-produto').classList.add('active');
+  } catch (e) {
+    console.error('abrirProduto falhou:', e);
+    // Fallback: mostra modal mesmo com erro parcial
+    try { document.getElementById('modal-produto').classList.add('active'); } catch (_) {}
+    mostrarToast('Erro ao abrir produto. Tente novamente.');
+  }
 }
 
 function fecharModal() {
