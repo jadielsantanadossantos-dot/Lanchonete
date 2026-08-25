@@ -72,6 +72,31 @@ router.post('/', wrapAsync(async (req, res) => {
   }
 
   let subtotal = 0;
+
+  // Valida limites de adicionais configurados no admin (campo "Limite", ex.: borda recheada maximo 1)
+  for (const item of itens || []) {
+    const adicionais = item.adicionais || [];
+    const ids = [...new Set(adicionais.map(a => parseInt(a.id)).filter(Boolean))];
+    if (!ids.length) continue;
+    const rows = await db.all('SELECT id, tipo, limite FROM adicionais WHERE id = ANY($1)', ids);
+    const porId = new Map(rows.map(r => [r.id, r]));
+    const limitePorTipo = {};
+    const contagemPorTipo = {};
+    for (const a of adicionais) {
+      const reg = porId.get(parseInt(a.id));
+      if (!reg) continue;
+      const tipo = reg.tipo || 'adicional';
+      if (!(tipo in limitePorTipo)) limitePorTipo[tipo] = parseInt(reg.limite) || 0;
+      contagemPorTipo[tipo] = (contagemPorTipo[tipo] || 0) + 1;
+    }
+    for (const [tipo, qtd] of Object.entries(contagemPorTipo)) {
+      const limite = limitePorTipo[tipo] || 0;
+      if (limite > 0 && qtd > limite) {
+        return res.status(400).json({ error: `Máximo ${limite} ${tipo}(s) permitido(s) por item${item.produto_nome ? ` (${item.produto_nome})` : ''}` });
+      }
+    }
+  }
+
   itens.forEach(item => {
     let itemTotal = item.preco_unitario * item.quantidade;
     if (item.adicionais) {

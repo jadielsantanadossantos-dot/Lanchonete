@@ -129,6 +129,17 @@
     return (p.adicionais || []).filter(a => ['adicional', 'borda'].includes(a.tipo));
   }
 
+  // Limite configurado no painel admin (campo "Limite" do adicional) - 0 = livre
+  function limiteGrupo(items) {
+    return parseInt(items[0]?.limite) || 0;
+  }
+
+  function contarExtrasPorTipo(tipo) {
+    let n = 0;
+    extrasSel.forEach(e => { if ((e.tipo || 'adicional') === tipo) n++; });
+    return n;
+  }
+
   function totalAtual() {
     const prod = produtoTamanho();
     if (!prod) return 0;
@@ -188,7 +199,8 @@
       let passo = 4;
 
       if (bordas.length) {
-        html += `<div class="pm-step-label">${passo++}. Borda Recheada</div>`;
+        const limBordas = limiteGrupo(bordas);
+        html += `<div class="pm-step-label">${passo++}. Borda Recheada${limBordas > 0 ? ` (máx: ${limBordas})` : ''}</div>`;
         html += bordas.map(a => `
           <div class="pm-item">
             <label onclick="event.stopPropagation()">
@@ -203,7 +215,8 @@
       }
 
       if (adicionaisExtras.length) {
-        html += `<div class="pm-step-label">${passo++}. Adicionais</div>`;
+        const limAdic = limiteGrupo(adicionaisExtras);
+        html += `<div class="pm-step-label">${passo++}. Adicionais${limAdic > 0 ? ` (máx: ${limAdic})` : ''}</div>`;
         html += adicionaisExtras.map(a => `
           <div class="pm-item">
             <label onclick="event.stopPropagation()">
@@ -287,6 +300,19 @@
     while (saboresSel.size > max) {
       saboresSel.delete(saboresSel.values().next().value);
     }
+    // Remover excesso de bordas/adicionais se o limite do grupo diminuiu
+    ['borda', 'adicional'].forEach(tipo => {
+      const grupo = extrasDoTamanho().filter(a => (a.tipo || 'adicional') === tipo);
+      const limGrupo = limiteGrupo(grupo) * Math.max(1, quantidade);
+      if (limGrupo <= 0) return;
+      let n = contarExtrasPorTipo(tipo);
+      extrasSel.forEach((e, id) => {
+        if (n > limGrupo && (e.tipo || 'adicional') === tipo) {
+          extrasSel.delete(id);
+          n--;
+        }
+      });
+    });
     renderCorpo();
   }
 
@@ -358,8 +384,19 @@
     _selExtra(id, cb) {
       const extra = extrasDoTamanho().find(a => a.id === id);
       if (!extra) return;
-      if (cb.checked) extrasSel.set(id, extra);
-      else extrasSel.delete(id);
+      const tipo = extra.tipo || 'adicional';
+      const grupo = extrasDoTamanho().filter(a => (a.tipo || 'adicional') === tipo);
+      const max = limiteGrupo(grupo) * Math.max(1, quantidade);
+      if (cb.checked) {
+        if (max > 0 && contarExtrasPorTipo(tipo) >= max) {
+          cb.checked = false;
+          (cfg.toast || (() => {}))(`Máximo ${max} ${tipo === 'borda' ? 'borda(s)' : 'adicional(is)'} permitido(s)`);
+          return;
+        }
+        extrasSel.set(id, extra);
+      } else {
+        extrasSel.delete(id);
+      }
       atualizarRodape();
     },
     _qtd(delta) {

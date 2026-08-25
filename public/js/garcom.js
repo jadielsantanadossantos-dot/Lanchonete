@@ -709,19 +709,50 @@ async function abrirModalQuant(produtoId, contexto = 'mesa') {
         });
       }, 10);
     } else {
-      // Adicionais tradicionais
-      html = adicionaisTradicionais.map(a => `
-        <div class="g-adicional-item">
-          <label>
-            <input type="checkbox" value="${a.id}" data-nome="${a.nome}" data-preco="${a.preco}" onchange="atualizarTotalQuant()">
-            ${a.nome}
-          </label>
-          <span class="g-adicional-price">+ R$ ${a.preco.toFixed(2)}</span>
-        </div>
-      `).join('');
+      // Adicionais tradicionais - limite por grupo vem do campo "Limite" do adicional no admin
+      const itensPorTipo = {};
+      adicionaisTradicionais.forEach(a => {
+        const t = a.tipo || 'adicional';
+        (itensPorTipo[t] = itensPorTipo[t] || []).push(a);
+      });
+      const limitePorGrupo = {};
+      Object.keys(itensPorTipo).forEach(t => {
+        limitePorGrupo[t] = parseInt(itensPorTipo[t][0]?.limite) || 0;
+      });
+
+      html = adicionaisTradicionais.map(a => {
+        const t = a.tipo || 'adicional';
+        const lim = limitePorGrupo[t] || 0;
+        return `
+          <div class="g-adicional-item">
+            <label>
+              <input type="checkbox" value="${a.id}" data-nome="${a.nome}" data-preco="${a.preco}" data-tipo="${t}" data-base-max="${lim}" data-max="${lim}" onchange="atualizarTotalQuant()">
+              ${a.nome}
+            </label>
+            <span class="g-adicional-price">+ R$ ${a.preco.toFixed(2)}</span>
+          </div>
+        `;
+      }).join('');
     }
 
     adcList.innerHTML = html;
+
+    // Validar limite por grupo (ex.: borda recheada com maximo 1)
+    setTimeout(() => {
+      document.querySelectorAll('#g-quant-adicionais-list input[data-base-max]').forEach(cb => {
+        cb.addEventListener('change', function() {
+          const max = parseInt(this.dataset.max) || 0;
+          const t = this.dataset.tipo;
+          if (max <= 0 || !t) return;
+          const checked = document.querySelectorAll(`#g-quant-adicionais-list input[data-tipo="${t}"]:checked`).length;
+          if (checked > max) {
+            this.checked = false;
+            showToast(`Máximo ${max} ${t}(s) permitido(s)`);
+            atualizarTotalQuant();
+          }
+        });
+      });
+    }, 10);
   } else {
     adcSection.style.display = 'none';
   }
@@ -734,10 +765,29 @@ function fecharModalQuant() {
   document.getElementById('g-modal-quant').classList.remove('active');
 }
 
+// Multiplica o limite configurado pela quantidade e desmarca excedentes (ex.: 2 itens = ate 2 bordas)
+function aplicarLimitesGarcom() {
+  const mult = Math.max(1, quantAtual || 1);
+  document.querySelectorAll('#g-quant-adicionais-list input[data-base-max]').forEach(cb => {
+    const base = parseInt(cb.dataset.baseMax) || 0;
+    cb.dataset.max = base > 0 ? base * mult : 0;
+  });
+  document.querySelectorAll('#g-quant-adicionais-list input[data-max]').forEach(cb => {
+    const max = parseInt(cb.dataset.max) || 0;
+    if (max <= 0 || !cb.checked) return;
+    const t = cb.dataset.tipo;
+    if (!t) return;
+    const checked = document.querySelectorAll(`#g-quant-adicionais-list input[data-tipo="${t}"]:checked`);
+    if (checked.length > max) cb.checked = false;
+  });
+  atualizarTotalQuant();
+}
+
 function alterarQuant(delta) {
   quantAtual = Math.max(1, quantAtual + delta);
   document.getElementById('g-quant-value').textContent = quantAtual;
   atualizarTotalQuant();
+  aplicarLimitesGarcom();
 }
 
 function atualizarTotalQuant() {
