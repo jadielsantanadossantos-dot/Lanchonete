@@ -969,11 +969,13 @@ function renderizarAdicionais(adicionais) {
     'cobertura': { text: '🍓 Cobertura', bg: '#fce4ec' },
     'acompanhamento': { text: '🍟 Acompanhamento', bg: '#f3e5f5' }
   };
-  // Ordenar pela ordem da categoria e, dentro dela, por nome
+  // Ordenar pela ordem da categoria, depois por valor e depois por tipo
   const ordemMap = new Map((categoriasAdmin || []).map(c => [c.id, c.ordem ?? 999]));
   const ordenados = [...adicionais].sort((a, b) =>
     ((ordemMap.get(a.categoria_id) ?? 999) - (ordemMap.get(b.categoria_id) ?? 999)) ||
-    (a.nome || '').localeCompare(b.nome || '')
+    (parseFloat(a.preco) - parseFloat(b.preco)) ||
+    ((a.tipo || '').localeCompare(b.tipo || '')) ||
+    ((a.nome || '').localeCompare(b.nome || ''))
   );
 
   container.innerHTML = `
