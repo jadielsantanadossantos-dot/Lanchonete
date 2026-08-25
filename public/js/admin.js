@@ -521,45 +521,45 @@ async function imprimirComanda(pedidoId) {
   .header h1 { font-size: 16px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; }
   .header .sub { font-size: 9px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-top: 1mm; }
   .badge-pedido { display: inline-block; border: 2px solid #000; padding: 1.5mm 4mm; font-size: 11px; font-weight: 900; margin-top: 3mm; text-transform: uppercase; }
-  .info-card { border: 1px solid #000; padding: 2.5mm; margin: 3mm 0; }
+.info-card { border: 1px solid #000; padding: 2.5mm; margin: 3mm 0; }
   .info-row { display: flex; gap: 2mm; margin: 1mm 0; font-size: 10px; line-height: 1.3; }
-  .info-label { font-weight: 800; min-width: 16mm; flex-shrink: 0; }
-  .info-value { flex: 1; font-weight: 600; word-break: break-word; }
+  .info-label { font-weight: 800; min-width: 16mm; flex-shrink: 0; color: #000; }
+  .info-value { flex: 1; font-weight: 600; word-break: break-word; color: #000; }
   .sep { border: none; border-top: 1px dashed #000; margin: 3mm 0; }
   .sep-strong { border-top: 2px solid #000; margin: 3mm 0; }
   .itens-lista { margin: 2mm 0; }
   .itens-titulo { font-size: 9px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; text-align: center; border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 1.5mm 0; margin-bottom: 2mm; }
   .item-bloco { border: 2px solid #000; padding: 2.5mm; margin: 3mm 0; }
   .item-header { display: flex; align-items: center; gap: 2mm; font-size: 12px; border-bottom: 1px solid #000; padding-bottom: 1.5mm; margin-bottom: 1.5mm; }
-  .item-qty { background: #000; color: #fff; font-weight: 900; font-size: 11px; padding: 1mm 2mm; min-width: 10mm; text-align: center; flex-shrink: 0; }
+  .item-qty { border: 1.5px solid #000; font-weight: 900; font-size: 11px; padding: 1mm 2mm; min-width: 10mm; text-align: center; flex-shrink: 0; background: #fff; color: #000; }
   .item-nome { flex: 1; font-weight: 900; font-size: 13px; text-transform: uppercase; letter-spacing: 0.3px; }
-  .item-val { font-weight: 900; white-space: nowrap; font-size: 12px; border: 1px solid #000; padding: 0.5mm 2mm; }
-  .item-detalhe { font-size: 8px; margin: 1mm 0 0 0; font-style: italic; font-weight: 600; }
+  .item-val { font-weight: 900; white-space: nowrap; font-size: 12px; border: 1px solid #000; padding: 0.5mm 2mm; background: #fff; color: #000; }
+  .item-detalhe { font-size: 8px; margin: 1mm 0 0 0; font-style: italic; font-weight: 600; color: #000; }
   .item-adics { margin: 2mm 0 0 0; border: 1.5px solid #000; padding: 2mm; }
-  .adic-linha { display: flex; justify-content: space-between; font-size: 9px; padding: 1mm 0; border-bottom: 1px dashed #000; font-weight: 600; }
+  .adic-linha { display: flex; justify-content: space-between; font-size: 9px; padding: 1mm 0; border-bottom: 1px dashed #000; font-weight: 600; color: #000; }
   .adic-linha:last-child { border-bottom: none; }
-  .adic-nome { }
-  .adic-val { font-weight: 900; white-space: nowrap; margin-left: 2mm; }
-  .item-obs { margin: 2mm 0 0 0; border: 2px solid #000; padding: 2mm; font-size: 10px; font-weight: 800; font-style: normal; background: #fff; text-transform: uppercase; }
+  .adic-nome { color: #000; }
+  .adic-val { font-weight: 900; white-space: nowrap; margin-left: 2mm; color: #000; }
+  .item-obs { margin: 2mm 0 0 0; border: 2px solid #000; padding: 2mm; font-size: 10px; font-weight: 800; font-style: normal; background: #fff; text-transform: uppercase; color: #000; }
   .item-obs::before { content: 'OBS: '; font-weight: 900; }
   .item-sep { display: none; }
   .totals { border: 1px solid #000; padding: 2.5mm; margin: 3mm 0; }
   .totals .linha { display: flex; justify-content: space-between; margin: 1mm 0; font-size: 10px; }
-  .totals .linha span:last-child { font-weight: 800; }
-  .total-box { border: 2px solid #000; padding: 3mm; margin: 2.5mm 0; display: flex; justify-content: space-between; align-items: center; font-weight: 900; }
+  .totals .linha span:last-child { font-weight: 800; color: #000; }
+  .total-box { border: 2px solid #000; padding: 3mm; margin: 2.5mm 0; display: flex; justify-content: space-between; align-items: center; font-weight: 900; color: #000; }
   .total-box span:first-child { font-size: 12px; }
   .total-box span:last-child { font-size: 16px; }
   .pay-status { display: grid; grid-template-columns: 1fr 1fr; gap: 2mm; margin: 3mm 0; }
-  .pay-card { border: 1px solid #000; padding: 2mm; text-align: center; }
-  .pay-card .label { font-size: 7px; font-weight: 800; letter-spacing: 0.8px; text-transform: uppercase; }
-  .pay-card .value { font-size: 10px; font-weight: 900; margin-top: 1mm; }
-  .obs-box { border: 2px solid #000; padding: 3mm; margin: 3mm 0; font-size: 11px; font-weight: 900; text-align: center; text-transform: uppercase; }
-  .troco-box { border: 1.5px solid #000; padding: 2.5mm 3mm; margin: 2mm 0; }
-  .troco-box .linha { font-size: 10px; }
+  .pay-card { border: 1px solid #000; padding: 2mm; text-align: center; background: #fff; }
+  .pay-card .label { font-size: 7px; font-weight: 800; letter-spacing: 0.8px; text-transform: uppercase; color: #000; }
+  .pay-card .value { font-size: 10px; font-weight: 900; margin-top: 1mm; color: #000; }
+  .obs-box { border: 2px solid #000; padding: 3mm; margin: 3mm 0; font-size: 11px; font-weight: 900; text-align: center; text-transform: uppercase; color: #000; }
+  .troco-box { border: 1.5px solid #000; padding: 2.5mm 3mm; margin: 2mm 0; background: #fff; }
+  .troco-box .linha { font-size: 10px; color: #000; }
   .rodape { text-align: center; margin-top: 4mm; padding-top: 3mm; border-top: 2px solid #000; }
-  .rodape .obrigado { font-size: 11px; font-weight: 900; letter-spacing: 0.5px; text-transform: uppercase; }
-  .rodape .sub { font-size: 8px; margin-top: 1mm; }
-  .rodape .contato { font-size: 7.5px; margin-top: 2mm; border: 1px solid #000; padding: 2mm; }
+  .rodape .obrigado { font-size: 11px; font-weight: 900; letter-spacing: 0.5px; text-transform: uppercase; color: #000; }
+  .rodape .sub { font-size: 8px; margin-top: 1mm; color: #000; }
+  .rodape .contato { font-size: 7.5px; margin-top: 2mm; border: 1px solid #000; padding: 2mm; color: #000; }
   @media print {
     body { width: auto; }
     @page { size: 80mm auto; margin: 2mm; }
@@ -574,7 +574,7 @@ async function imprimirComanda(pedidoId) {
     <div class="sub">✦ Comanda de Pedido ✦</div>
     <div class="badge-pedido">PEDIDO #${p.id} • ${statusLabel.toUpperCase()}</div>
   </div>
-  <div style="text-align:center; font-size:8px; color:#64748B; margin:2.5mm 0 1mm">${dataHora}</div>
+  <div style="text-align:center; font-size:8px; color:#000; margin:2.5mm 0 1mm">${dataHora}</div>
   <div class="info-card">
     <div class="info-row"><span class="info-label">👤 Cliente</span><span class="info-value">${p.cliente_nome}</span></div>
     <div class="info-row"><span class="info-label">📞 Telefone</span><span class="info-value">${p.cliente_telefone}</span></div>
