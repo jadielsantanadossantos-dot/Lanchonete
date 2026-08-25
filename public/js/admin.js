@@ -1493,7 +1493,8 @@ async function carregarDadosWhatsApp() {
       vistosCat.add(p.categoria_id);
       categoriasUnicas.push({id: p.categoria_id, nome: p.categoria_nome});
     });
-    categoriasUnicas.sort((a,b)=>a.nome.localeCompare(b.nome));
+    const ordemMap = new Map(categorias.map(c => [c.id, c.ordem ?? 999]));
+    categoriasUnicas.sort((a,b)=> (ordemMap.get(a.id) ?? 999) - (ordemMap.get(b.id) ?? 999));
     categoriasUnicas.forEach(c=>{
       const selected=whatsappCategoriaFiltro===c.nome?'selected':'';
       html+=`<option value="${c.nome}" ${selected}>${c.nome}</option>`;
