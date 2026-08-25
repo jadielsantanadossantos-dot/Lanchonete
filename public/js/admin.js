@@ -1484,7 +1484,7 @@ function whatsappRenderAgrupado(lista){
 async function carregarDadosWhatsApp() {
   try {
     const [prodRes, catRes, bairroRes] = await Promise.all([
-      authFetch('/api/produtos'),
+      authFetch('/api/produtos/ativos?canal=garcom'),
       authFetch('/api/categorias'),
       authFetch('/api/bairros')
     ]);
