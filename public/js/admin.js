@@ -508,59 +508,53 @@ async function imprimirComanda(pedidoId) {
 <head>
 <meta charset="UTF-8">
 <title>Comanda #${p.id}</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { width: 80mm; font-family: 'Inter', -apple-system, sans-serif; font-size: 11px; color: #1F2937; padding: 0; background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { width: 80mm; font-family: 'Courier New', monospace; font-size: 11px; color: #000; padding: 0; background: #fff; }
   .ticket { padding: 4mm; }
-  .header { text-align: center; padding: 4mm 2mm 3mm; background: linear-gradient(135deg, #004E89 0%, #0066B2 60%, #FF6B35 100%); color: white; margin: -4mm -4mm 0; border-radius: 0 0 12px 12px; position: relative; overflow: hidden; }
-  .header::after { content: ''; position: absolute; right: -10mm; top: -8mm; width: 30mm; height: 30mm; background: rgba(255,255,255,0.08); border-radius: 50%; }
-  .header h1 { font-size: 15px; font-weight: 800; letter-spacing: 0.5px; position: relative; }
-  .header .sub { font-size: 8px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; opacity: 0.9; margin-top: 1mm; position: relative; }
-  .badge-pedido { display: inline-flex; align-items: center; gap: 1.5mm; background: white; color: #004E89; padding: 1.5mm 3.5mm; border-radius: 99px; font-size: 10px; font-weight: 800; margin-top: 3mm; position: relative; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
-  .info-card { background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 3mm; margin: 3mm 0; }
-  .info-row { display: flex; gap: 2mm; margin: 1mm 0; font-size: 10px; line-height: 1.4; }
-  .info-label { font-weight: 700; color: #475569; min-width: 16mm; flex-shrink: 0; display: flex; align-items: center; gap: 1mm; }
-  .info-value { flex: 1; font-weight: 600; color: #1E293B; word-break: break-word; }
-  .sep { border: none; border-top: 1px dashed #CBD5E1; margin: 3mm 0; }
-  .sep-strong { border-top: 2px solid #1E293B; margin: 3mm 0; }
+  .header { text-align: center; padding: 3mm 2mm; border-bottom: 2px solid #000; margin-bottom: 3mm; }
+  .header h1 { font-size: 16px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; }
+  .header .sub { font-size: 9px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-top: 1mm; }
+  .badge-pedido { display: inline-block; border: 2px solid #000; padding: 1.5mm 4mm; font-size: 11px; font-weight: 900; margin-top: 3mm; text-transform: uppercase; }
+  .info-card { border: 1px solid #000; padding: 2.5mm; margin: 3mm 0; }
+  .info-row { display: flex; gap: 2mm; margin: 1mm 0; font-size: 10px; line-height: 1.3; }
+  .info-label { font-weight: 800; min-width: 16mm; flex-shrink: 0; }
+  .info-value { flex: 1; font-weight: 600; word-break: break-word; }
+  .sep { border: none; border-top: 1px dashed #000; margin: 3mm 0; }
+  .sep-strong { border-top: 2px solid #000; margin: 3mm 0; }
   .itens-lista { margin: 2mm 0; }
-  .itens-titulo { font-size: 8px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: #64748B; margin-bottom: 2mm; display: flex; align-items: center; gap: 2mm; }
-  .itens-titulo::after { content: ''; flex: 1; height: 1px; background: #E2E8F0; }
-  .item-bloco { padding: 2.5mm 0; }
+  .itens-titulo { font-size: 9px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; text-align: center; border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 1.5mm 0; margin-bottom: 2mm; }
+  .item-bloco { padding: 2mm 0; border-bottom: 1px dashed #000; }
+  .item-bloco:last-child { border-bottom: none; }
   .item-header { display: flex; align-items: baseline; gap: 2mm; font-size: 11px; }
-  .item-qty { background: #004E89; color: white; font-weight: 800; font-size: 9px; padding: 0.8mm 1.8mm; border-radius: 4px; min-width: 8mm; text-align: center; flex-shrink: 0; }
-  .item-nome { flex: 1; font-weight: 800; color: #1E293B; font-size: 11px; }
-  .item-val { font-weight: 800; color: #1E293B; white-space: nowrap; font-size: 11px; }
-  .item-detalhe { font-size: 8px; color: #64748B; margin: 1mm 0 0 11mm; }
-  .item-adics { margin: 1.5mm 0 0 11mm; background: #F8FAFC; border-radius: 6px; padding: 1.5mm 2mm; }
-  .adic-linha { display: flex; justify-content: space-between; font-size: 9px; padding: 0.8mm 0; border-bottom: 1px dashed #E2E8F0; }
+  .item-qty { border: 1.5px solid #000; font-weight: 900; font-size: 10px; padding: 0.5mm 1.5mm; min-width: 9mm; text-align: center; flex-shrink: 0; }
+  .item-nome { flex: 1; font-weight: 800; font-size: 11px; text-transform: uppercase; }
+  .item-val { font-weight: 900; white-space: nowrap; font-size: 11px; }
+  .item-detalhe { font-size: 8px; margin: 1mm 0 0 11mm; font-style: italic; }
+  .item-adics { margin: 1.5mm 0 0 11mm; border: 1px solid #000; padding: 1.5mm 2mm; }
+  .adic-linha { display: flex; justify-content: space-between; font-size: 9px; padding: 0.8mm 0; border-bottom: 1px dashed #000; }
   .adic-linha:last-child { border-bottom: none; }
-  .adic-nome { color: #475569; }
-  .adic-val { font-weight: 700; color: #334155; white-space: nowrap; margin-left: 2mm; }
-  .item-obs { margin: 1.5mm 0 0 11mm; background: #FFFBEB; border-left: 2.5px solid #F59E0B; border-radius: 0 6px 6px 0; padding: 1.5mm 2mm; font-size: 9px; font-style: italic; color: #92400E; }
-  .item-sep { border-top: 1px dashed #E2E8F0; margin: 2mm 0 2mm 11mm; }
-  .totals { background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 3mm; margin: 3mm 0; }
+  .adic-nome { }
+  .adic-val { font-weight: 800; white-space: nowrap; margin-left: 2mm; }
+  .item-obs { margin: 1.5mm 0 0 11mm; border: 1px solid #000; border-left: 3px solid #000; padding: 1.5mm 2mm; font-size: 9px; font-style: italic; }
+  .item-sep { display: none; }
+  .totals { border: 1px solid #000; padding: 2.5mm; margin: 3mm 0; }
   .totals .linha { display: flex; justify-content: space-between; margin: 1mm 0; font-size: 10px; }
-  .totals .linha span:first-child { color: #64748B; }
-  .totals .linha span:last-child { font-weight: 700; color: #1E293B; }
-  .total-box { background: linear-gradient(135deg, #004E89 0%, #0066B2 100%); color: white; border-radius: 8px; padding: 3mm 3.5mm; margin: 2.5mm 0; display: flex; justify-content: space-between; align-items: center; }
-  .total-box span:first-child { font-size: 11px; font-weight: 700; letter-spacing: 0.5px; }
-  .total-box span:last-child { font-size: 15px; font-weight: 800; }
+  .totals .linha span:last-child { font-weight: 800; }
+  .total-box { border: 2px solid #000; padding: 3mm; margin: 2.5mm 0; display: flex; justify-content: space-between; align-items: center; font-weight: 900; }
+  .total-box span:first-child { font-size: 12px; }
+  .total-box span:last-child { font-size: 16px; }
   .pay-status { display: grid; grid-template-columns: 1fr 1fr; gap: 2mm; margin: 3mm 0; }
-  .pay-card { background: #F1F5F9; border-radius: 6px; padding: 2mm; text-align: center; }
-  .pay-card .label { font-size: 7px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; color: #64748B; }
-  .pay-card .value { font-size: 10px; font-weight: 800; color: #1E293B; margin-top: 1mm; }
-  .pay-card.pix { background: #F0FDF4; border: 1px solid #BBF7D0; }
-  .pay-card.pix .value { color: #16A34A; }
-  .obs-box { background: #FFFBEB; border-left: 3px solid #F59E0B; border-radius: 6px; padding: 2.5mm 3mm; margin: 3mm 0; font-size: 10px; }
-  .obs-box strong { color: #92400E; }
-  .troco-box { background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 6px; padding: 2.5mm 3mm; margin: 2mm 0; }
+  .pay-card { border: 1px solid #000; padding: 2mm; text-align: center; }
+  .pay-card .label { font-size: 7px; font-weight: 800; letter-spacing: 0.8px; text-transform: uppercase; }
+  .pay-card .value { font-size: 10px; font-weight: 900; margin-top: 1mm; }
+  .obs-box { border: 1px solid #000; border-left: 3px solid #000; padding: 2.5mm 3mm; margin: 3mm 0; font-size: 10px; }
+  .troco-box { border: 1px solid #000; padding: 2.5mm 3mm; margin: 2mm 0; }
   .troco-box .linha { font-size: 10px; }
-  .rodape { text-align: center; margin-top: 4mm; padding-top: 3mm; border-top: 1px dashed #CBD5E1; }
-  .rodape .obrigado { font-size: 11px; font-weight: 800; color: #004E89; letter-spacing: 0.5px; }
-  .rodape .sub { font-size: 8px; color: #94A3B8; margin-top: 1mm; }
-  .rodape .contato { font-size: 7.5px; color: #64748B; margin-top: 2mm; background: #F8FAFC; padding: 2mm; border-radius: 6px; }
+  .rodape { text-align: center; margin-top: 4mm; padding-top: 3mm; border-top: 2px solid #000; }
+  .rodape .obrigado { font-size: 11px; font-weight: 900; letter-spacing: 0.5px; text-transform: uppercase; }
+  .rodape .sub { font-size: 8px; margin-top: 1mm; }
+  .rodape .contato { font-size: 7.5px; margin-top: 2mm; border: 1px solid #000; padding: 2mm; }
   @media print {
     body { width: auto; }
     @page { size: 80mm auto; margin: 2mm; }
