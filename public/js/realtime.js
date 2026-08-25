@@ -8,7 +8,7 @@ let supabaseClient = null;
 let initPromise = null;
 const listeners = new Map();
 const channels = new Map();
-const EVENTS = ['novo-pedido', 'pedido-atualizado', 'pix-confirmado', 'comanda-atualizada', 'mesa-atualizada'];
+const EVENTS = ['novo-pedido', 'pedido-atualizado', 'pix-confirmado', 'motoboy-atribuido', 'comanda-atualizada', 'mesa-atualizada'];
 
 async function loadConfig() {
   const res = await fetch('/api/config/public');
@@ -90,12 +90,25 @@ function leaveMesa(mesaId) {
   }
 }
 
+function leavePedido(pedidoId) {
+  const topic = `pedido-${pedidoId}`;
+  const ch = channels.get(topic);
+  if (ch && supabaseClient) {
+    supabaseClient.removeChannel(ch);
+    channels.delete(topic);
+  }
+}
+
 function joinAdmin() {
   initRealtime().then(() => ensureTopic('admin'));
 }
 
 function joinGarcom() {
   initRealtime().then(() => ensureTopic('garcom'));
+}
+
+function joinPedido(pedidoId) {
+  initRealtime().then(() => ensureTopic(`pedido-${pedidoId}`));
 }
 
 // ============================================
@@ -110,10 +123,15 @@ function subscribePixConfirmado(pedidoId, callback) {
 }
 
 function subscribePedidoStatus(pedidoId, callback) {
+  joinPedido(pedidoId);
   const handler = (data) => {
-    if (data.id === pedidoId) callback(data);
+    if (String(data.id) === String(pedidoId)) callback(data);
   };
-  return subscribe('pedido-atualizado', handler);
+  const unsub = subscribe('pedido-atualizado', handler);
+  return () => {
+    unsub();
+    leavePedido(pedidoId);
+  };
 }
 
 // ============================================
@@ -194,6 +212,8 @@ if (typeof window !== 'undefined') {
     init: initRealtime,
     subscribePixConfirmado,
     subscribePedidoStatus,
+    joinPedido,
+    leavePedido,
     subscribeComandaMesa,
     subscribeMesasStatus,
     subscribeNovoPedidoGarcom,

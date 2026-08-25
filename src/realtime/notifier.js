@@ -39,5 +39,6 @@ async function broadcast(topic, event, payload) {
 module.exports = {
   emitToAdmin: (event, data) => broadcast('admin', event, data),
   emitToGarcom: (event, data) => broadcast('garcom', event, data),
-  emitToMesa: (mesaId, event, data) => broadcast(`mesa-${mesaId}`, event, data)
+  emitToMesa: (mesaId, event, data) => broadcast(`mesa-${mesaId}`, event, data),
+  emitToPedido: (pedidoId, event, data) => broadcast(`pedido-${pedidoId}`, event, data)
 };

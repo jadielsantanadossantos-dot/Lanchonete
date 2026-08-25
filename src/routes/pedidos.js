@@ -143,6 +143,9 @@ router.post('/', wrapAsync(async (req, res) => {
   if (req.emitToGarcom) {
     await req.emitToGarcom('novo-pedido', pedido);
   }
+  if (req.emitToPedido) {
+    await req.emitToPedido(pedidoId, 'novo-pedido', pedido);
+  }
 
   res.json(pedido);
 }));
@@ -161,11 +164,16 @@ router.put('/:id/status', middlewareAdmin, wrapAsync(async (req, res) => {
 
   await db.run('UPDATE pedidos SET status = $1, atualizado_em = NOW() WHERE id = $2', status, req.params.id);
 
+  const pedidoId = parseInt(req.params.id);
+  const payload = { id: pedidoId, status };
   if (req.emitToAdmin) {
-    await req.emitToAdmin('pedido-atualizado', { id: parseInt(req.params.id), status });
+    await req.emitToAdmin('pedido-atualizado', payload);
   }
   if (req.emitToGarcom) {
-    await req.emitToGarcom('pedido-atualizado', { id: parseInt(req.params.id), status });
+    await req.emitToGarcom('pedido-atualizado', payload);
+  }
+  if (req.emitToPedido) {
+    await req.emitToPedido(pedidoId, 'pedido-atualizado', payload);
   }
 
   res.json({ success: true });
@@ -179,18 +187,22 @@ router.put('/:id/motoboy', middlewareAdmin, wrapAsync(async (req, res) => {
     if (!motoboy) return res.status(404).json({ error: 'Motoboy não encontrado' });
   }
   await db.run('UPDATE pedidos SET motoboy_id = $1, atualizado_em = NOW() WHERE id = $2', motoboyId, req.params.id);
+  if (motoboyId && req.emitToPedido) {
+    await req.emitToPedido(parseInt(req.params.id), 'motoboy-atribuido', { id: parseInt(req.params.id), motoboy_id: motoboyId });
+  }
   res.json({ success: true });
 }));
 
 router.put('/:id/pix', middlewareAdmin, wrapAsync(async (req, res) => {
   const { confirmado } = req.body;
-  await db.run('UPDATE pedidos SET pix_confirmado = $1 WHERE id = $2', confirmado ? true : false, req.params.id);
+  const pedidoId = parseInt(req.params.id);
+  await db.run('UPDATE pedidos SET pix_confirmado = $1 WHERE id = $2', confirmado ? true : false, pedidoId);
 
-  if (req.emitToAdmin && confirmado) {
-    await req.emitToAdmin('pix-confirmado', { id: parseInt(req.params.id) });
-  }
-  if (req.emitToGarcom && confirmado) {
-    await req.emitToGarcom('pix-confirmado', { id: parseInt(req.params.id) });
+  if (confirmado) {
+    const payload = { id: pedidoId };
+    if (req.emitToAdmin) await req.emitToAdmin('pix-confirmado', payload);
+    if (req.emitToGarcom) await req.emitToGarcom('pix-confirmado', payload);
+    if (req.emitToPedido) await req.emitToPedido(pedidoId, 'pix-confirmado', payload);
   }
 
   res.json({ success: true });

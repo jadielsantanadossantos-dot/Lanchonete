@@ -10,12 +10,52 @@ let ultimoPedidoId = null;
 let config = {};
 let clienteLogado = null;
 let lojaAberta = true;
-
-// Supabase Realtime config (unused in local version)
-const SUPABASE_URL = '';
-const SUPABASE_ANON_KEY = '';
+let pedidoAtivoUnsub = null;
 
 document.addEventListener('DOMContentLoaded', init);
+
+// Acompanha em tempo real o pedido ativo do cliente (pix confirmado + mudanças de status)
+function inscreverAcompanhamentoPedido(pedidoId) {
+  if (!window.Realtime || !window.Realtime.subscribePedidoStatus) return;
+  if (pedidoAtivoUnsub) { try { pedidoAtivoUnsub(); } catch (e) {} pedidoAtivoUnsub = null; }
+
+  const encerrar = () => {
+    localStorage.removeItem('ultimoPedidoId');
+    if (pedidoAtivoUnsub) { try { pedidoAtivoUnsub(); } catch (e) {} pedidoAtivoUnsub = null; }
+  };
+
+  const notificar = (msg) => {
+    mostrarToast(msg);
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification('Pedido atualizado!', { body: msg });
+    }
+  };
+
+  const unsubs = [];
+
+  unsubs.push(window.Realtime.subscribePixConfirmado(pedidoId, (pedido) => {
+    encerrar();
+    notificar('Pagamento Pix confirmado!');
+    document.getElementById('success-msg').textContent = `Seu pedido #${pedido.id} foi recebido com sucesso!`;
+    mostrarPagina('page-sucesso');
+  }));
+
+  unsubs.push(window.Realtime.subscribePedidoStatus(pedidoId, (data) => {
+    if (!data.status) return;
+    const label = PEDIDO_STATUS_LABELS[data.status] || data.status;
+    if (data.status === 'entregue' || data.status === 'cancelado') {
+      encerrar();
+    } else {
+      notificar(`Pedido #${data.id}: ${label}`);
+      const msgEl = document.getElementById('success-msg');
+      if (msgEl && document.getElementById('page-sucesso').classList.contains('active')) {
+        msgEl.textContent = `Seu pedido #${data.id}: ${label}`;
+      }
+    }
+  }));
+
+  pedidoAtivoUnsub = () => unsubs.forEach(u => { try { u(); } catch (e) {} });
+}
 
 async function init() {
   await Promise.all([carregarConfig(), carregarProdutos(), carregarBairros()]);
@@ -23,36 +63,12 @@ async function init() {
   atualizarCartFab();
   carregarClienteLocal();
 
-// Inicializar Socket.io Realtime local
-    if (window.Realtime && window.Realtime.init) {
-      window.Realtime.init();
-    
-    // Escutar confirmação de Pix quando estiver na página de pix
-    let pixUnsubscribe = null;
-    
-    // Observar quando entra na página de pix para começar a escutar
-    const originalMostrarPagina = window.mostrarPagina;
-    window.mostrarPagina = function(pageId) {
-      // Cleanup anterior
-      if (pixUnsubscribe) {
-        pixUnsubscribe();
-        pixUnsubscribe = null;
-      }
-      
-      originalMostrarPagina(pageId);
-      
-      // Se entrou na página de pix e tem ultimoPedidoId, começar a escutar
-      if (pageId === 'page-pix' && ultimoPedidoId) {
-        pixUnsubscribe = window.Realtime.subscribePixConfirmado(ultimoPedidoId, (pedido) => {
-          mostrarToast('Pagamento Pix confirmado!');
-          if (Notification.permission === 'granted') {
-            new Notification('Pagamento confirmado!', { body: `Seu pedido #${pedido.id} foi confirmado.` });
-          }
-          document.getElementById('success-msg').textContent = `Seu pedido #${pedido.id} foi recebido com sucesso!`;
-          mostrarPagina('page-sucesso');
-        });
-      }
-    };
+  if (window.Realtime && window.Realtime.init) {
+    window.Realtime.init();
+
+    // Retomar acompanhamento de pedido pendente (sobrevive a refresh da página)
+    const pedidoPendente = parseInt(localStorage.getItem('ultimoPedidoId'));
+    if (pedidoPendente) inscreverAcompanhamentoPedido(pedidoPendente);
   }
 
   // Solicitar permissão para notificações
@@ -935,6 +951,8 @@ async function finalizarPedido() {
     
     const pedido = await pedidoRes.json();
     ultimoPedidoId = pedido.id;
+    localStorage.setItem('ultimoPedidoId', String(pedido.id));
+    inscreverAcompanhamentoPedido(pedido.id);
 
     carrinho = [];
     salvarCarrinhoLocal();
@@ -985,6 +1003,44 @@ function acompanharPedido() {
 }
 
 let meusPedidosCache = [];
+let pedidosStatusUnsubs = [];
+
+function limparInscricoesPedidos() {
+  pedidosStatusUnsubs.forEach(unsub => { try { unsub(); } catch (e) {} });
+  pedidosStatusUnsubs = [];
+}
+
+const PEDIDO_STATUS_LABELS = { recebido: 'Recebido', em_preparo: 'Em preparo', saiu_entrega: 'Saiu p/ entrega', entregue: 'Entregue', cancelado: 'Cancelado' };
+
+function atualizarStatusPedidoVisual(pedidoId, novoStatus) {
+  const p = meusPedidosCache.find(x => String(x.id) === String(pedidoId));
+  if (p) p.status = novoStatus;
+  const detail = document.querySelector(`.pedido-detail[data-pedido-id="${pedidoId}"]`);
+  const badge = detail?.querySelector('.status-badge');
+  if (badge) {
+    badge.textContent = PEDIDO_STATUS_LABELS[novoStatus] || novoStatus;
+    badge.className = `status-badge status-${novoStatus}`;
+  }
+}
+
+function inscreverStatusPedidos(pedidos) {
+  if (!window.Realtime || !window.Realtime.subscribePedidoStatus) return;
+  limparInscricoesPedidos();
+  pedidos.forEach(p => {
+    pedidosStatusUnsubs.push(window.Realtime.subscribePedidoStatus(p.id, (data) => {
+      if (!data.status) return;
+      const eraAntigo = p.status;
+      atualizarStatusPedidoVisual(p.id, data.status);
+      p.status = data.status;
+      if (eraAntigo !== data.status) {
+        mostrarToast(`Pedido #${p.id}: ${PEDIDO_STATUS_LABELS[data.status] || data.status}`);
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification('Pedido atualizado!', { body: `Pedido #${p.id}: ${PEDIDO_STATUS_LABELS[data.status] || data.status}` });
+        }
+      }
+    }));
+  });
+}
 
 async function buscarPedidos() {
   const telefone = document.getElementById('acomp-telefone').value.trim();
@@ -997,22 +1053,22 @@ async function buscarPedidos() {
     meusPedidosCache = pedidos;
 
     if (!pedidos.length) {
+      limparInscricoesPedidos();
       document.getElementById('meus-pedidos').innerHTML = '<div class="empty-state"><p>Nenhum pedido encontrado</p></div>';
       return;
     }
 
-    const statusLabels = { recebido: 'Recebido', em_preparo: 'Em preparo', saiu_entrega: 'Saiu p/ entrega', entregue: 'Entregue', cancelado: 'Cancelado' };
     const payLabels = { pix: 'Pix', dinheiro: 'Dinheiro', cartao: 'Cartão (na entrega)' };
 
     document.getElementById('meus-pedidos').innerHTML = pedidos.map(p => `
-      <details class="pedido-detail" style="margin-bottom:12px">
+      <details class="pedido-detail" data-pedido-id="${p.id}" style="margin-bottom:12px">
         <summary class="cart-item" style="cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
           <div>
             <div class="cart-item-name">Pedido #${p.id}</div>
             <div class="cart-item-details">${new Date(p.criado_em).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</div>
           </div>
           <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-            <span class="status-badge status-${p.status}">${statusLabels[p.status] || p.status}</span>
+            <span class="status-badge status-${p.status}">${PEDIDO_STATUS_LABELS[p.status] || p.status}</span>
             <div class="cart-item-price">R$ ${p.total.toFixed(2)}</div>
           </div>
         </summary>
@@ -1021,6 +1077,8 @@ async function buscarPedidos() {
         </div>
       </details>
     `).join('');
+
+    inscreverStatusPedidos(pedidos);
 
     // Carregar detalhes quando expandir
     document.querySelectorAll('.pedido-detail').forEach(detail => {
