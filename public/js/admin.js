@@ -1597,15 +1597,96 @@ function abrirModalWhatsAppQtd(prodId) {
   document.getElementById('whatsapp-qtd-obs').value = '';
   const adcBox = document.getElementById('whatsapp-qtd-adicionais');
   const adcList = document.getElementById('whatsapp-qtd-adicionais-lista');
+  const adicionaisAcaI = whatsappProdutoSelecionado.adicionais.filter(a=>['base','cobertura','acompanhamento'].includes(a.tipo));
+  const isAcaI = adicionaisAcaI.length>0;
   if(whatsappProdutoSelecionado.adicionais && whatsappProdutoSelecionado.adicionais.length){
     adcBox.style.display='block';
-    adcList.innerHTML = whatsappProdutoSelecionado.adicionais.map(a=>`
-      <label style="display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid #f1f1f1; cursor:pointer">
-        <input type="checkbox" value="${a.id}" data-nome="${a.nome}" data-preco="${a.preco}" onchange="whatsappAtualizarTotal()">
-        <span style="flex:1; font-size:0.85rem">${a.nome}</span>
-        <span style="font-size:0.8rem; font-weight:700; color:var(--color-primary)">+ R$ ${a.preco.toFixed(2)}</span>
-      </label>
-    `).join('');
+    let html='';
+    if(isAcaI){
+      const bases=whatsappProdutoSelecionado.adicionais.filter(a=>a.tipo==='base');
+      const coberturas=whatsappProdutoSelecionado.adicionais.filter(a=>a.tipo==='cobertura');
+      const acompanhamentos=whatsappProdutoSelecionado.adicionais.filter(a=>a.tipo==='acompanhamento');
+      if(bases.length){
+        html+=`<div style="margin-bottom:10px; font-size:0.8rem; font-weight:700; color:var(--color-text); border-bottom:1px solid var(--color-border); padding-bottom:4px">Base</div>`;
+        html+=bases.map(a=>`
+          <label style="display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid #f1f1f1; cursor:pointer">
+            <input type="radio" name="whatsapp-base" value="${a.id}" data-nome="${a.nome}" data-preco="${a.preco}" data-tipo="base" onchange="whatsappAtualizarTotal()">
+            <span style="flex:1; font-size:0.85rem">${a.nome}</span>
+            <span style="font-size:0.8rem; font-weight:700; color:var(--color-primary)">${a.preco>0?`+ R$ ${a.preco.toFixed(2)}`:'Incluído'}</span>
+          </label>
+        `).join('');
+      }
+      if(coberturas.length){
+        html+=`<div style="margin:10px 0 6px; font-size:0.8rem; font-weight:700; color:var(--color-text); border-bottom:1px solid var(--color-border); padding-bottom:4px">Coberturas</div>`;
+        html+=coberturas.map(a=>`
+          <label style="display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid #f1f1f1; cursor:pointer">
+            <input type="checkbox" value="${a.id}" data-nome="${a.nome}" data-preco="${a.preco}" data-tipo="cobertura" data-limite="${a.limite||0}" onchange="whatsappAtualizarTotal()">
+            <span style="flex:1; font-size:0.85rem">${a.nome}</span>
+            <span style="font-size:0.8rem; font-weight:700; color:var(--color-primary)">${a.preco>0?`+ R$ ${a.preco.toFixed(2)}`:'Incluído'}</span>
+          </label>
+        `).join('');
+      }
+      if(acompanhamentos.length){
+        html+=`<div style="margin:10px 0 6px; font-size:0.8rem; font-weight:700; color:var(--color-text); border-bottom:1px solid var(--color-border); padding-bottom:4px">Acompanhamentos</div>`;
+        html+=acompanhamentos.map(a=>`
+          <label style="display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid #f1f1f1; cursor:pointer">
+            <input type="checkbox" value="${a.id}" data-nome="${a.nome}" data-preco="${a.preco}" data-tipo="acompanhamento" data-limite="${a.limite||0}" onchange="whatsappAtualizarTotal()">
+            <span style="flex:1; font-size:0.85rem">${a.nome}</span>
+            <span style="font-size:0.8rem; font-weight:700; color:var(--color-primary)">${a.preco>0?`+ R$ ${a.preco.toFixed(2)}`:'Incluído'}</span>
+          </label>
+        `).join('');
+      }
+      setTimeout(()=>{
+        ['cobertura','acompanhamento'].forEach(grupo=>{
+          document.querySelectorAll(`#whatsapp-qtd-adicionais-lista input[data-tipo="${grupo}"]`).forEach(cb=>{
+            cb.addEventListener('change', function(){
+              const limite=parseInt(this.dataset.limite)||0;
+              if(limite>0){
+                const checked=document.querySelectorAll(`#whatsapp-qtd-adicionais-lista input[data-tipo="${grupo}"]:checked`).length;
+                if(checked>limite){ this.checked=false; showToast(`Máximo ${limite} ${grupo}(s) permitido(s)`); }
+              }
+            });
+          });
+        });
+      },10);
+    } else {
+      // Tradicionais: agrupar por tipo se houver sabores/borda
+      const porTipo={};
+      whatsappProdutoSelecionado.adicionais.forEach(a=>{
+        const t=a.tipo||'adicional';
+        if(!porTipo[t]) porTipo[t]=[];
+        porTipo[t].push(a);
+      });
+      const ordemTipo=['sabor','borda','adicional'];
+      const titulos={sabor:'Sabores', borda:'Borda Recheada', adicional:'Adicionais'};
+      let first=true;
+      for(let tipo of ordemTipo){
+        if(!porTipo[tipo] || !porTipo[tipo].length) continue;
+        if(!first) html+=`<div style="margin:10px 0 6px; font-size:0.8rem; font-weight:700; color:var(--color-text); border-bottom:1px solid var(--color-border); padding-bottom:4px">${titulos[tipo]||tipo}</div>`;
+        first=false;
+        if(!html.includes('Sabores') && tipo==='sabor' && porTipo[tipo].length) html=`<div style="margin-bottom:6px; font-size:0.8rem; font-weight:700; color:var(--color-text); border-bottom:1px solid var(--color-border); padding-bottom:4px">${titulos[tipo]}</div>`+html;
+        html+=porTipo[tipo].map(a=>`
+          <label style="display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid #f1f1f1; cursor:pointer">
+            <input type="checkbox" value="${a.id}" data-nome="${a.nome}" data-preco="${a.preco}" data-tipo="${a.tipo||'adicional'}" onchange="whatsappAtualizarTotal()">
+            <span style="flex:1; font-size:0.85rem">${a.nome}</span>
+            <span style="font-size:0.8rem; font-weight:700; color:var(--color-primary)">+ R$ ${a.preco.toFixed(2)}</span>
+          </label>
+        `).join('');
+      }
+      // Se sobraram tipos não listados (ex: base já tratada, mas aqui já é não-açaí, então só esses)
+      const outrosTipos=Object.keys(porTipo).filter(t=>!ordemTipo.includes(t));
+      outrosTipos.forEach(t=>{
+        html+=`<div style="margin:10px 0 6px; font-size:0.8rem; font-weight:700; color:var(--color-text); border-bottom:1px solid var(--color-border); padding-bottom:4px">${t}</div>`;
+        html+=porTipo[t].map(a=>`
+          <label style="display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid #f1f1f1; cursor:pointer">
+            <input type="checkbox" value="${a.id}" data-nome="${a.nome}" data-preco="${a.preco}" data-tipo="${a.tipo}" onchange="whatsappAtualizarTotal()">
+            <span style="flex:1; font-size:0.85rem">${a.nome}</span>
+            <span style="font-size:0.8rem; font-weight:700; color:var(--color-primary)">+ R$ ${a.preco.toFixed(2)}</span>
+          </label>
+        `).join('');
+      });
+    }
+    adcList.innerHTML=html;
   } else { adcBox.style.display='none'; }
   whatsappAtualizarTotal();
   document.getElementById('modal-whatsapp-qtd').classList.add('active');
