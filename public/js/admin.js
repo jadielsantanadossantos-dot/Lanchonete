@@ -1434,15 +1434,19 @@ function isPizzaWhatsApp(p){ return !!(p && p.categoria_nome && p.categoria_nome
 
 function whatsappProdutoCardHtml(p){
   return `
-    <div class="whatsapp-produto-card" onclick="abrirModalWhatsAppQtd(${p.id})">
-      ${p.foto?`<img class="whatsapp-produto-img" src="${p.foto}" alt="${p.nome}" loading="lazy">`:`<div class="whatsapp-produto-placeholder">🍔</div>`}
-      <div class="whatsapp-produto-info">
-        <div class="whatsapp-produto-text">
-          <div class="whatsapp-produto-nome">${p.nome}</div>
-          ${p.descricao?`<div class="whatsapp-produto-desc">${p.descricao}</div>`:''}
-          <div class="whatsapp-produto-preco">R$ ${p.preco.toFixed(2)}</div>
+    <div class="product-card" onclick="abrirModalWhatsAppQtd(${p.id})">
+      <div class="product-media">
+        ${p.foto?`<img class="product-img" src="${p.foto}" alt="${p.nome}" loading="lazy">`:`<div class="product-img-placeholder">🍔</div>`}
+      </div>
+      <div class="product-info">
+        <div>
+          <div class="product-name">${p.nome}</div>
+          ${p.descricao?`<div class="product-desc">${p.descricao}</div>`:''}
         </div>
-        <div class="whatsapp-produto-add">+</div>
+        <div class="product-footer">
+          <span class="product-price">R$ ${p.preco.toFixed(2)}${p.unidade==='kg'?'\/kg':''}</span>
+          <button class="btn-add" onclick="event.stopPropagation(); abrirModalWhatsAppQtd(${p.id})" aria-label="Adicionar ${p.nome}">+</button>
+        </div>
       </div>
     </div>`;
 }
@@ -1463,7 +1467,6 @@ function whatsappRenderAgrupado(lista){
     if(g.pizza){
       if(pizzasInseridas) return '';
       pizzasInseridas=true;
-      // Configurar PizzaModal para WhatsApp (usa mesmo carrinho)
       if(window.PizzaModal){
         window.__pizzaCfgWhatsApp={ produtos: whatsappProdutos, toast: showToast, onAdd:item=>{
           whatsappCarrinho.push(item);
@@ -1471,12 +1474,10 @@ function whatsappRenderAgrupado(lista){
           showToast(`${item.quantidade}x ${item.produto_nome} adicionado!`);
         }};
       }
-      const cardHtml = window.PizzaModal ? window.PizzaModal.cardHtml('garcom').replace(/window\.__pizzaCfg/g,'window.__pizzaCfgWhatsApp').replace(/Montar sua Pizza/g,'Montar sua Pizza') : '';
-      // Adaptar card para estilo WhatsApp
-      const adaptado = cardHtml.replace(/g-produto-card/g,'whatsapp-produto-card').replace(/g-produto-placeholder/g,'whatsapp-produto-placeholder').replace(/g-produto-info/g,'whatsapp-produto-info').replace(/g-produto-text/g,'whatsapp-produto-text').replace(/g-produto-nome/g,'whatsapp-produto-nome').replace(/g-produto-desc/g,'whatsapp-produto-desc').replace(/g-produto-preco/g,'whatsapp-produto-preco').replace(/g-produto-add-icon/g,'whatsapp-produto-add');
-      return `<div class="whatsapp-category-section"><div class="whatsapp-category-heading">Pizzas</div><div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(240px,1fr)); gap:10px">${adaptado}</div></div>`;
+      const cardHtml = window.PizzaModal ? window.PizzaModal.cardHtml('cliente').replace(/window\.__pizzaCfg/g,'window.__pizzaCfgWhatsApp') : '';
+      return `<div class="category-section"><div class="category-heading">Pizzas</div><div class="category-items">${cardHtml}</div></div>`;
     }
-    return `<div class="whatsapp-category-section"><div class="whatsapp-category-heading">${g.nome}</div><div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(240px,1fr)); gap:10px">${g.itens.map(p=>whatsappProdutoCardHtml(p)).join('')}</div></div>`;
+    return `<div class="category-section"><div class="category-heading">${g.nome}</div><div class="category-items">${g.itens.map(p=>whatsappProdutoCardHtml(p)).join('')}</div></div>`;
   }).join('');
 }
 
@@ -1541,9 +1542,8 @@ function renderProdutosWhatsApp() {
     if(buscaPizza && (!whatsappCategoriaFiltro || whatsappCategoriaFiltro==='__pizzas__')){
       if(window.PizzaModal){
         window.__pizzaCfgWhatsApp={ produtos: whatsappProdutos, toast: showToast, onAdd:item=>{ whatsappCarrinho.push(item); renderCarrinhoWhatsApp(); showToast(`${item.quantidade}x ${item.produto_nome} adicionado!`); }};
-        let card = window.PizzaModal.cardHtml('garcom').replace(/window\.__pizzaCfg/g,'window.__pizzaCfgWhatsApp');
-        card = card.replace(/g-produto-card/g,'whatsapp-produto-card').replace(/g-produto-placeholder/g,'whatsapp-produto-placeholder').replace(/g-produto-info/g,'whatsapp-produto-info').replace(/g-produto-text/g,'whatsapp-produto-text').replace(/g-produto-nome/g,'whatsapp-produto-nome').replace(/g-produto-desc/g,'whatsapp-produto-desc').replace(/g-produto-preco/g,'whatsapp-produto-preco').replace(/g-produto-add-icon/g,'whatsapp-produto-add');
-        html += `<div class="whatsapp-category-section"><div class="whatsapp-category-heading">Pizzas</div><div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(240px,1fr)); gap:10px">${card}</div></div>`;
+        let card = window.PizzaModal.cardHtml('cliente').replace(/window\.__pizzaCfg/g,'window.__pizzaCfgWhatsApp');
+        html += `<div class="category-section"><div class="category-heading">Pizzas</div><div class="category-items">${card}</div></div>`;
       }
     }
     let lista = whatsappProdutos.filter(p=>{
@@ -1553,7 +1553,7 @@ function renderProdutosWhatsApp() {
       return true;
     });
     if(lista.length){
-      html += `<div class="whatsapp-category-section"><div class="whatsapp-category-heading">${whatsappCategoriaFiltro && whatsappCategoriaFiltro!=='__pizzas__' ? whatsappCategoriaFiltro : 'Produtos'}</div><div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(240px,1fr)); gap:10px">${lista.map(p=>whatsappProdutoCardHtml(p)).join('')}</div></div>`;
+      html += `<div class="category-section"><div class="category-heading">${whatsappCategoriaFiltro && whatsappCategoriaFiltro!=='__pizzas__' ? whatsappCategoriaFiltro : 'Produtos'}</div><div class="category-items">${lista.map(p=>whatsappProdutoCardHtml(p)).join('')}</div></div>`;
     }
   }
   container.innerHTML = html || '<p style="text-align:center; color:var(--color-text-muted); padding:20px">Nenhum produto</p>';

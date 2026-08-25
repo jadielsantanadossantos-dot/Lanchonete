@@ -242,21 +242,22 @@ body { font-family: var(--font-sans); background: var(--color-bg); color: var(--
 /* PEDIDOS GRID - DESKTOP BASE (grid) */
 .pedidos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); gap: var(--space-4); }
 
-/* WhatsApp Modal - Cardápio igual Garçom */
-#whatsapp-produtos-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
-.whatsapp-category-section { grid-column: 1 / -1; margin-bottom: 16px; }
-.whatsapp-category-heading { font-size: 0.75rem; font-weight: 800; color: var(--color-primary); text-transform: uppercase; letter-spacing: 0.5px; margin: 12px 0 8px; padding-bottom: 6px; border-bottom: 1px solid var(--color-border); }
-.whatsapp-produto-card { background: white; border: 1px solid var(--color-border); border-radius: 12px; padding: 10px; display: flex; align-items: center; gap: 10px; cursor: pointer; transition: all 0.15s; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-.whatsapp-produto-card:hover { border-color: var(--color-primary); box-shadow: 0 4px 12px rgba(0,0,0,0.08); transform: translateY(-1px); }
-.whatsapp-produto-img { width: 50px; height: 50px; border-radius: 8px; object-fit: cover; flex-shrink: 0; }
-.whatsapp-produto-placeholder { width: 50px; height: 50px; border-radius: 8px; background: var(--color-bg-alt); display: flex; align-items:center; justify-content:center; font-size:1.2rem; flex-shrink:0; }
-.whatsapp-produto-info { flex:1; display:flex; justify-content:space-between; align-items:center; min-width:0; }
-.whatsapp-produto-text { flex:1; min-width:0; padding-right:8px; }
-.whatsapp-produto-nome { font-weight:700; font-size:0.85rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.whatsapp-produto-desc { font-size:0.7rem; color:var(--color-text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.whatsapp-produto-preco { font-size:0.9rem; font-weight:800; color:var(--color-primary); white-space:nowrap; }
-.whatsapp-produto-add { width:32px; height:32px; border-radius:50%; background:var(--color-primary); color:white; display:flex; align-items:center; justify-content:center; font-size:1.1rem; flex-shrink:0; }
-@media (max-width: 767px) { #whatsapp-produtos-lista { grid-template-columns: 1fr; } }
+/* WhatsApp Modal - Cardápio igual Cliente (correto) */
+#whatsapp-produtos-lista .category-section { margin-bottom: 24px; }
+#whatsapp-produtos-lista .category-heading { position: sticky; top: 0; z-index: 2; background: white; font-size: 1.05rem; font-weight: 800; color: var(--color-text); margin: 0 0 12px; padding: 8px 0; border-bottom: 2px solid var(--color-primary); }
+#whatsapp-produtos-lista .category-items { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+#whatsapp-produtos-lista .product-card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 16px; overflow: hidden; display: flex; margin-bottom: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: all 0.15s; cursor: pointer; }
+#whatsapp-produtos-lista .product-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+#whatsapp-produtos-lista .product-media { width: 96px; height: 96px; flex-shrink: 0; background: var(--color-bg-alt); overflow: hidden; position: relative; }
+#whatsapp-produtos-lista .product-img { width: 100%; height: 100%; object-fit: cover; }
+#whatsapp-produtos-lista .product-img-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; background: var(--color-bg-alt); }
+#whatsapp-produtos-lista .product-info { flex: 1; padding: 10px 12px; display: flex; flex-direction: column; justify-content: space-between; min-width: 0; }
+#whatsapp-produtos-lista .product-name { font-weight: 700; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#whatsapp-produtos-lista .product-desc { font-size: 0.7rem; color: var(--color-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#whatsapp-produtos-lista .product-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
+#whatsapp-produtos-lista .product-price { font-weight: 800; color: var(--color-primary); font-size: 0.9rem; }
+#whatsapp-produtos-lista .btn-add { width: 32px; height: 32px; border-radius: 50%; background: var(--color-primary); color: white; border: none; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; cursor: pointer; flex-shrink: 0; }
+@media (max-width: 767px) { #whatsapp-produtos-lista .category-items { grid-template-columns: 1fr; } #whatsapp-produtos-lista .product-media { width: 84px; height: 84px; } }
 
 .pedido-card { 
   background: var(--color-surface); 
