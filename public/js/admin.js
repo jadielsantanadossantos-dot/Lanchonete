@@ -1452,18 +1452,31 @@ function whatsappProdutoCardHtml(p){
 }
 
 function whatsappRenderAgrupado(lista){
-  // Agrupar por categoria - mostrar todas as categorias, sem colapsar (para ver todas)
   const grupos=[]; const mapa=new Map();
   lista.forEach(p=>{
     const catId=p.categoria_id;
     if(!mapa.has(catId)){
       const itens=[];
       mapa.set(catId,itens);
-      grupos.push({id:catId, nome:p.categoria_nome||'Outros', itens});
+      grupos.push({id:catId, nome:p.categoria_nome||'Outros', pizza:isPizzaWhatsApp(p), itens});
     }
     mapa.get(catId).push(p);
   });
+  let pizzasInseridas=false;
   return grupos.map(g=>{
+    if(g.pizza){
+      if(pizzasInseridas) return '';
+      pizzasInseridas=true;
+      if(window.PizzaModal){
+        window.__pizzaCfgWhatsApp={ produtos: whatsappProdutos, toast: showToast, onAdd:item=>{
+          whatsappCarrinho.push(item);
+          renderCarrinhoWhatsApp();
+          showToast(`${item.quantidade}x ${item.produto_nome} adicionado!`);
+        }};
+      }
+      const cardHtml = window.PizzaModal ? window.PizzaModal.cardHtml('cliente').replace(/window\.__pizzaCfg/g,'window.__pizzaCfgWhatsApp') : '';
+      return `<div class="category-section"><div class="category-heading">Pizzas</div><div class="category-items">${cardHtml}</div></div>`;
+    }
     return `<div class="category-section"><div class="category-heading">${g.nome}</div><div class="category-items">${g.itens.map(p=>whatsappProdutoCardHtml(p)).join('')}</div></div>`;
   }).join('');
 }
@@ -1483,21 +1496,29 @@ async function carregarDadosWhatsApp() {
     const atual = bairroSel.value;
     bairroSel.innerHTML = '<option value="">Bairro *</option>' + bairros.filter(b=>b.atendido).map(b=>`<option value="${b.nome}" data-taxa="${b.taxa_entrega}">${b.nome} - R$ ${parseFloat(b.taxa_entrega).toFixed(2)}</option>`).join('');
     if (atual) bairroSel.value = atual;
-    // Categorias - dropdown (solicitado)
+    // Categorias - dropdown igual cliente/garçom (Pizzas colapsada)
     const catContainer = document.getElementById('whatsapp-categorias');
     let html = `<option value="">Todas as categorias</option>`;
-    const categoriasUnicas = [];
-    const vistosCat = new Set();
+    const tabs=[]; const vistos=new Set();
+    let pizzaOrdem = Infinity;
     whatsappProdutos.forEach(p=>{
-      if(vistosCat.has(p.categoria_id)) return;
-      vistosCat.add(p.categoria_id);
-      categoriasUnicas.push({id: p.categoria_id, nome: p.categoria_nome});
+      if(vistos.has(p.categoria_id)) return;
+      vistos.add(p.categoria_id);
+      if(isPizzaWhatsApp(p)){
+        if(!tabs.includes('__pizzas__')){
+          tabs.push('__pizzas__');
+          const pizzaCats=categorias.filter(c=>c.nome.toLowerCase().includes('pizza'));
+          pizzaOrdem=Math.min(...pizzaCats.map(c=>c.ordem ?? 999), pizzaOrdem);
+        }
+      } else tabs.push(p.categoria_nome);
     });
-    const ordemMap = new Map(categorias.map(c => [c.id, c.ordem ?? 999]));
-    categoriasUnicas.sort((a,b)=> (ordemMap.get(a.id) ?? 999) - (ordemMap.get(b.id) ?? 999));
-    categoriasUnicas.forEach(c=>{
-      const selected=whatsappCategoriaFiltro===c.nome?'selected':'';
-      html+=`<option value="${c.nome}" ${selected}>${c.nome}</option>`;
+    const ordemMap=new Map(categorias.map(c=>[c.nome, c.ordem ?? 999]));
+    ordemMap.set('__pizzas__', pizzaOrdem);
+    tabs.sort((a,b)=>(ordemMap.get(a)??999)-(ordemMap.get(b)??999));
+    tabs.forEach(c=>{
+      const label=c==='__pizzas__'?'Pizzas':c;
+      const selected=whatsappCategoriaFiltro===c?'selected':'';
+      html+=`<option value="${c}" ${selected}>${label}</option>`;
     });
     catContainer.innerHTML = html;
     catContainer.value = whatsappCategoriaFiltro;
@@ -1524,25 +1545,42 @@ function renderProdutosWhatsApp() {
     html += whatsappRenderAgrupado(whatsappProdutos);
   } else {
     let lista = whatsappProdutos.filter(p=>{
-      if(whatsappCategoriaFiltro && p.categoria_nome!==whatsappCategoriaFiltro) return false;
-      if(busca && !p.nome.toLowerCase().includes(busca) && !p.descricao.toLowerCase().includes(busca)) return false;
+      if(whatsappCategoriaFiltro){
+        if(whatsappCategoriaFiltro==='__pizzas__'){
+          if(!isPizzaWhatsApp(p)) return false;
+        } else if(p.categoria_nome!==whatsappCategoriaFiltro) return false;
+      }
+      if(busca && !p.nome.toLowerCase().includes(busca) && !(p.descricao||'').toLowerCase().includes(busca)) return false;
       return true;
     });
     if(lista.length){
-      // Se for categoria de pizza, mostrar também o card "Montar" no topo
       let extraPizza = '';
-      if(lista.some(p=>isPizzaWhatsApp(p)) && window.PizzaModal){
-        window.__pizzaCfgWhatsApp={ produtos: whatsappProdutos.filter(p=>p.categoria_nome===whatsappCategoriaFiltro), toast: showToast, onAdd:item=>{ whatsappCarrinho.push(item); renderCarrinhoWhatsApp(); showToast(`${item.quantidade}x ${item.produto_nome} adicionado!`); }};
+      const temPizza = lista.some(p=>isPizzaWhatsApp(p));
+      if(temPizza && window.PizzaModal){
+        const prodsPizza = whatsappCategoriaFiltro==='__pizzas__' ? whatsappProdutos.filter(p=>isPizzaWhatsApp(p)) : whatsappProdutos.filter(p=>p.categoria_nome===whatsappCategoriaFiltro);
+        window.__pizzaCfgWhatsApp={ produtos: prodsPizza.length?prodsPizza:whatsappProdutos, toast: showToast, onAdd:item=>{ whatsappCarrinho.push(item); renderCarrinhoWhatsApp(); showToast(`${item.quantidade}x ${item.produto_nome} adicionado!`); }};
         const card = window.PizzaModal.cardHtml('cliente').replace(/window\.__pizzaCfg/g,'window.__pizzaCfgWhatsApp');
         extraPizza = `<div class="category-section"><div class="category-heading">Montar Pizza</div><div class="category-items">${card}</div></div>`;
+        // Para Pizzas, não mostrar lista de tamanhos individuais, só o card
+        if(whatsappCategoriaFiltro==='__pizzas__'){
+          html += extraPizza;
+          // não adicionar lista de itens pizza individuais
+        } else {
+          html += extraPizza;
+          const outrosItens = lista.filter(p=>!isPizzaWhatsApp(p));
+          if(outrosItens.length){
+            html += `<div class="category-section"><div class="category-heading">${whatsappCategoriaFiltro || 'Produtos'}</div><div class="category-items">${outrosItens.map(p=>whatsappProdutoCardHtml(p)).join('')}</div></div>`;
+          }
+        }
+      } else {
+        html += `<div class="category-section"><div class="category-heading">${whatsappCategoriaFiltro || 'Produtos'}</div><div class="category-items">${lista.map(p=>whatsappProdutoCardHtml(p)).join('')}</div></div>`;
       }
-      const pizzaItens = lista.filter(p=>isPizzaWhatsApp(p));
-      const outrosItens = lista.filter(p=>!isPizzaWhatsApp(p));
-      if(extraPizza) html += extraPizza;
-      if(outrosItens.length){
-        html += `<div class="category-section"><div class="category-heading">${whatsappCategoriaFiltro || 'Produtos'}</div><div class="category-items">${outrosItens.map(p=>whatsappProdutoCardHtml(p)).join('')}</div></div>`;
-      } else if(pizzaItens.length && !extraPizza){
-        html += `<div class="category-section"><div class="category-heading">${whatsappCategoriaFiltro || 'Produtos'}</div><div class="category-items">${pizzaItens.map(p=>whatsappProdutoCardHtml(p)).join('')}</div></div>`;
+    } else if(whatsappCategoriaFiltro==='__pizzas__' && buscaPizza){
+      // Busca vazia + filtro Pizzas sem itens (caso pizza sem produtos, mostrar só card)
+      if(window.PizzaModal){
+        window.__pizzaCfgWhatsApp={ produtos: whatsappProdutos.filter(p=>isPizzaWhatsApp(p)), toast: showToast, onAdd:item=>{ whatsappCarrinho.push(item); renderCarrinhoWhatsApp(); showToast(`${item.quantidade}x ${item.produto_nome} adicionado!`); }};
+        const card = window.PizzaModal.cardHtml('cliente').replace(/window\.__pizzaCfg/g,'window.__pizzaCfgWhatsApp');
+        html += `<div class="category-section"><div class="category-heading">Pizzas</div><div class="category-items">${card}</div></div>`;
       }
     }
   }
