@@ -476,7 +476,6 @@ async function imprimirComanda(pedidoId) {
             <span class="item-nome">${item.produto_nome}</span>
             <span class="item-val">R$ ${itemTotal.toFixed(2)}</span>
           </div>
-          <div class="item-detalhe">R$ ${item.preco_unitario.toFixed(2)} × ${item.quantidade} = R$ ${itemTotal.toFixed(2)} ${adicionaisTotal>0?`• Adicionais R$ ${adicionaisTotal.toFixed(2)}`:''}</div>
           ${(item.adicionais && item.adicionais.length) ? `
             <div class="item-adics">
               <div style="font-size:7px; font-weight:800; letter-spacing:0.5px; text-transform:uppercase; margin-bottom:1mm">Adicionais:</div>
