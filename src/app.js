@@ -32,7 +32,7 @@ function buildApp() {
   ];
 
   const corsOptions = {
-    origin: isDev || allowedOrigins.length === 0 ? true : allowedOrigins,
+    origin: isDev ? true : (allowedOrigins.length > 0 ? allowedOrigins : false),
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: false

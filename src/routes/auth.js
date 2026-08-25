@@ -219,7 +219,7 @@ router.post('/usuarios/:id/redefinir-senha', middlewareAdmin, wrapAsync(async (r
   if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
   if (user.id === req.usuario.id) return res.status(400).json({ error: 'Use a página de alterar senha para sua própria conta' });
 
-  const novaSenha = '1234';
+  const novaSenha = gerarSenhaAleatoria(8);
   const hash = gerarHash(novaSenha);
   await db.run('UPDATE usuarios SET senha_hash = $1, trocar_senha = true WHERE id = $2', hash, req.params.id);
 

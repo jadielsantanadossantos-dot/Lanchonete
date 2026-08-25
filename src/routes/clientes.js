@@ -1,7 +1,30 @@
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const router = express.Router();
 const db = require('../db/database');
 const { middlewareAdmin } = require('../auth/auth');
+const { criarValidador } = require('../utils/validation');
+
+const isDev = process.env.NODE_ENV !== 'production';
+const publicLimiter = isDev
+  ? (req, res, next) => next()
+  : rateLimit({
+      windowMs: 60 * 1000,
+      max: 20,
+      message: { error: 'Muitas consultas, tente novamente em um minuto' },
+      standardHeaders: true,
+      legacyHeaders: false
+    });
+
+const validarCliente = criarValidador({
+  nome: { obrigatorio: true, tipo: 'string', tamanho: { min: 2, max: 100 }, sanitizar: true },
+  telefone: { obrigatorio: true, tipo: 'string', tamanho: { min: 8, max: 20 } },
+  rua: { tipo: 'string', tamanho: { min: 0, max: 200 }, sanitizar: true },
+  numero: { tipo: 'string', tamanho: { min: 0, max: 20 }, sanitizar: true },
+  bairro: { tipo: 'string', tamanho: { min: 0, max: 100 }, sanitizar: true },
+  complemento: { tipo: 'string', tamanho: { min: 0, max: 200 }, sanitizar: true },
+  ponto_referencia: { tipo: 'string', tamanho: { min: 0, max: 200 }, sanitizar: true }
+});
 
 function wrapAsync(fn) {
   return (req, res, next) => {
@@ -20,7 +43,7 @@ router.get('/:id', middlewareAdmin, wrapAsync(async (req, res) => {
   res.json(cliente);
 }));
 
-router.get('/telefone/:telefone', wrapAsync(async (req, res) => {
+router.get('/telefone/:telefone', publicLimiter, wrapAsync(async (req, res) => {
   const cliente = await db.get('SELECT * FROM clientes WHERE telefone = $1', req.params.telefone);
   if (!cliente) return res.status(404).json({ error: 'Cliente não encontrado' });
   if (cliente.bloqueado) return res.status(403).json({ error: 'Cliente bloqueado. Entre em contato com o estabelecimento.' });
@@ -28,7 +51,7 @@ router.get('/telefone/:telefone', wrapAsync(async (req, res) => {
 }));
 
 // Publico: cliente acompanha os proprios pedidos pelo telefone
-router.get('/telefone/:telefone/pedidos', wrapAsync(async (req, res) => {
+router.get('/telefone/:telefone/pedidos', publicLimiter, wrapAsync(async (req, res) => {
   const cliente = await db.get('SELECT id FROM clientes WHERE telefone = $1', req.params.telefone);
   if (!cliente) return res.json([]);
 
@@ -50,7 +73,7 @@ router.get('/:id/pedidos', middlewareAdmin, wrapAsync(async (req, res) => {
   res.json(pedidos);
 }));
 
-router.post('/', wrapAsync(async (req, res) => {
+router.post('/', validarCliente, wrapAsync(async (req, res) => {
   const { nome, telefone, rua, numero, bairro, complemento, ponto_referencia } = req.body;
   try {
     const info = await db.run(
@@ -72,7 +95,7 @@ router.post('/', wrapAsync(async (req, res) => {
   }
 }));
 
-router.put('/:id', middlewareAdmin, wrapAsync(async (req, res) => {
+router.put('/:id', middlewareAdmin, validarCliente, wrapAsync(async (req, res) => {
   const { nome, telefone, rua, numero, bairro, complemento, ponto_referencia } = req.body;
   await db.run(
     'UPDATE clientes SET nome=$1, telefone=$2, rua=$3, numero=$4, bairro=$5, complemento=$6, ponto_referencia=$7 WHERE id=$8',

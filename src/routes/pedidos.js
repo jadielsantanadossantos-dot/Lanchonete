@@ -1,7 +1,19 @@
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const router = express.Router();
 const db = require('../db/database');
 const { middlewareAdmin } = require('../auth/auth');
+
+const isDev = process.env.NODE_ENV !== 'production';
+const publicLimiter = isDev
+  ? (req, res, next) => next()
+  : rateLimit({
+      windowMs: 60 * 1000,
+      max: 30,
+      message: { error: 'Muitas consultas, tente novamente em um minuto' },
+      standardHeaders: true,
+      legacyHeaders: false
+    });
 
 function wrapAsync(fn) {
   return (req, res, next) => {
@@ -151,7 +163,7 @@ router.post('/', wrapAsync(async (req, res) => {
 }));
 
 // Status publico para acompanhamento pelo cliente (sem dados pessoais)
-router.get('/:id/publico', wrapAsync(async (req, res) => {
+router.get('/:id/publico', publicLimiter, wrapAsync(async (req, res) => {
   const pedido = await db.get('SELECT id, status, pix_confirmado FROM pedidos WHERE id = $1', req.params.id);
   if (!pedido) return res.status(404).json({ error: 'Pedido não encontrado' });
   res.json(pedido);
