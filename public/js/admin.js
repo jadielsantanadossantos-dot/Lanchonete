@@ -1400,6 +1400,274 @@ async function toggleLojaStatus() {
   } catch (e) { showToast('Erro de conexão'); }
 }
 
+// ===== PEDIDO WHATSAPP (ADMIN) =====
+let whatsappProdutos = [];
+let whatsappCarrinho = [];
+let whatsappCategoriaFiltro = '';
+let whatsappProdutoSelecionado = null;
+let whatsappQtd = 1;
+
+async function abrirModalPedidoWhatsApp() {
+  whatsappCarrinho = [];
+  whatsappCategoriaFiltro = '';
+  document.getElementById('whatsapp-cliente-nome').value = '';
+  document.getElementById('whatsapp-cliente-telefone').value = '';
+  document.getElementById('whatsapp-cliente-bairro').value = '';
+  document.getElementById('whatsapp-cliente-rua').value = '';
+  document.getElementById('whatsapp-cliente-numero').value = '';
+  document.getElementById('whatsapp-cliente-complemento').value = '';
+  document.getElementById('whatsapp-cliente-referencia').value = '';
+  document.getElementById('whatsapp-forma-pagamento').value = 'pix';
+  document.getElementById('whatsapp-troco-box').style.display = 'none';
+  document.getElementById('whatsapp-observacoes').value = '';
+  document.getElementById('whatsapp-busca-produto').value = '';
+  document.getElementById('modal-pedido-whatsapp').classList.add('active');
+  await carregarDadosWhatsApp();
+  renderCarrinhoWhatsApp();
+}
+
+function fecharModalPedidoWhatsApp() {
+  document.getElementById('modal-pedido-whatsapp').classList.remove('active');
+}
+
+async function carregarDadosWhatsApp() {
+  try {
+    const [prodRes, catRes, bairroRes] = await Promise.all([
+      authFetch('/api/produtos'),
+      authFetch('/api/categorias'),
+      authFetch('/api/bairros')
+    ]);
+    whatsappProdutos = await prodRes.json();
+    const categorias = await catRes.json();
+    const bairros = await bairroRes.json();
+    // Categorias
+    const catContainer = document.getElementById('whatsapp-categorias');
+    let html = `<button class="cat-btn ${whatsappCategoriaFiltro===''?'active':''}" onclick="filtrarCategoriaWhatsApp('', this)" style="padding:6px 12px; border-radius:99px; border:1.5px solid var(--color-border); background:${whatsappCategoriaFiltro===''?'var(--color-primary)':'white'}; color:${whatsappCategoriaFiltro===''?'white':'var(--color-text)'}; font-size:0.75rem; font-weight:600; cursor:pointer; white-space:nowrap">Todos</button>`;
+    categorias.forEach(c => {
+      const active = whatsappCategoriaFiltro === c.nome;
+      html += `<button class="cat-btn ${active?'active':''}" onclick="filtrarCategoriaWhatsApp('${c.nome}', this)" style="padding:6px 12px; border-radius:99px; border:1.5px solid var(--color-border); background:${active?'var(--color-primary)':'white'}; color:${active?'white':'var(--color-text)'}; font-size:0.75rem; font-weight:600; cursor:pointer; white-space:nowrap">${c.nome}</button>`;
+    });
+    catContainer.innerHTML = html;
+    // Bairros
+    const bairroSel = document.getElementById('whatsapp-cliente-bairro');
+    const atual = bairroSel.value;
+    bairroSel.innerHTML = '<option value="">Bairro *</option>' + bairros.filter(b=>b.atendido).map(b=>`<option value="${b.nome}" data-taxa="${b.taxa_entrega}">${b.nome} - R$ ${parseFloat(b.taxa_entrega).toFixed(2)}</option>`).join('');
+    if (atual) bairroSel.value = atual;
+    renderProdutosWhatsApp();
+  } catch(e){ showToast('Erro ao carregar dados do pedido'); }
+}
+
+function filtrarCategoriaWhatsApp(cat, btn) {
+  whatsappCategoriaFiltro = cat;
+  document.querySelectorAll('#whatsapp-categorias .cat-btn').forEach(b=>{
+    b.style.background='white'; b.style.color='var(--color-text)'; b.classList.remove('active');
+  });
+  if(btn){ btn.style.background='var(--color-primary)'; btn.style.color='white'; btn.classList.add('active'); }
+  renderProdutosWhatsApp();
+}
+function filtrarProdutosWhatsApp(){ renderProdutosWhatsApp(); }
+
+function renderProdutosWhatsApp() {
+  const container = document.getElementById('whatsapp-produtos-lista');
+  const busca = (document.getElementById('whatsapp-busca-produto')?.value || '').trim().toLowerCase();
+  let lista = whatsappProdutos;
+  if (whatsappCategoriaFiltro) lista = lista.filter(p=>p.categoria_nome===whatsappCategoriaFiltro);
+  if (busca) lista = lista.filter(p=>p.nome.toLowerCase().includes(busca));
+  if (!lista.length){ container.innerHTML='<p style="text-align:center; color:var(--color-text-muted); padding:20px">Nenhum produto</p>'; return; }
+  container.innerHTML = lista.map(p=>`
+    <div onclick="abrirModalWhatsAppQtd(${p.id})" style="border:1px solid var(--color-border); border-radius:10px; padding:10px; cursor:pointer; background:white; display:flex; gap:10px; align-items:center; transition:all 0.15s" onmouseover="this.style.borderColor='var(--color-primary)'" onmouseout="this.style.borderColor='var(--color-border)'">
+      ${p.foto?`<img src="${p.foto}" style="width:50px; height:50px; border-radius:8px; object-fit:cover; flex-shrink:0">`:`<div style="width:50px; height:50px; border-radius:8px; background:var(--color-bg-alt); display:flex; align-items:center; justify-content:center; font-size:1.2rem">🍔</div>`}
+      <div style="flex:1; min-width:0">
+        <div style="font-weight:700; font-size:0.85rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${p.nome}</div>
+        <div style="font-size:0.75rem; color:var(--color-text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${p.descricao||''}</div>
+        <div style="font-weight:800; color:var(--color-primary); font-size:0.9rem">R$ ${p.preco.toFixed(2)}</div>
+      </div>
+      <div style="width:32px; height:32px; border-radius:50%; background:var(--color-primary); color:white; display:flex; align-items:center; justify-content:center; font-size:1.1rem; flex-shrink:0">+</div>
+    </div>
+  `).join('');
+}
+
+function abrirModalWhatsAppQtd(prodId) {
+  whatsappProdutoSelecionado = whatsappProdutos.find(p=>p.id===prodId);
+  if(!whatsappProdutoSelecionado) return;
+  whatsappQtd = 1;
+  document.getElementById('whatsapp-qtd-nome').textContent = whatsappProdutoSelecionado.nome;
+  document.getElementById('whatsapp-qtd-preco').textContent = `R$ ${whatsappProdutoSelecionado.preco.toFixed(2)}`;
+  document.getElementById('whatsapp-qtd-valor').textContent = '1';
+  document.getElementById('whatsapp-qtd-obs').value = '';
+  const adcBox = document.getElementById('whatsapp-qtd-adicionais');
+  const adcList = document.getElementById('whatsapp-qtd-adicionais-lista');
+  if(whatsappProdutoSelecionado.adicionais && whatsappProdutoSelecionado.adicionais.length){
+    adcBox.style.display='block';
+    adcList.innerHTML = whatsappProdutoSelecionado.adicionais.map(a=>`
+      <label style="display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid #f1f1f1; cursor:pointer">
+        <input type="checkbox" value="${a.id}" data-nome="${a.nome}" data-preco="${a.preco}" onchange="whatsappAtualizarTotal()">
+        <span style="flex:1; font-size:0.85rem">${a.nome}</span>
+        <span style="font-size:0.8rem; font-weight:700; color:var(--color-primary)">+ R$ ${a.preco.toFixed(2)}</span>
+      </label>
+    `).join('');
+  } else { adcBox.style.display='none'; }
+  whatsappAtualizarTotal();
+  document.getElementById('modal-whatsapp-qtd').classList.add('active');
+}
+function fecharModalWhatsAppQtd(){ document.getElementById('modal-whatsapp-qtd').classList.remove('active'); }
+function whatsappAlterarQtd(d){ whatsappQtd=Math.max(1, whatsappQtd+d); document.getElementById('whatsapp-qtd-valor').textContent=whatsappQtd; whatsappAtualizarTotal(); }
+function whatsappAtualizarTotal(){
+  if(!whatsappProdutoSelecionado) return;
+  let total = whatsappProdutoSelecionado.preco * whatsappQtd;
+  document.querySelectorAll('#whatsapp-qtd-adicionais-lista input:checked').forEach(c=>{ total+=parseFloat(c.dataset.preco)*whatsappQtd; });
+  document.getElementById('whatsapp-qtd-total').textContent=`R$ ${total.toFixed(2)}`;
+}
+function confirmarAddWhatsApp(){
+  if(!whatsappProdutoSelecionado) return;
+  const adicionais=[];
+  document.querySelectorAll('#whatsapp-qtd-adicionais-lista input:checked').forEach(c=>{
+    adicionais.push({id: parseInt(c.value), nome: c.dataset.nome, preco: parseFloat(c.dataset.preco)});
+  });
+  whatsappCarrinho.push({
+    produto_id: whatsappProdutoSelecionado.id,
+    produto_nome: whatsappProdutoSelecionado.nome,
+    preco_unitario: whatsappProdutoSelecionado.preco,
+    quantidade: whatsappQtd,
+    observacao: document.getElementById('whatsapp-qtd-obs').value.trim(),
+    adicionais
+  });
+  fecharModalWhatsAppQtd();
+  renderCarrinhoWhatsApp();
+  showToast(`${whatsappProdutoSelecionado.nome} adicionado!`);
+}
+function renderCarrinhoWhatsApp(){
+  const lista=document.getElementById('whatsapp-carrinho-lista');
+  const vazio=document.getElementById('whatsapp-carrinho-vazio');
+  const totalBox=document.getElementById('whatsapp-carrinho-total');
+  const countEl=document.getElementById('whatsapp-carrinho-count');
+  const taxaEl=document.getElementById('whatsapp-taxa');
+  const subtotalEl=document.getElementById('whatsapp-subtotal');
+  const totalEl=document.getElementById('whatsapp-total');
+  const bairroSel=document.getElementById('whatsapp-cliente-bairro');
+  let taxa=0;
+  if(bairroSel && bairroSel.selectedIndex>0){
+    const opt=bairroSel.options[bairroSel.selectedIndex];
+    taxa=parseFloat(opt.dataset.taxa)||0;
+  }
+  if(!whatsappCarrinho.length){
+    lista.innerHTML='';
+    vazio.style.display='block';
+    totalBox.style.display='none';
+    countEl.textContent='0';
+    return;
+  }
+  vazio.style.display='none';
+  totalBox.style.display='block';
+  let subtotal=0;
+  lista.innerHTML=whatsappCarrinho.map((it,i)=>{
+    const tot=it.preco_unitario*it.quantidade + it.adicionais.reduce((s,a)=>s+a.preco*it.quantidade,0);
+    subtotal+=tot;
+    const adic = it.adicionais.map(a=>`+ ${a.nome}`).join(', ');
+    return `<div style="border:1px solid var(--color-border); border-radius:8px; padding:8px; margin-bottom:8px; background:white">
+      <div style="display:flex; justify-content:space-between; gap:8px">
+        <div style="flex:1; min-width:0">
+          <div style="font-weight:700; font-size:0.85rem">${it.produto_nome}</div>
+          ${adic?`<div style="font-size:0.75rem; color:var(--color-text-muted)">${adic}</div>`:''}
+          ${it.observacao?`<div style="font-size:0.75rem; color:#D97706; font-style:italic">Obs: ${it.observacao}</div>`:''}
+          <div style="font-size:0.8rem; color:var(--color-text-secondary)">R$ ${it.preco_unitario.toFixed(2)} x ${it.quantidade}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-weight:800; color:var(--color-primary)">R$ ${tot.toFixed(2)}</div>
+          <div style="display:flex; gap:4px; margin-top:4px; justify-content:flex-end">
+            <button onclick="whatsappAlterarQtdCarrinho(${i},-1)" style="width:26px; height:26px; border-radius:50%; border:1px solid var(--color-border); background:white; cursor:pointer">-</button>
+            <span style="min-width:22px; text-align:center; font-weight:700; font-size:0.85rem; line-height:26px">${it.quantidade}</span>
+            <button onclick="whatsappAlterarQtdCarrinho(${i},1)" style="width:26px; height:26px; border-radius:50%; border:1px solid var(--color-border); background:white; cursor:pointer">+</button>
+            <button onclick="whatsappRemover(${i})" style="width:26px; height:26px; border-radius:50%; border:none; background:#FEF2F2; color:#DC2626; cursor:pointer">×</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  countEl.textContent=whatsappCarrinho.reduce((s,i)=>s+i.quantidade,0);
+  subtotalEl.textContent=`R$ ${subtotal.toFixed(2)}`;
+  taxaEl.textContent=`R$ ${taxa.toFixed(2)}`;
+  totalEl.textContent=`R$ ${(subtotal+taxa).toFixed(2)}`;
+}
+function whatsappAlterarQtdCarrinho(idx,delta){
+  const it=whatsappCarrinho[idx];
+  if(!it) return;
+  it.quantidade+=delta;
+  if(it.quantidade<1) whatsappCarrinho.splice(idx,1);
+  renderCarrinhoWhatsApp();
+}
+function whatsappRemover(idx){ whatsappCarrinho.splice(idx,1); renderCarrinhoWhatsApp(); }
+function formatarTelefoneWhatsApp(inp){
+  let v=inp.value.replace(/\D/g,'');
+  if(v.length>11) v=v.slice(0,11);
+  if(v.length>6) v=`(${v.slice(0,2)}) ${v.slice(2,7)}-${v.slice(7)}`;
+  else if(v.length>2) v=`(${v.slice(0,2)}) ${v.slice(2)}`;
+  else if(v.length>0) v=`(${v}`;
+  inp.value=v;
+}
+document.getElementById('whatsapp-cliente-bairro')?.addEventListener('change', renderCarrinhoWhatsApp);
+document.getElementById('whatsapp-forma-pagamento')?.addEventListener('change', function(){
+  document.getElementById('whatsapp-troco-box').style.display=this.value==='dinheiro'?'block':'none';
+});
+async function enviarPedidoWhatsApp(){
+  if(!whatsappCarrinho.length){ showToast('Carrinho vazio'); return; }
+  const nome=document.getElementById('whatsapp-cliente-nome').value.trim();
+  const telefone=document.getElementById('whatsapp-cliente-telefone').value.trim();
+  const bairro=document.getElementById('whatsapp-cliente-bairro').value;
+  const rua=document.getElementById('whatsapp-cliente-rua').value.trim();
+  const numero=document.getElementById('whatsapp-cliente-numero').value.trim();
+  const complemento=document.getElementById('whatsapp-cliente-complemento').value.trim();
+  const referencia=document.getElementById('whatsapp-cliente-referencia').value.trim();
+  const forma=document.getElementById('whatsapp-forma-pagamento').value;
+  const observacoes=document.getElementById('whatsapp-observacoes').value.trim();
+  if(!nome || !telefone){ showToast('Informe nome e telefone'); return; }
+  if(!bairro){ showToast('Selecione o bairro'); return; }
+  if(telefone.replace(/\D/g,'').length<10){ showToast('Telefone inválido'); return; }
+  const btn=document.getElementById('whatsapp-btn-enviar');
+  btn.disabled=true; btn.textContent='Enviando...';
+  try{
+    let clienteId;
+    const cliRes=await authFetch(`/api/clientes/telefone/${encodeURIComponent(telefone)}`);
+    if(cliRes.ok){
+      const cli=await cliRes.json();
+      clienteId=cli.id;
+      // atualizar dados do cliente se necessário
+      await authFetch(`/api/clientes/${clienteId}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({nome, telefone, bairro, rua, numero, complemento, ponto_referencia: referencia})}).catch(()=>{});
+    } else {
+      const novoRes=await authFetch('/api/clientes', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({nome, telefone, bairro, rua, numero, complemento, ponto_referencia: referencia})});
+      if(!novoRes.ok){ const err=await novoRes.json(); throw new Error(err.error||'Erro ao cadastrar cliente'); }
+      const novo=await novoRes.json();
+      clienteId=novo.id;
+    }
+    const bairroSel=document.getElementById('whatsapp-cliente-bairro');
+    const taxa=parseFloat(bairroSel.options[bairroSel.selectedIndex]?.dataset.taxa||0);
+    let endereco=`${rua||''}${numero?`, ${numero}`:''}${complemento?` - ${complemento}`:''}${referencia?` (Ref: ${referencia})`:''}`.trim();
+    if(!endereco) endereco=bairro;
+    let obsFinal=observacoes;
+    if(forma==='dinheiro'){
+      const troco=document.getElementById('whatsapp-troco-valor').value;
+      if(troco) obsFinal += ` | Troco para R$ ${parseFloat(troco).toFixed(2)}`;
+    }
+    obsFinal = obsFinal ? obsFinal + ' | Pedido WhatsApp (admin)' : 'Pedido WhatsApp (admin)';
+    const pedidoRes=await authFetch('/api/pedidos', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({
+      cliente_id: clienteId,
+      itens: whatsappCarrinho,
+      forma_pagamento: forma,
+      observacoes: obsFinal,
+      endereco_entrega: endereco,
+      bairro_entrega: bairro,
+      taxa_entrega: taxa
+    })});
+    if(!pedidoRes.ok){ const err=await pedidoRes.json(); throw new Error(err.error||'Erro ao criar pedido'); }
+    const pedido=await pedidoRes.json();
+    showToast(`Pedido #${pedido.id} criado! Cliente ${nome} cadastrado.`);
+    fecharModalPedidoWhatsApp();
+    carregarPedidos();
+    carregarClientes();
+  }catch(e){ showToast(e.message); }
+  finally{ btn.disabled=false; btn.textContent='✅ Enviar Pedido para Cozinha'; }
+}
+
 // ===== SOM DE NOTIFICACAO =====
 
 function tocarSomNovoPedido() {
