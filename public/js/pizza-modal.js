@@ -171,7 +171,10 @@
           <div class="pm-item">
             <label onclick="event.stopPropagation()">
               <input type="checkbox" ${saboresSel.has(a.id) ? 'checked' : ''} onchange="PizzaModal._selSabor(${a.id}, this)">
-              <span>${a.nome}</span>
+              <div>
+                <span>${a.nome}</span>
+                ${a.descricao ? `<br><small style="color:#666; font-size:0.8rem; display:block; margin-top:2px; line-height:1.3">${a.descricao}</small>` : ''}
+              </div>
             </label>
             <span class="pm-preco-adic">${a.preco > 0 ? '+ R$ ' + a.preco.toFixed(2) : 'Incluído'}</span>
           </div>`).join('');
@@ -190,7 +193,10 @@
           <div class="pm-item">
             <label onclick="event.stopPropagation()">
               <input type="checkbox" ${extrasSel.has(a.id) ? 'checked' : ''} onchange="PizzaModal._selExtra(${a.id}, this)">
-              <span>🧀 ${a.nome}</span>
+              <div>
+                <span>🧀 ${a.nome}</span>
+                ${a.descricao ? `<br><small style="color:#666; font-size:0.8rem; display:block; margin-top:2px; line-height:1.3">${a.descricao}</small>` : ''}
+              </div>
             </label>
             <span class="pm-preco-adic">${a.preco > 0 ? '+ R$ ' + a.preco.toFixed(2) : 'Incluído'}</span>
           </div>`).join('');
@@ -202,7 +208,10 @@
           <div class="pm-item">
             <label onclick="event.stopPropagation()">
               <input type="checkbox" ${extrasSel.has(a.id) ? 'checked' : ''} onchange="PizzaModal._selExtra(${a.id}, this)">
-              <span>${a.nome}</span>
+              <div>
+                <span>${a.nome}</span>
+                ${a.descricao ? `<br><small style="color:#666; font-size:0.8rem; display:block; margin-top:2px; line-height:1.3">${a.descricao}</small>` : ''}
+              </div>
             </label>
             <span class="pm-preco-adic">${a.preco > 0 ? '+ R$ ' + a.preco.toFixed(2) : 'Incluído'}</span>
           </div>`).join('');
