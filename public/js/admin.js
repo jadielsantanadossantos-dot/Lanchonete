@@ -1402,6 +1402,18 @@ async function toggleLojaStatus() {
   } catch (e) { showToast('Erro de conexão'); }
 }
 
+// ===== RELÓGIO BRT =====
+function atualizarRelogio() {
+  const elHora = document.querySelector('#admin-relogio .relogio-hora');
+  const elData = document.querySelector('#admin-relogio .relogio-data');
+  if (!elHora || !elData) return;
+  const agora = new Date();
+  elHora.textContent = agora.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  elData.textContent = agora.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+setInterval(atualizarRelogio, 1000);
+setTimeout(atualizarRelogio, 100);
+
 // ===== PEDIDO WHATSAPP (ADMIN) =====
 let whatsappProdutos = [];
 let whatsappCarrinho = [];
