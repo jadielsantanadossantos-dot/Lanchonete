@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panfleto - Sistema Lanchonete | Anderson Lanches</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{--orange:#FF6B35;--orange-dark:#E55A2B;--blue:#004E89;--blue-dark:#003A6B;--green:#16A34A;--bg:#FAFAFA;--text:#1A1A1A;--muted:#6B7280;--radius:16px}
+  body{font-family:'Inter',sans-serif;background:#E5E7EB;color:var(--text);-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .page{width:210mm; min-height:297mm; margin:10mm auto; background:white; box-shadow:0 20px 60px rgba(0,0,0,0.15); overflow:hidden; display:flex; flex-direction:column}
+  @media print{body{background:white} .page{margin:0; box-shadow:none; width:100%; min-height:auto} .no-print{display:none}}
+  /* HEADER */
+  .header{background:linear-gradient(135deg,var(--blue) 0%, #0066B2 60%, var(--orange) 100%); color:white; padding:18mm 14mm 10mm; position:relative; overflow:hidden}
+  .header::after{content:''; position:absolute; right:-30mm; top:-20mm; width:80mm; height:80mm; background:rgba(255,255,255,0.08); border-radius:50%}
+  .header-top{display:flex; justify-content:space-between; align-items:center; position:relative; z-index:1}
+  .brand{display:flex; align-items:center; gap:4mm}
+  .brand img{width:16mm; height:16mm; border-radius:4mm; object-fit:cover; border:2.5px solid white; box-shadow:0 4px 12px rgba(0,0,0,0.2)}
+  .brand-text h1{font-size:7.5mm; font-weight:900; line-height:1; letter-spacing:-0.3px}
+  .brand-text span{font-size:3.2mm; font-weight:600; opacity:0.9; letter-spacing:0.5px}
+  .badge-header{background:white; color:var(--blue); padding:2mm 4mm; border-radius:99px; font-size:2.8mm; font-weight:800; letter-spacing:0.3px}
+  .hero{margin-top:8mm; position:relative; z-index:1; display:grid; grid-template-columns:1.15fr 0.85fr; gap:8mm; align-items:center}
+  .hero h2{font-size:10mm; font-weight:900; line-height:0.95; letter-spacing:-0.5px; margin-bottom:3mm}
+  .hero h2 span{color:#FFE9A8}
+  .hero p{font-size:3.6mm; line-height:1.5; opacity:0.92; margin-bottom:5mm}
+  .hero-cta{display:flex; gap:3mm; flex-wrap:wrap}
+  .btn{padding:3.5mm 6mm; border-radius:99px; font-size:3.3mm; font-weight:800; text-decoration:none; display:inline-flex; align-items:center; gap:2mm; border:none; cursor:pointer}
+  .btn-white{background:white; color:var(--blue)}
+  .btn-outline{border:2px solid white; color:white; background:transparent}
+  .hero-card{background:white; border-radius:5mm; padding:4mm; color:var(--text); box-shadow:0 12px 32px rgba(0,0,0,0.18); position:relative}
+  .hero-card img{width:100%; height:38mm; object-fit:cover; border-radius:3mm; background:#F3F4F6}
+  .hero-card h4{font-size:3.4mm; font-weight:800; margin:3mm 0 1mm}
+  .hero-card .price{color:var(--orange); font-weight:900; font-size:4mm}
+  .pulse{position:absolute; top:3mm; right:3mm; width:3.5mm; height:3.5mm; background:var(--green); border-radius:50%; border:2px solid white; animation:pulse 1.8s infinite}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(22,163,74,0.4)}50%{box-shadow:0 0 0 6px rgba(22,163,74,0)}}
+  /* FEATURES */
+  .section{padding:8mm 14mm}
+  .section-title{text-align:center; margin-bottom:6mm}
+  .section-title h3{font-size:6.5mm; font-weight:900; color:var(--blue); letter-spacing:-0.3px}
+  .section-title p{font-size:3.4mm; color:var(--muted); margin-top:1.5mm}
+  .grid3{display:grid; grid-template-columns:repeat(3,1fr); gap:4mm}
+  .card{border:1.5px solid #E5E7EB; border-radius:4mm; padding:5mm; text-align:center; background:white}
+  .card .icon{width:12mm; height:12mm; border-radius:3mm; display:flex; align-items:center; justify-content:center; font-size:5.5mm; margin:0 auto 3mm}
+  .card h4{font-size:3.5mm; font-weight:800; margin-bottom:1.5mm}
+  .card p{font-size:2.9mm; color:var(--muted); line-height:1.4}
+  .c-orange .icon{background:#FFF5F0; border:1.5px solid #FFD9C5}
+  .c-blue .icon{background:#E8F1FA; border:1.5px solid #BFDBFE}
+  .c-green .icon{background:#F0FDF4; border:1.5px solid #BBF7D0}
+  /* STEPS */
+  .steps{background:var(--bg); border-top:1px solid #E5E7EB; border-bottom:1px solid #E5E7EB; padding:7mm 14mm; display:grid; grid-template-columns:repeat(3,1fr); gap:6mm; text-align:center}
+  .step-num{width:9mm; height:9mm; background:var(--orange); color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:4mm; margin:0 auto 2.5mm}
+  .steps h4{font-size:3.4mm; font-weight:800}
+  .steps p{font-size:2.9mm; color:var(--muted); margin-top:1mm}
+  /* PRICING + QR */
+  .pricing{display:grid; grid-template-columns:1fr 0.9fr; gap:6mm; padding:8mm 14mm; align-items:center}
+  .price-card{border:2px solid var(--blue); border-radius:5mm; padding:6mm; background:linear-gradient(135deg,#F8FAFF 0%, white 100%); position:relative; overflow:hidden}
+  .price-card::before{content:'MAIS POPULAR'; position:absolute; top:3mm; right:-8mm; background:var(--orange); color:white; font-size:2.2mm; font-weight:800; padding:1.5mm 8mm; transform:rotate(12deg); letter-spacing:0.4px}
+  .price-card h4{font-size:3.8mm; font-weight:900; color:var(--blue)}
+  .price{font-size:10mm; font-weight:900; color:var(--blue); line-height:1; margin:2mm 0}
+  .price small{font-size:3.3mm; font-weight:600; color:var(--muted)}
+  .price-card ul{list-style:none; margin:3mm 0 4mm}
+  .price-card li{font-size:3.1mm; padding:1.5mm 0; display:flex; gap:2mm}
+  .price-card li::before{content:'✓'; color:var(--green); font-weight:900}
+  .qr-box{text-align:center; border:1.5px dashed #D1D5DB; border-radius:4mm; padding:6mm 4mm; background:#FAFAFA}
+  .qr{width:42mm; height:42mm; background:white; border:1px solid #E5E7EB; border-radius:3mm; margin:0 auto 3mm; display:flex; align-items:center; justify-content:center; font-size:9mm; box-shadow:0 4px 12px rgba(0,0,0,0.06)}
+  .qr-box h4{font-size:3.6mm; font-weight:800}
+  .qr-box p{font-size:2.9mm; color:var(--muted); margin-top:1mm}
+  .qr-box .url{font-size:2.6mm; font-weight:700; color:var(--blue); background:white; padding:1.5mm 3mm; border-radius:99px; display:inline-block; margin-top:2.5mm; border:1px solid #E5E7EB}
+  /* FOOTER */
+  .footer{background:var(--text); color:white; padding:6mm 14mm; display:flex; justify-content:space-between; align-items:center; gap:6mm}
+  .footer h4{font-size:3.6mm; font-weight:800}
+  .footer p{font-size:2.9mm; opacity:0.8; margin-top:1mm}
+  .footer .contact{font-size:3.1mm; line-height:1.5; text-align:right}
+  .footer a{color:#FFD9C5; text-decoration:none; font-weight:700}
+  @media (max-width: 800px){.page{width:100%; margin:0} .hero{grid-template-columns:1fr} .grid3{grid-template-columns:1fr} .steps{grid-template-columns:1fr} .pricing{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="header">
+    <div class="header-top">
+      <div class="brand">
+        <img src="/logo.jpeg" alt="Logo" onerror="this.style.display='none'">
+        <div class="brand-text"><h1>ANDERSON LANCHES</h1><span>Sistema de Gestão • Desde 2024</span></div>
+      </div>
+      <div class="badge-header">✨ NOVO • 100% ONLINE</div>
+    </div>
+    <div class="hero">
+      <div>
+        <h2>Transforme<br>sua <span>lanchonete</span><br>em um negócio<br>que escala.</h2>
+        <p>Mesas, delivery, garçom no celular, cozinha em tempo real e caixa fechando sozinho. Testado com <strong>15 pedidos simultâneos</strong> sem travar.</p>
+        <div class="hero-cta">
+          <a class="btn btn-white" href="https://andersonlanches.vercel.app" target="_blank">🚀 Ver Demonstração</a>
+          <a class="btn btn-outline" href="https://wa.me/5583988335764" target="_blank">💬 Falar no WhatsApp</a>
+        </div>
+        <div style="margin-top:4mm; font-size:2.7mm; opacity:0.8">✓ Sem mensalidade abusiva • ✓ Suporte BRT • ✓ Em 24h no ar</div>
+      </div>
+      <div class="hero-card">
+        <div class="pulse"></div>
+        <img src="/logo.jpeg" alt="Prévia" onerror="this.outerHTML='<div style=\'height:38mm;background:linear-gradient(135deg,#FFF5F0,#E8F1FA);border-radius:3mm;display:flex;align-items:center;justify-content:center;font-size:18mm\'>🍔</div>'">
+        <h4>Mesa 7 — 2x X-Tudo + Suco</h4>
+        <div style="font-size:2.8mm; color:#6B7280">🆕 NOVO • há 12s • Mesa</div>
+        <div class="price">R$ 42,00</div>
+        <div style="font-size:2.7mm; color:#059669; font-weight:700; margin-top:1mm">● Ao vivo via Garçom</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><h3>Tudo que sua operação precisa</h3><p>Um só sistema. Zero planilha. Zero dor de cabeça.</p></div>
+    <div class="grid3">
+      <div class="card c-orange"><div class="icon">📱</div><h4>Garçom no Celular</h4><p>Cardápio 100% responsivo, comanda por mesa, avulso com carrinho flutuante. Sem app.</p></div>
+      <div class="card c-blue"><div class="icon">🍽️</div><h4>Cozinha em Tempo Real</h4><p>Pedido entra e toca na cozinha. Novo item pisca laranja. Clique para dar baixa.</p></div>
+      <div class="card c-green"><div class="icon">💳</div><h4>Caixa Automático</h4><p>Pix QR, troco calculado, taxas por bairro e fechamento de mesa em 1 clique.</p></div>
+      <div class="card c-blue"><div class="icon">📊</div><h4>Painel Admin Completo</h4><p>Produtos, categorias, adicionais, motoboys, auditoria e relatórios por período.</p></div>
+      <div class="card c-green"><div class="icon">⏰</div><h4>Horário Brasil GMT-3</h4><p>Tudo em America/Sao_Paulo. Relatórios diários fecham à meia-noite local.</p></div>
+      <div class="card c-orange"><div class="icon">⚡</div><h4> Aguenta Pico</h4><p>Testado com 15 pedidos simultâneos (8 delivery + 7 mesa). Sem duplicar.</p></div>
+    </div>
+  </div>
+
+  <div class="steps">
+    <div><div class="step-num">1</div><h4>Cadastre o Cardápio</h4><p>Fotos, preços, adicionais e bairros em 10 minutos. Importamos seu cardápio atual.</p></div>
+    <div><div class="step-num">2</div><h4>Treine em 15 min</h4><p>Garçom só precisa do link /garcom. Cozinha só do /admin. Sem instalação.</p></div>
+    <div><div class="step-num">3</div><h4>Venda e Acompanhe</h4><p>Notificação sonora, badge NOVO pulsante e relatório diário no seu WhatsApp.</p></div>
+  </div>
+
+  <div class="pricing">
+    <div class="price-card">
+      <h4>Plano Lanchonete Completo</h4>
+      <div class="price">R$ 97<small>/mês</small></div>
+      <div style="font-size:2.8mm; color:#6B7280; text-decoration:line-through">De R$ 197/mês</div>
+      <ul>
+        <li>Mesas ilimitadas + avulso</li>
+        <li>Pedidos ilimitados + motoboys</li>
+        <li>Suporte WhatsApp BRT 8h-22h</li>
+        <li>Atualizações inclusas + backup diário</li>
+      </ul>
+      <a href="https://wa.me/5583988335764?text=Quero%20o%20Sistema%20Lanchonete%20por%20R%2497" target="_blank" class="btn" style="background:var(--blue); color:white; width:100%; justify-content:center">Quero Começar Agora →</a>
+      <div style="text-align:center; font-size:2.6mm; color:#6B7280; margin-top:2mm">7 dias grátis • Cancele quando quiser</div>
+    </div>
+    <div class="qr-box">
+      <div class="qr">⬢</div>
+      <h4>Teste Agora na Prática</h4>
+      <p>Aponte a câmera e veja o sistema<br>rodando ao vivo com cardápio real</p>
+      <div class="url">andersonlanches.vercel.app</div>
+      <div style="font-size:2.6mm; color:#6B7280; margin-top:3mm">Login garçom: <strong>teste_garcom / teste1234</strong></div>
+      <div style="margin-top:3mm; display:flex; gap:2mm; justify-content:center; flex-wrap:wrap">
+        <span style="font-size:2.5mm; background:white; border:1px solid #E5E7EB; padding:1mm 2.5mm; border-radius:99px">✓ PWA</span>
+        <span style="font-size:2.5mm; background:white; border:1px solid #E5E7EB; padding:1mm 2.5mm; border-radius:99px">✓ Mobile</span>
+        <span style="font-size:2.5mm; background:white; border:1px solid #E5E7EB; padding:1mm 2.5mm; border-radius:99px">✓ Supabase</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div>
+      <h4>Anderson Lanches • Sistema Próprio</h4>
+      <p>Desenvolvido sob medida. Não é template. Evolui com seu feedback.</p>
+      <p style="margin-top:1.5mm">📍 Atendemos todo Brasil • 💬 Suporte em português</p>
+    </div>
+    <div class="contact">
+      <div>💬 <a href="https://wa.me/5583988335764">83 98833-5764</a></div>
+      <div>✉️ andersonlanches@email.com</div>
+      <div>🌐 andersonlanches.vercel.app</div>
+      <div style="margin-top:2mm; font-size:2.5mm; opacity:0.7">CNPJ 00.000.000/0001-00 • João Pessoa - PB</div>
+    </div>
+  </div>
+</div>
+<div class="no-print" style="max-width:210mm; margin:4mm auto; text-align:center; display:flex; gap:3mm; justify-content:center; flex-wrap:wrap">
+  <button onclick="window.print()" style="padding:3mm 6mm; border-radius:99px; border:none; background:var(--blue); color:white; font-weight:800; cursor:pointer">🖨️ Imprimir / Salvar PDF</button>
+  <a href="/panfleto.html" target="_blank" style="padding:3mm 6mm; border-radius:99px; border:1.5px solid var(--blue); color:var(--blue); background:white; font-weight:800; text-decoration:none">🔗 Abrir Link</a>
+  <span style="font-size:3mm; color:#6B7280; align-self:center">A4 • Frente única • Pronto para gráfica</span>
+</div>
+</body>
+</html>
