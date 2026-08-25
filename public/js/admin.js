@@ -1483,9 +1483,9 @@ async function carregarDadosWhatsApp() {
     const atual = bairroSel.value;
     bairroSel.innerHTML = '<option value="">Bairro *</option>' + bairros.filter(b=>b.atendido).map(b=>`<option value="${b.nome}" data-taxa="${b.taxa_entrega}">${b.nome} - R$ ${parseFloat(b.taxa_entrega).toFixed(2)}</option>`).join('');
     if (atual) bairroSel.value = atual;
-    // Categorias - todas visíveis (igual cliente correto, sem colapsar pizzas para ver todas)
+    // Categorias - dropdown (solicitado)
     const catContainer = document.getElementById('whatsapp-categorias');
-    let html = `<button class="cat-btn ${whatsappCategoriaFiltro===''?'active':''}" onclick="filtrarCategoriaWhatsApp('', this)" style="padding:6px 12px; border-radius:99px; border:1.5px solid var(--color-border); background:${whatsappCategoriaFiltro===''?'var(--color-primary)':'white'}; color:${whatsappCategoriaFiltro===''?'white':'var(--color-text)'}; font-size:0.75rem; font-weight:600; cursor:pointer; white-space:nowrap">Todos</button>`;
+    let html = `<option value="">Todas as categorias</option>`;
     const categoriasUnicas = [];
     const vistosCat = new Set();
     whatsappProdutos.forEach(p=>{
@@ -1493,17 +1493,13 @@ async function carregarDadosWhatsApp() {
       vistosCat.add(p.categoria_id);
       categoriasUnicas.push({id: p.categoria_id, nome: p.categoria_nome});
     });
-    // Ordenar por ordem da categoria se disponível
-    categoriasUnicas.sort((a,b)=>{
-      const ca = whatsappProdutos.find(p=>p.categoria_id===a.id)?.categoria_nome || a.nome;
-      const cb = whatsappProdutos.find(p=>p.categoria_id===b.id)?.categoria_nome || b.nome;
-      return ca.localeCompare(cb);
-    });
+    categoriasUnicas.sort((a,b)=>a.nome.localeCompare(b.nome));
     categoriasUnicas.forEach(c=>{
-      const active=whatsappCategoriaFiltro===c.nome;
-      html+=`<button class="cat-btn ${active?'active':''}" onclick="filtrarCategoriaWhatsApp('${c.nome.replace(/'/g,"\\'")}', this)" style="padding:6px 12px; border-radius:99px; border:1.5px solid var(--color-border); background:${active?'var(--color-primary)':'white'}; color:${active?'white':'var(--color-text)'}; font-size:0.75rem; font-weight:600; cursor:pointer; white-space:nowrap">${c.nome}</button>`;
+      const selected=whatsappCategoriaFiltro===c.nome?'selected':'';
+      html+=`<option value="${c.nome}" ${selected}>${c.nome}</option>`;
     });
     catContainer.innerHTML = html;
+    catContainer.value = whatsappCategoriaFiltro;
     // Configurar pizza para WhatsApp
     if(window.PizzaModal){
       window.__pizzaCfgWhatsApp={ produtos: whatsappProdutos, toast: showToast, onAdd:item=>{ whatsappCarrinho.push(item); renderCarrinhoWhatsApp(); showToast(`${item.quantidade}x ${item.produto_nome} adicionado!`); }};
@@ -1512,12 +1508,8 @@ async function carregarDadosWhatsApp() {
   } catch(e){ showToast('Erro ao carregar dados do pedido'); }
 }
 
-function filtrarCategoriaWhatsApp(cat, btn) {
+function filtrarCategoriaWhatsApp(cat) {
   whatsappCategoriaFiltro = cat;
-  document.querySelectorAll('#whatsapp-categorias .cat-btn').forEach(b=>{
-    b.style.background='white'; b.style.color='var(--color-text)'; b.classList.remove('active');
-  });
-  if(btn){ btn.style.background='var(--color-primary)'; btn.style.color='white'; btn.classList.add('active'); }
   renderProdutosWhatsApp();
 }
 function filtrarProdutosWhatsApp(){ renderProdutosWhatsApp(); }
