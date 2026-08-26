@@ -33,11 +33,16 @@ async function resetDemo() {
       ('tempo_espera','30-40 min')
     ON CONFLICT (chave) DO UPDATE SET valor=EXCLUDED.valor
   `);
-  // Recria usuário demo se faltar (hash bcrypt para "demo")
+  // Recria usuários demo se faltar (hash bcrypt para "demo" - demo/demo igual PDV/garcom)
   await db.exec(`
     INSERT INTO usuarios (nome, usuario, senha_hash, perfil, ativo, trocar_senha)
     VALUES ('Administrador Demo','demo','$2a$10$JghWnajrvrIPrskG3diTweooG0K81cryK1cNc0sSB.TYHy9R.dMUW','admin',true,false)
     ON CONFLICT (usuario) DO UPDATE SET senha_hash=EXCLUDED.senha_hash, perfil='admin', ativo=true
+  `);
+  await db.exec(`
+    INSERT INTO usuarios (nome, usuario, senha_hash, perfil, ativo, trocar_senha)
+    VALUES ('Garçom Demo','garcom','$2a$10$JghWnajrvrIPrskG3diTweooG0K81cryK1cNc0sSB.TYHy9R.dMUW','garcom',true,false)
+    ON CONFLICT (usuario) DO UPDATE SET senha_hash=EXCLUDED.senha_hash, perfil='garcom', ativo=true
   `);
 }
 
