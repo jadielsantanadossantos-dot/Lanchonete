@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Folder 70x100 - Meu Sistema Controle de Negócios</title>
+<title>Folder 70x100 - Meu Sistema Controle de NegÃ³cios</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@700;800;900&display=swap" rel="stylesheet">
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
@@ -11,30 +11,30 @@
   @page{size:70mm 100mm; margin:0}
   body{font-family:'Inter',sans-serif;background:white;color:#1A1A1A;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .page{width:70mm; height:100mm; margin:0 auto; background:white; overflow:hidden; display:flex; flex-direction:column; position:relative}
-  /* HEADER - compacto */
-  .header{background:linear-gradient(135deg,var(--blue) 0%, #0066B2 60%, var(--orange) 100%); color:white; padding:4.5mm 5mm 3.5mm; text-align:center}
-  .header h1{font-size:4.8mm; font-weight:900; line-height:0.95; letter-spacing:-0.3px}
-  .header p{font-size:2.3mm; opacity:0.92; margin-top:1.2mm; font-weight:600; letter-spacing:0.2px}
-  /* BODY - gap reduzido para caber 100mm */
-  .body{padding:2.5mm 4mm; flex:1; display:flex; flex-direction:column; gap:2mm; justify-content:space-between}
+  /* HEADER - compacto 70x100 sem corte */
+  .header{background:linear-gradient(135deg,var(--blue) 0%, #0066B2 60%, var(--orange) 100%); color:white; padding:3mm 5mm 2.5mm; text-align:center}
+  .header h1{font-size:4.5mm; font-weight:900; line-height:0.95; letter-spacing:-0.3px}
+  .header p{font-size:2.1mm; opacity:0.92; margin-top:1mm; font-weight:600; letter-spacing:0.2px}
+  /* BODY - gap reduzido */
+  .body{padding:2mm 4mm; flex:1; display:flex; flex-direction:column; gap:1.5mm; justify-content:space-between}
   .badge{font-size:1.9mm; font-weight:800; color:var(--blue); background:#E8F1FA; border:1px solid #BFDBFE; padding:0.8mm 2mm; border-radius:99px; display:inline-block; align-self:center}
-  .grid{display:grid; grid-template-columns:repeat(3,1fr); gap:2mm}
-  .card{border:1px solid #E5E7EB; border-radius:2mm; padding:2mm; text-align:center; background:#FAFAFA}
-  .card .ic{font-size:4mm; margin-bottom:0.8mm}
-  .card h4{font-size:2.1mm; font-weight:800; color:var(--blue)}
-  .card p{font-size:1.85mm; color:var(--muted); line-height:1.25; margin-top:0.6mm}
-  .acesso{background:var(--blue); color:white; border-radius:2.5mm; padding:2.5mm; text-align:center}
-  .acesso h3{font-size:2.7mm; font-weight:800}
-  .acesso .url{font-size:2.2mm; font-weight:700; color:#FFE9A8; margin-top:0.8mm; word-break:break-all}
-  .acesso .login{font-size:2.0mm; opacity:0.92; margin-top:1.2mm; line-height:1.25; background:rgba(255,255,255,0.12); padding:1.2mm; border-radius:1.5mm}
-  .acesso .login code{background:rgba(255,255,255,0.18); padding:0.2mm 0.8mm; border-radius:1mm; font-weight:800}
-  .price{border:1.2px solid var(--blue); border-radius:2.5mm; padding:2.2mm; text-align:center; background:linear-gradient(135deg,#F8FAFF,white)}
-  .price .val{font-size:6mm; font-weight:900; color:var(--blue); line-height:1}
-  .price .val small{font-size:2.5mm; color:var(--muted)}
-  .price ul{list-style:none; text-align:left; font-size:2.1mm; margin:1.5mm 0 1mm; line-height:1.3}
-  .price li::before{content:'✓ '; color:var(--green); font-weight:900}
-  .btn{padding:2mm 3mm; border-radius:99px; font-size:2.3mm; font-weight:800; text-decoration:none; display:inline-block; background:var(--blue); color:white; width:100%; text-align:center; margin-top:1.5mm}
-  .footer{padding:2.2mm 4mm; background:#0F172A; color:white; display:flex; justify-content:space-between; align-items:center; font-size:2.0mm}
+  .grid{display:grid; grid-template-columns:repeat(3,1fr); gap:1.5mm}
+  .card{border:1px solid #E5E7EB; border-radius:2mm; padding:1.5mm; text-align:center; background:#FAFAFA}
+  .card .ic{font-size:3.8mm; margin-bottom:0.6mm}
+  .card h4{font-size:1.9mm; font-weight:800; color:var(--blue)}
+  .card p{font-size:1.7mm; color:var(--muted); line-height:1.2; margin-top:0.4mm}
+  .acesso{background:var(--blue); color:white; border-radius:2mm; padding:2mm; text-align:center}
+  .acesso h3{font-size:2.5mm; font-weight:800}
+  .acesso .url{font-size:2.0mm; font-weight:700; color:#FFE9A8; margin-top:0.6mm; word-break:break-all}
+  .acesso .login{font-size:1.85mm; opacity:0.92; margin-top:1mm; line-height:1.2; background:rgba(255,255,255,0.12); padding:1mm; border-radius:1.2mm}
+  .acesso .login code{background:rgba(255,255,255,0.18); padding:0.2mm 0.6mm; border-radius:1mm; font-weight:800}
+  .price{border:1.2px solid var(--blue); border-radius:2mm; padding:1.8mm; text-align:center; background:linear-gradient(135deg,#F8FAFF,white)}
+  .price .val{font-size:5.5mm; font-weight:900; color:var(--blue); line-height:1}
+  .price .val small{font-size:2.3mm; color:var(--muted)}
+  .price ul{list-style:none; text-align:left; font-size:1.9mm; margin:1.2mm 0 0.8mm; line-height:1.25}
+  .price li::before{content:'âœ“ '; color:var(--green); font-weight:900}
+  .btn{padding:1.8mm 3mm; border-radius:99px; font-size:2.1mm; font-weight:800; text-decoration:none; display:inline-block; background:var(--blue); color:white; width:100%; text-align:center; margin-top:1.2mm}
+  .footer{padding:1.8mm 4mm; background:#0F172A; color:white; display:flex; justify-content:space-between; align-items:center; font-size:1.9mm}
   .footer a{color:#FFD9C5; text-decoration:none; font-weight:700}
   @media print{.page{box-shadow:none}}
 </style>
@@ -42,31 +42,35 @@
 <body>
 <div class="page">
   <div class="header">
-    <h1>MEU SISTEMA<br>CONTROLE DE NEGÓCIOS</h1>
-    <p>Gestão Completa • Teste a Demo Ao Vivo</p>
+    <h1>MEU SISTEMA<br>CONTROLE DE NEGÃ“CIOS</h1>
+    <p>GestÃ£o Completa â€¢ Teste a Demo Ao Vivo</p>
   </div>
   <div class="body">
     <div class="grid">
-      <div class="card"><div class="ic">📱</div><h4>Cliente</h4><p>Cardápio e Pix</p></div>
-      <div class="card"><div class="ic">🤵</div><h4>Garçom</h4><p>Mesas no celular</p></div>
-      <div class="card"><div class="ic">📊</div><h4>PDV</h4><p>Caixa e relatórios</p></div>
+      <div class="card"><div class="ic">ðŸ“±</div><h4>Cliente</h4><p>CardÃ¡pio e Pix</p></div>
+      <div class="card"><div class="ic">ðŸ¤µ</div><h4>GarÃ§om</h4><p>Mesas no celular</p></div>
+      <div class="card"><div class="ic">ðŸ“Š</div><h4>PDV</h4><p>Caixa e relatÃ³rios</p></div>
     </div>
     <div class="acesso">
-      <h3>🚀 lanchonete-demo.vercel.app</h3>
-      <div class="login">Garçom e PDV: <code>demo</code> / <code>demo</code> • Cliente sem login</div>
+      <h3>ðŸš€ lanchonete-demo.vercel.app</h3>
+      <div class="login">GarÃ§om e PDV: <code>demo</code> / <code>demo</code> â€¢ Cliente sem login</div>
     </div>
     <div class="price">
-      <div class="val">R$ 150<small>/mês</small></div>
+      <div class="val">R$ 150<small>/mÃªs</small></div>
       <ul>
         <li>Mesas, delivery e pedidos ilimitados</li>
       </ul>
-      <a class="btn" href="https://wa.me/5583998044441?text=Quero%20Meu%20Sistema%20por%20R%24150" target="_blank">Quero para Meu Negócio →</a>
+      <a class="btn" href="https://wa.me/5583998044441?text=Quero%20Meu%20Sistema%20por%20R%24150" target="_blank">Quero para Meu NegÃ³cio â†’</a>
     </div>
   </div>
-  <div class="footer">
-    <div>💬 83 99804-4441<br>✉️ jadiel.licita@gmail.com</div>
-    <div style="text-align:right">🌐 lanchonete-demo.vercel.app<br><span style="opacity:0.7">Demo reseta 6h • 7 dias grátis</span></div>
+  <div class="footer" style="gap:2mm">
+    <div>ðŸ’¬ 83 99804-4441<br>âœ‰ï¸ jadiel.licita@gmail.com<br>ðŸŒ lanchonete-demo.vercel.app</div>
+    <div style="text-align:center; background:white; padding:1mm; border-radius:1.5mm">
+      <img src="data:image/png;base64,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" style="width:11mm; height:11mm; display:block; border-radius:1mm">
+      <div style="font-size:1.5mm; color:#0F172A; font-weight:700; margin-top:0.8mm; line-height:1">Panfleto online</div>
+    </div>
   </div>
 </div>
 </body>
 </html>
+
