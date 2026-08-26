@@ -1,5 +1,6 @@
 let allClientes = [];
 let usuarioLogado = null;
+let config = {};
 let realtimeUnsubscribes = [];
 let pedidosNovos = new Set(); // ids de pedidos marcados como NOVO (60s)
 let notificacaoCount = 0;
@@ -32,6 +33,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   carregarPedidos();
   carregarSomPrefs();
   carregarLojaStatus();
+  carregarConfigAdmin();
   
   // Inicializar Socket.io Realtime local
   if (window.Realtime && window.Realtime.init) {
@@ -194,6 +196,33 @@ const payLabels = { pix: 'Pix', dinheiro: 'Dinheiro', cartao: 'Cartão', mesa: '
 const nextStatus = { recebido: 'em_preparo', em_preparo: 'saiu_entrega', saiu_entrega: 'entregue' };
 const nextLabels = { recebido: 'Preparar', em_preparo: 'Enviar', saiu_entrega: 'Entregar' };
 
+function normalizarTelefoneWhatsApp(telefone) {
+  if (!telefone) return '';
+  let digits = String(telefone).replace(/\D/g, '');
+  if (digits.startsWith('55') && digits.length >= 12) digits = digits.slice(2);
+  if (digits.length === 11 && /^\d{2}9/.test(digits)) digits = digits.slice(0, 2) + digits.slice(3);
+  if (digits.length === 11) digits = digits.slice(0, 2) + digits.slice(3);
+  if (digits.length >= 11) digits = '55' + digits;
+  return digits;
+}
+
+async function abrirWhatsAppCliente(id) {
+  const p = todosPedidos.find(x => x.id === id);
+  if (!p) return;
+  try {
+    let msg = config.whatsapp_mensagem_saiu_entrega || `Olá {nome}! Seu pedido #{id} saiu para entrega 🛵 - {loja}. Total R$ {total}`;
+    msg = msg.replace(/\{nome\}/g, p.cliente_nome || 'cliente').replace(/\{id\}/g, p.id).replace(/\{total\}/g, (p.total || 0).toFixed(2)).replace(/\{loja\}/g, config.loja_nome || 'Lanchonete');
+    const tel = normalizarTelefoneWhatsApp(p.cliente_telefone);
+    if (!tel) return showToast('Telefone do cliente não informado');
+    const link = `https://wa.me/${tel}?text=${encodeURIComponent(msg)}`;
+    console.log('[WhatsApp] link gerado:', link, '| tel original:', p.cliente_telefone);
+    window.open(link, '_blank');
+  } catch (e) {
+    console.error('WhatsApp:', e);
+    showToast('Erro ao gerar link WhatsApp');
+  }
+}
+
 function renderPedidos(pedidos) {
   const container = document.getElementById('pedidos-list');
   if (!pedidos.length) { container.innerHTML = '<p style="text-align:center;color:var(--gray);padding:40px">Nenhum pedido encontrado</p>'; return; }
@@ -299,6 +328,10 @@ function renderPedidoCard(p) {
   const actionsHtml = [];
   if (nextStatus[p.status]) {
     actionsHtml.push(`<button class="btn btn-success btn-xs" onclick="atualizarStatus(${p.id}, '${nextStatus[p.status]}')">${nextLabels[p.status]}</button>`);
+
+    if (p.status === 'saiu_entrega' && !p.mesa_id && p.cliente_telefone) {
+      actionsHtml.push(`<button class="btn btn-success btn-xs" onclick="abrirWhatsAppCliente(${p.id})">📱 WhatsApp</button>`);
+    }
   }
   if (p.status !== 'cancelado' && p.status !== 'entregue') {
     actionsHtml.push(`<button class="btn btn-danger btn-xs" onclick="atualizarStatus(${p.id}, 'cancelado')">Cancelar</button>`);
@@ -1405,7 +1438,8 @@ async function carregarConfigAdmin() {
   const res = await authFetch('/api/config');
   const cfg = await res.json();
   document.getElementById('cfg-loja-nome').value = cfg.loja_nome || '';
-  document.getElementById('cfg-loja-telefone').value = cfg.loja_telefone || '';
+   document.getElementById('cfg-loja-telefone').value = cfg.loja_telefone || '';
+   document.getElementById('cfg-whatsapp-msg-saiu').value = cfg.whatsapp_mensagem_saiu_entrega || '';
   document.getElementById('cfg-tempo-espera').value = cfg.tempo_espera || '';
   document.getElementById('cfg-pix-tipo').value = cfg.pix_tipo || 'cpf';
   document.getElementById('cfg-pix-chave').value = cfg.pix_chave || '';
@@ -1433,6 +1467,7 @@ async function carregarConfigAdmin() {
     if (prov === 'desativado') status.textContent = 'Pix automático desativado — usando Pix estático + WhatsApp.';
     else status.textContent = `Ativo: ${prov} (${cfg.psp_ambiente || 'producao'}) — webhook pronto para colar no banco.`;
   }
+  config = cfg;
   togglePspFields();
   carregarSomPrefs();
 }
@@ -1474,6 +1509,7 @@ async function salvarConfig(e) {
   const config = {
     loja_nome: document.getElementById('cfg-loja-nome').value,
     loja_telefone: document.getElementById('cfg-loja-telefone').value,
+    whatsapp_mensagem_saiu_entrega: document.getElementById('cfg-whatsapp-msg-saiu')?.value || '',
     tempo_espera: document.getElementById('cfg-tempo-espera').value,
     pix_tipo: document.getElementById('cfg-pix-tipo').value,
     pix_chave: document.getElementById('cfg-pix-chave').value,

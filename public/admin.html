@@ -483,10 +483,15 @@
             <label>Nome da loja</label>
             <input class="form-control" id="cfg-loja-nome">
           </div>
-          <div class="form-group">
-            <label>Telefone da loja</label>
-            <input class="form-control" id="cfg-loja-telefone">
-          </div>
+           <div class="form-group">
+             <label>Telefone da loja</label>
+             <input class="form-control" id="cfg-loja-telefone">
+           </div>
+           <div class="form-group">
+             <label>Mensagem WhatsApp "Saiu para entrega"</label>
+             <textarea class="form-control" id="cfg-whatsapp-msg-saiu" placeholder="Ex: Olá {nome}, seu pedido #{id} saiu para entrega! Total R$ {total} - {loja}"></textarea>
+             <small style="color:var(--color-text-muted)">Variáveis: {nome}, {id}, {total}, {loja}. Envia para o cliente quando o status mudar para "saiu p/ entrega". O WhatsApp Web precisa estar aberto neste navegador.</small>
+           </div>
           <h3 style="margin-top:20px">Tempo de Espera</h3>
           <div class="form-group">
             <label>Tempo de espera do dia</label>
