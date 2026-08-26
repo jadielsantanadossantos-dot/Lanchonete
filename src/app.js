@@ -129,6 +129,7 @@ function buildApp() {
   app.use('/api/comandas', require('./routes/comandas'));
   app.use('/api/motoboys', require('./routes/motoboys'));
   app.use('/api/config', require('./routes/config'));
+  app.use('/api/cron', require('./routes/cron'));
 
   app.get('/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toLocaleString('sv-SE', { timeZone: 'America/Sao_Paulo' }), timezone: 'America/Sao_Paulo' });
