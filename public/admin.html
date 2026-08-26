@@ -631,5 +631,16 @@
   <script src="/js/auth.js?v=20260826a"></script>
   <script src="/js/pizza-modal.js?v=20260826a"></script>
   <script src="/js/admin.js?v=20260826a"></script>
+  <script>
+    // Demo: esconde logo original
+    (function(){
+      var isDemoHost = location.hostname.includes('demo');
+      function hideLogos(){ document.querySelectorAll('img[src="/logo.jpeg"]').forEach(function(i){ i.style.display='none'; }); }
+      if(isDemoHost) hideLogos();
+      fetch('/api/config').then(function(r){return r.json();}).then(function(cfg){
+        if(cfg.loja_nome && cfg.loja_nome.toLowerCase().includes('demo')) hideLogos();
+      }).catch(function(){});
+    })();
+  </script>
 </body>
 </html>
