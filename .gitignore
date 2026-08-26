@@ -39,6 +39,13 @@ public/uploads/
 .vercel
 .env*
 
+# Demo scripts com secrets locais (não commitar)
+check_demo*.js
+apply_demo_migrations.js
+get_conn.js
+test_conn.js
+test_dbwrapper.js
+
 # Binarios/locais
 cloudflared.exe
 *.old
