@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Panfleto - Sistema Lanchonete | Exemplo Anderson Lanches</title>
+<title>Portfólio - Meu Sistema Controle de Negócios | Demo ao Vivo</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
@@ -11,13 +11,12 @@
   body{font-family:'Inter',sans-serif;background:#E5E7EB;color:var(--text);-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .page{width:210mm; min-height:297mm; margin:10mm auto; background:white; box-shadow:0 20px 60px rgba(0,0,0,0.15); overflow:hidden; display:flex; flex-direction:column}
   @media print{body{background:white} .page{margin:0; box-shadow:none; width:100%; min-height:auto} .no-print{display:none}}
-  /* HEADER */
   .header{background:linear-gradient(135deg,var(--blue) 0%, #0066B2 60%, var(--orange) 100%); color:white; padding:18mm 14mm 10mm; position:relative; overflow:hidden}
   .header::after{content:''; position:absolute; right:-30mm; top:-20mm; width:80mm; height:80mm; background:rgba(255,255,255,0.08); border-radius:50%}
   .header-top{display:flex; justify-content:space-between; align-items:center; position:relative; z-index:1}
   .brand{display:flex; align-items:center; gap:4mm}
   .brand img{width:16mm; height:16mm; border-radius:4mm; object-fit:cover; border:2.5px solid white; box-shadow:0 4px 12px rgba(0,0,0,0.2)}
-  .brand-text h1{font-size:7.5mm; font-weight:900; line-height:1; letter-spacing:-0.3px}
+  .brand-text h1{font-size:7mm; font-weight:900; line-height:1; letter-spacing:-0.3px}
   .brand-text span{font-size:3.2mm; font-weight:600; opacity:0.9; letter-spacing:0.5px}
   .badge-header{background:white; color:var(--blue); padding:2mm 4mm; border-radius:99px; font-size:2.8mm; font-weight:800; letter-spacing:0.3px}
   .hero{margin-top:8mm; position:relative; z-index:1; display:grid; grid-template-columns:1.15fr 0.85fr; gap:8mm; align-items:center}
@@ -34,7 +33,6 @@
   .hero-card .price{color:var(--orange); font-weight:900; font-size:4mm}
   .pulse{position:absolute; top:3mm; right:3mm; width:3.5mm; height:3.5mm; background:var(--green); border-radius:50%; border:2px solid white; animation:pulse 1.8s infinite}
   @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(22,163,74,0.4)}50%{box-shadow:0 0 0 6px rgba(22,163,74,0)}}
-  /* FEATURES */
   .section{padding:8mm 14mm}
   .section-title{text-align:center; margin-bottom:6mm}
   .section-title h3{font-size:6.5mm; font-weight:900; color:var(--blue); letter-spacing:-0.3px}
@@ -47,12 +45,10 @@
   .c-orange .icon{background:#FFF5F0; border:1.5px solid #FFD9C5}
   .c-blue .icon{background:#E8F1FA; border:1.5px solid #BFDBFE}
   .c-green .icon{background:#F0FDF4; border:1.5px solid #BBF7D0}
-  /* STEPS */
   .steps{background:var(--bg); border-top:1px solid #E5E7EB; border-bottom:1px solid #E5E7EB; padding:7mm 14mm; display:grid; grid-template-columns:repeat(3,1fr); gap:6mm; text-align:center}
   .step-num{width:9mm; height:9mm; background:var(--orange); color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:4mm; margin:0 auto 2.5mm}
   .steps h4{font-size:3.4mm; font-weight:800}
   .steps p{font-size:2.9mm; color:var(--muted); margin-top:1mm}
-  /* PRICING + QR */
   .pricing{display:grid; grid-template-columns:1fr 0.9fr; gap:6mm; padding:8mm 14mm; align-items:center}
   .price-card{border:2px solid var(--blue); border-radius:5mm; padding:6mm; background:linear-gradient(135deg,#F8FAFF 0%, white 100%); position:relative; overflow:hidden}
   .price-card::before{content:'MAIS POPULAR'; position:absolute; top:3mm; right:-8mm; background:var(--orange); color:white; font-size:2.2mm; font-weight:800; padding:1.5mm 8mm; transform:rotate(12deg); letter-spacing:0.4px}
@@ -67,13 +63,19 @@
   .qr-box h4{font-size:3.6mm; font-weight:800}
   .qr-box p{font-size:2.9mm; color:var(--muted); margin-top:1mm}
   .qr-box .url{font-size:2.6mm; font-weight:700; color:var(--blue); background:white; padding:1.5mm 3mm; border-radius:99px; display:inline-block; margin-top:2.5mm; border:1px solid #E5E7EB}
-  /* FOOTER */
   .footer{background:var(--text); color:white; padding:6mm 14mm; display:flex; justify-content:space-between; align-items:center; gap:6mm}
   .footer h4{font-size:3.6mm; font-weight:800}
   .footer p{font-size:2.9mm; opacity:0.8; margin-top:1mm}
   .footer .contact{font-size:3.1mm; line-height:1.5; text-align:right}
   .footer a{color:#FFD9C5; text-decoration:none; font-weight:700}
-  @media (max-width: 800px){.page{width:100%; margin:0} .hero{grid-template-columns:1fr} .grid3{grid-template-columns:1fr} .steps{grid-template-columns:1fr} .pricing{grid-template-columns:1fr}}
+  .acesso-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:4mm; margin-top:6mm}
+  .acesso-card{border:1.5px solid #E5E7EB; border-radius:4mm; padding:5mm; background:white; text-align:center}
+  .acesso-card .acesso-num{width:10mm; height:10mm; background:var(--blue); color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:900; margin:0 auto 3mm; font-size:4mm}
+  .acesso-card h4{font-size:3.4mm; font-weight:800; color:var(--blue)}
+  .acesso-card .acesso-url{font-size:2.7mm; font-weight:700; color:var(--orange); word-break:break-all; margin:2mm 0}
+  .acesso-card .acesso-login{font-size:2.7mm; background:#F3F4F6; padding:2mm; border-radius:2mm; margin-top:2mm; line-height:1.4}
+  .acesso-card .acesso-desc{font-size:2.8mm; color:var(--muted); margin-top:2mm; line-height:1.4}
+  @media (max-width: 800px){.page{width:100%; margin:0} .hero{grid-template-columns:1fr} .grid3{grid-template-columns:1fr} .steps{grid-template-columns:1fr} .pricing{grid-template-columns:1fr} .acesso-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -81,24 +83,24 @@
   <div class="header">
     <div class="header-top">
       <div class="brand">
-        <img src="/logo.jpeg" alt="Logo" onerror="this.style.display='none'">
-        <div class="brand-text"><h1>SISTEMA LANCHONETE</h1><span>Exemplo: Anderson Lanches • Desde 2024</span></div>
+        <img src="/logo.jpeg" alt="Logo" onerror="this.style.display='none'" style="display:none">
+        <div class="brand-text"><h1>MEU SISTEMA CONTROLE DE NEGÓCIOS</h1><span>Gestão Completa • White-Label • Demo Ao Vivo</span></div>
       </div>
-      <div class="badge-header">✨ NOVO • 100% ONLINE</div>
+      <div class="badge-header">✨ DEMO ONLINE • 24H</div>
     </div>
     <div class="hero">
       <div>
-        <h2>Transforme<br>sua <span>lanchonete</span><br>em um negócio<br>que escala.</h2>
-        <p>Mesas, delivery, garçom no celular, cozinha em tempo real e caixa fechando sozinho. Testado com <strong>15 pedidos simultâneos</strong> sem travar.</p>
+        <h2>Controle<br>total do <span>seu negócio</span><br>em um só lugar.</h2>
+        <p>Cardápio digital, mesas, delivery, garçom no celular, cozinha em tempo real e caixa automático. <strong>Demo com cardápio real</strong> - teste agora.</p>
         <div class="hero-cta">
-          <a class="btn btn-white" href="https://andersonlanches.vercel.app" target="_blank">🚀 Ver Demonstração</a>
-          <a class="btn btn-outline" href="https://wa.me/5583988335764" target="_blank">💬 Falar no WhatsApp</a>
+          <a class="btn btn-white" href="https://lanchonete-demo.vercel.app" target="_blank">🚀 Testar Demo Ao Vivo</a>
+          <a class="btn btn-outline" href="https://wa.me/5583988335764" target="_blank">💬 Quero para meu negócio</a>
         </div>
-        <div style="margin-top:4mm; font-size:2.7mm; opacity:0.8">✓ Sem mensalidade abusiva • ✓ Suporte BRT • ✓ Em 24h no ar</div>
+        <div style="margin-top:4mm; font-size:2.7mm; opacity:0.8">✓ Reseta todo dia 6h • ✓ Sem instalar app • ✓ Suporte BRT</div>
       </div>
       <div class="hero-card">
         <div class="pulse"></div>
-        <img src="/logo.jpeg" alt="Prévia" onerror="this.outerHTML='<div style=\'height:38mm;background:linear-gradient(135deg,#FFF5F0,#E8F1FA);border-radius:3mm;display:flex;align-items:center;justify-content:center;font-size:18mm\'>🍔</div>'">
+        <div style='height:38mm;background:linear-gradient(135deg,#FFF5F0,#E8F1FA);border-radius:3mm;display:flex;align-items:center;justify-content:center;font-size:18mm'>🍔</div>
         <h4>Mesa 7 — 2x X-Tudo + Suco</h4>
         <div style="font-size:2.8mm; color:#6B7280">🆕 NOVO • há 12s • Mesa</div>
         <div class="price">R$ 42,00</div>
@@ -108,44 +110,77 @@
   </div>
 
   <div class="section">
-    <div class="section-title"><h3>Tudo que sua operação precisa</h3><p>Um só sistema. Zero planilha. Zero dor de cabeça.</p></div>
+    <div class="section-title"><h3>Portfólio: o que o sistema faz</h3><p>3 frentes integradas - cliente, garçom e gestão - sem planilha</p></div>
     <div class="grid3">
-      <div class="card c-orange"><div class="icon">📱</div><h4>Garçom no Celular</h4><p>Cardápio 100% responsivo, comanda por mesa, avulso com carrinho flutuante. Sem app.</p></div>
-      <div class="card c-blue"><div class="icon">🍽️</div><h4>Cozinha em Tempo Real</h4><p>Pedido entra e toca na cozinha. Novo item pisca laranja. Clique para dar baixa.</p></div>
-      <div class="card c-green"><div class="icon">💳</div><h4>Caixa Automático</h4><p>Pix QR, troco calculado, taxas por bairro e fechamento de mesa em 1 clique.</p></div>
-      <div class="card c-blue"><div class="icon">📊</div><h4>Painel Admin Completo</h4><p>Produtos, categorias, adicionais, motoboys, auditoria e relatórios por período.</p></div>
-      <div class="card c-green"><div class="icon">⏰</div><h4>Horário Brasil GMT-3</h4><p>Tudo em America/Sao_Paulo. Relatórios diários fecham à meia-noite local.</p></div>
-      <div class="card c-orange"><div class="icon">⚡</div><h4> Aguenta Pico</h4><p>Testado com 15 pedidos simultâneos (8 delivery + 7 mesa). Sem duplicar.</p></div>
+      <div class="card c-orange"><div class="icon">📱</div><h4>Cliente - Cardápio Digital</h4><p>Site responsivo, carrinho, taxas por bairro, Pix QR e acompanhamento do pedido em tempo real.</p></div>
+      <div class="card c-blue"><div class="icon">🍽️</div><h4>Garçom - Atendimento Mesa</h4><p>Comanda por mesa, avulso, adicionais, envio para cozinha e fechamento em 1 clique. No celular.</p></div>
+      <div class="card c-green"><div class="icon">📊</div><h4>PDV / Admin - Gestão</h4><p>Produtos, categorias, adicionais, motoboys, bairros, relatórios, auditoria e configurações Pix.</p></div>
+      <div class="card c-blue"><div class="icon">🔔</div><h4>Cozinha em Tempo Real</h4><p>Pedido toca e pisca laranja. Notificação sonora configurável. 15 pedidos simultâneos sem travar.</p></div>
+      <div class="card c-green"><div class="icon">💳</div><h4>Caixa Automático</h4><p>Dinheiro com troco, Pix estático + automático (Inter, EFI, Mercado Pago), taxas e relatórios.</p></div>
+      <div class="card c-orange"><div class="icon">⚡</div><h4>White-Label</h4><p>Sua marca, seu domínio, suas cores. Demo reseta 6h e já vem com cardápio completo.</p></div>
+    </div>
+  </div>
+
+  <div class="section" style="background:var(--bg); border-top:1px solid #E5E7EB; border-bottom:1px solid #E5E7EB">
+    <div class="section-title"><h3>Passo a passo - acesse a demo agora</h3><p>3 painéis com logins de demonstração • Use no celular e no computador</p></div>
+    <div class="acesso-grid">
+      <div class="acesso-card">
+        <div class="acesso-num">1</div>
+        <h4>📱 Painel Cliente</h4>
+        <div class="acesso-url">lanchonete-demo.vercel.app</div>
+        <div class="acesso-desc">Cardápio digital para o cliente fazer pedido delivery. Sem login.</div>
+        <div class="acesso-login"><strong>Como testar:</strong><br>Abra o link → Escolha categoria → Produto → Adicionais → Carrinho → Dados → Pix/Cartão</div>
+        <a href="https://lanchonete-demo.vercel.app" target="_blank" class="btn" style="background:var(--orange); color:white; margin-top:3mm; width:100%; justify-content:center; font-size:2.8mm">Abrir Cliente →</a>
+      </div>
+      <div class="acesso-card">
+        <div class="acesso-num">2</div>
+        <h4>🤵 Painel Garçom</h4>
+        <div class="acesso-url">lanchonete-demo.vercel.app/login-garcom</div>
+        <div class="acesso-desc">Atendimento presencial: mesas e avulso. Ideal no celular do garçom.</div>
+        <div class="acesso-login"><strong>Login demo:</strong><br>Usuário: <code>garcom</code><br>Senha: <code>garcom123</code><br><span style="color:var(--muted)">ou use demo/demo</span></div>
+        <a href="https://lanchonete-demo.vercel.app/login-garcom" target="_blank" class="btn" style="background:var(--blue); color:white; margin-top:3mm; width:100%; justify-content:center; font-size:2.8mm">Abrir Garçom →</a>
+      </div>
+      <div class="acesso-card" style="border-color:var(--orange); border-width:2px">
+        <div class="acesso-num" style="background:var(--orange)">3</div>
+        <h4>💻 Painel PDV / Admin</h4>
+        <div class="acesso-url">lanchonete-demo.vercel.app/login-admin</div>
+        <div class="acesso-desc">Gestão completa: cozinha, caixa, cadastros e relatórios.</div>
+        <div class="acesso-login"><strong>Login demo:</strong><br>Usuário: <code>demo</code><br>Senha: <code>demo</code><br><span style="color:var(--green); font-weight:700">Acesso total demonstração</span></div>
+        <a href="https://lanchonete-demo.vercel.app/login-admin" target="_blank" class="btn" style="background:var(--green); color:white; margin-top:3mm; width:100%; justify-content:center; font-size:2.8mm">Abrir PDV →</a>
+      </div>
+    </div>
+    <div style="text-align:center; margin-top:5mm; font-size:2.8mm; color:var(--muted); background:white; padding:3mm; border-radius:3mm; border:1px solid #E5E7EB">
+      💡 <strong>Dica para apresentação:</strong> Abra o <strong>Cliente</strong> no celular e o <strong>PDV</strong> no computador lado a lado. Faça um pedido no Cliente e veja tocar na cozinha do PDV em tempo real.
     </div>
   </div>
 
   <div class="steps">
-    <div><div class="step-num">1</div><h4>Cadastre o Cardápio</h4><p>Fotos, preços, adicionais e bairros em 10 minutos. Importamos seu cardápio atual.</p></div>
-    <div><div class="step-num">2</div><h4>Treine em 15 min</h4><p>Garçom só precisa do link /garcom. Cozinha só do /admin. Sem instalação.</p></div>
-    <div><div class="step-num">3</div><h4>Venda e Acompanhe</h4><p>Notificação sonora, badge NOVO pulsante e relatório diário no seu WhatsApp.</p></div>
+    <div><div class="step-num">1</div><h4>Cadastre em 10 min</h4><p>Produtos, fotos, preços, adicionais e bairros. Importamos seu cardápio atual.</p></div>
+    <div><div class="step-num">2</div><h4>Treine em 15 min</h4><p>Garçom só precisa do link /garcom. Cozinha só do /admin. Sem instalar nada.</p></div>
+    <div><div class="step-num">3</div><h4>Venda e Acompanhe</h4><p>Notificação sonora, badge NOVO e relatório diário. Reseta 6h para nova demo.</p></div>
   </div>
 
   <div class="pricing">
     <div class="price-card">
-      <h4>Plano Lanchonete Completo</h4>
+      <h4>Meu Sistema Controle de Negócios</h4>
       <div class="price">R$ 97<small>/mês</small></div>
       <div style="font-size:2.8mm; color:#6B7280; text-decoration:line-through">De R$ 197/mês</div>
       <ul>
-        <li>Mesas ilimitadas + avulso</li>
-        <li>Pedidos ilimitados + motoboys</li>
+        <li>Mesas ilimitadas + avulso + delivery</li>
+        <li>Pedidos ilimitados + motoboys + taxas</li>
         <li>Suporte WhatsApp BRT 8h-22h</li>
-        <li>Atualizações inclusas + backup diário</li>
+        <li>White-label + backup diário + demo inclusa</li>
       </ul>
-      <a href="https://wa.me/5583988335764?text=Quero%20o%20Sistema%20Lanchonete%20por%20R%2497" target="_blank" class="btn" style="background:var(--blue); color:white; width:100%; justify-content:center">Quero Começar Agora →</a>
-      <div style="text-align:center; font-size:2.6mm; color:#6B7280; margin-top:2mm">7 dias grátis • Cancele quando quiser</div>
+      <a href="https://wa.me/5583988335764?text=Quero%20o%20Meu%20Sistema%20Controle%20de%20Negocios%20por%20R%2497" target="_blank" class="btn" style="background:var(--blue); color:white; width:100%; justify-content:center">Quero para Meu Negócio →</a>
+      <div style="text-align:center; font-size:2.6mm; color:#6B7280; margin-top:2mm">7 dias grátis • Demo reseta 6h • Cancele quando quiser</div>
     </div>
     <div class="qr-box">
       <div class="qr">⬢</div>
-      <h4>Teste Agora na Prática</h4>
-      <p>Aponte a câmera e veja o sistema<br>rodando ao vivo com cardápio real</p>
-      <div class="url">andersonlanches.vercel.app</div>
-      <div style="font-size:2.6mm; color:#6B7280; margin-top:3mm">Login demonstração: <strong>demo / demo1234</strong> <span style="background:#FEF3C7; color:#92400E; padding:0.5mm 2mm; border-radius:99px; font-weight:700; border:1px solid #F59E0B; margin-left:1mm">👁️ Somente visualização</span></div>
-      <div style="font-size:2.4mm; color:#6B7280; margin-top:1.5mm">Não altera dados • Ideal para conhecer o sistema</div>
+      <h4>Teste a Demo Ao Vivo</h4>
+      <p>Aponte a câmera e entre no cardápio<br>com <strong>84 produtos reais</strong></p>
+      <div class="url">lanchonete-demo.vercel.app</div>
+      <div style="font-size:2.6mm; color:#6B7280; margin-top:3mm">Login PDV: <strong>demo / demo</strong> • Garçom: <strong>garcom / garcom123</strong> <span style="background:#FEF3C7; color:#92400E; padding:0.5mm 2mm; border-radius:99px; font-weight:700; border:1px solid #F59E0B; margin-left:1mm">👁️ Demo</span></div>
+      <div style="font-size:2.4mm; color:#6B7280; margin-top:1.5mm">Reseta todo dia 6h • Dados de teste não afetam produção</div>
       <div style="margin-top:3mm; display:flex; gap:2mm; justify-content:center; flex-wrap:wrap">
         <span style="font-size:2.5mm; background:white; border:1px solid #E5E7EB; padding:1mm 2.5mm; border-radius:99px">✓ PWA</span>
         <span style="font-size:2.5mm; background:white; border:1px solid #E5E7EB; padding:1mm 2.5mm; border-radius:99px">✓ Mobile</span>
@@ -156,25 +191,25 @@
 
   <div class="footer">
     <div>
-      <h4>Sistema Lanchonete • Exemplo: Anderson Lanches</h4>
-      <p>Marca Anderson Lanches usada apenas como exemplo demonstrativo, sem vínculo de propriedade sobre o sistema.</p>
-      <p style="margin-top:1.5mm">📍 Atendemos todo Brasil • 💬 Suporte em português • Sistema white-label para sua marca</p>
+      <h4>Meu Sistema Controle de Negócios • White-Label</h4>
+      <p>Demo: lanchonete-demo.vercel.app • Portfólio demonstrativo - personalize com sua marca.</p>
+      <p style="margin-top:1.5mm">📍 Atendemos todo Brasil • 💬 Suporte em português • Pronto em 24h</p>
     </div>
     <div class="contact">
       <div>💬 <a href="https://wa.me/5583988335764">83 98833-5764</a></div>
-      <div>✉️ andersonlanches@email.com</div>
-      <div>🌐 andersonlanches.vercel.app</div>
+      <div>✉️ contato@meusistema.com.br</div>
+      <div>🌐 lanchonete-demo.vercel.app</div>
       <div style="margin-top:2mm; font-size:2.5mm; opacity:0.7">CNPJ 00.000.000/0001-00 • João Pessoa - PB</div>
     </div>
   </div>
   <div style="background:#F3F4F6; padding:3mm 14mm; text-align:center; font-size:2.4mm; color:#6B7280; border-top:1px solid #E5E7EB; line-height:1.4">
-    * Marca “Anderson Lanches” utilizada apenas como <strong>exemplo demonstrativo</strong>, sem qualquer vínculo de propriedade, sociedade ou exclusividade sobre o sistema. O sistema é <strong>white-label</strong> e será personalizado com a identidade visual da sua empresa.
+    Panfleto portfólio do <strong>Meu Sistema Controle de Negócios</strong> - demonstração com cardápio real (84 produtos). Sistema white-label será entregue com sua identidade visual.
   </div>
 </div>
 <div class="no-print" style="max-width:210mm; margin:4mm auto; text-align:center; display:flex; gap:3mm; justify-content:center; flex-wrap:wrap">
   <button onclick="window.print()" style="padding:3mm 6mm; border-radius:99px; border:none; background:var(--blue); color:white; font-weight:800; cursor:pointer">🖨️ Imprimir / Salvar PDF</button>
   <a href="/panfleto.html" target="_blank" style="padding:3mm 6mm; border-radius:99px; border:1.5px solid var(--blue); color:var(--blue); background:white; font-weight:800; text-decoration:none">🔗 Abrir Link</a>
-  <span style="font-size:3mm; color:#6B7280; align-self:center">A4 • Frente única • Pronto para gráfica</span>
+  <span style="font-size:3mm; color:#6B7280; align-self:center">A4 • Frente única • lanchonete-demo.vercel.app/panfleto.html</span>
 </div>
 </body>
 </html>
