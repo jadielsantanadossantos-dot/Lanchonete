@@ -1419,8 +1419,18 @@ async function solicitarEntrega(pedidoId) {
   } catch(e) {}
   const lojaTel = (config.loja_telefone || '').replace(/\D/g, '');
   const tel = lojaTel ? (lojaTel.startsWith('55') ? lojaTel : '55' + lojaTel) : '';
-  const lojaEnd = config.loja_endereco || '';
-  const msg = `Olá! Pedido #${p.id} (Retirada no local) - gostaria de solicitar entrega para meu endereço. Total R$ ${Number(p.total).toFixed(2)}. ${lojaEnd ? 'Retirada seria em: ' + lojaEnd : ''}. Aguardo confirmação da taxa de entrega.`;
+  // endereço de cadastro do cliente (não o da loja)
+  let cliEnd = '';
+  const c = clienteLogado;
+  if (c) {
+    if (c.rua) cliEnd += c.rua;
+    if (c.numero) cliEnd += `, ${c.numero}`;
+    if (c.complemento) cliEnd += ` - ${c.complemento}`;
+    if (c.bairro) cliEnd += ` - ${c.bairro}`;
+    if (c.ponto_referencia) cliEnd += ` (Ref: ${c.ponto_referencia})`;
+  }
+  if (!cliEnd) cliEnd = p.endereco_entrega && !String(p.endereco_entrega).startsWith('Retirada') ? `${p.endereco_entrega} - ${p.bairro_entrega}` : 'endereço cadastrado';
+  const msg = `Olá! Pedido #${p.id} (Retirada no local) - gostaria de solicitar entrega.\nMeu endereço: ${cliEnd}\nTotal atual: R$ ${Number(p.total).toFixed(2)}\nAguardo confirmação da taxa de entrega.`;
   const url = tel ? `https://wa.me/${tel}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`;
   window.open(url, '_blank');
   mostrarToast('Solicitação enviada! Aguarde o PDV confirmar.');
