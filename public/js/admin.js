@@ -1497,11 +1497,29 @@ async function toggleBairro(id, nome, taxa, atendido) {
   carregarBairrosAdmin();
 }
 
-function editarBairroPrompt(id, nome, taxa) {
+async function editarBairroPrompt(id, nome, taxa) {
   const novaTaxa = prompt(`Nova taxa de entrega para ${nome}:`, taxa);
   if (novaTaxa === null) return;
-  fetch(`/api/bairros/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nome, taxa_entrega: parseFloat(novaTaxa) || 0, atendido: 1 }) })
-    .then(() => { carregarBairrosAdmin(); showToast('Taxa atualizada!'); });
+  const taxaNum = parseFloat(String(novaTaxa).replace(',', '.')) || 0;
+  if (taxaNum < 0) { showToast('Taxa inválida'); return; }
+  try {
+    // Preserva status atendido atual para não reativar bairros desativados sem querer
+    let atendido = 1;
+    try {
+      const r = await authFetch('/api/bairros');
+      if (r.ok) {
+        const lista = await r.json();
+        const atual = lista.find(b => String(b.id) === String(id));
+        if (atual) atendido = atual.atendido ? 1 : 0;
+      }
+    } catch {}
+    const res = await authFetch(`/api/bairros/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nome, taxa_entrega: taxaNum, atendido }) });
+    await verificarResposta(res);
+    await carregarBairrosAdmin();
+    showToast('Taxa atualizada!');
+  } catch (e) {
+    showToast(e.message);
+  }
 }
 
 async function excluirBairro(id) {

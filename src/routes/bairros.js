@@ -19,11 +19,18 @@ router.get('/atendidos', wrapAsync(async (req, res) => {
   res.json(rows);
 }));
 
+function parseTaxa(v) {
+  if (v === undefined || v === null || v === '') return 0;
+  const s = String(v).replace(',', '.').trim();
+  const n = parseFloat(s);
+  return isNaN(n) ? 0 : n;
+}
+
 router.post('/', middlewareAdmin, wrapAsync(async (req, res) => {
   const { nome, taxa_entrega, atendido } = req.body;
   try {
     const info = await db.run('INSERT INTO bairros (nome, taxa_entrega, atendido) VALUES ($1, $2, $3) RETURNING id',
-      nome, parseFloat(taxa_entrega) || 0, atendido !== undefined ? atendido : true);
+      nome, parseTaxa(taxa_entrega), atendido !== undefined ? atendido : true);
     res.json({ id: info.lastInsertRowid });
   } catch (e) {
     res.status(400).json({ error: 'Bairro já cadastrado' });
@@ -33,7 +40,7 @@ router.post('/', middlewareAdmin, wrapAsync(async (req, res) => {
 router.put('/:id', middlewareAdmin, wrapAsync(async (req, res) => {
   const { nome, taxa_entrega, atendido } = req.body;
   await db.run('UPDATE bairros SET nome=$1, taxa_entrega=$2, atendido=$3 WHERE id=$4',
-    nome, parseFloat(taxa_entrega) || 0, atendido !== undefined ? atendido : true, req.params.id);
+    nome, parseTaxa(taxa_entrega), atendido !== undefined ? atendido : true, req.params.id);
   res.json({ success: true });
 }));
 
