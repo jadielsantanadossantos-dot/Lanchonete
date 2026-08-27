@@ -264,12 +264,34 @@ router.put('/:id/converter-entrega', middlewareAdmin, wrapAsync(async (req, res)
   if (taxa_entrega < 0) taxa_entrega = 0;
   const subtotal = parseFloat(pedido.subtotal) || 0;
   const total = subtotal + taxa_entrega;
-  await db.run('UPDATE pedidos SET bairro_entrega = $1, endereco_entrega = $2, taxa_entrega = $3, total = $4, atualizado_em = NOW() WHERE id = $5', bairro_entrega, endereco_entrega, taxa_entrega, total, pedidoId);
+  // remover marcador de solicitação se houver
+  let obs = pedido.observacoes || '';
+  obs = obs.replace(/\s*\|\s*SOLICITOU ENTREGA/g, '').trim();
+  await db.run('UPDATE pedidos SET bairro_entrega = $1, endereco_entrega = $2, taxa_entrega = $3, total = $4, observacoes = $5, atualizado_em = NOW() WHERE id = $6', bairro_entrega, endereco_entrega, taxa_entrega, total, obs, pedidoId);
   const payload = { id: pedidoId, bairro_entrega, endereco_entrega, taxa_entrega, total };
   if (req.emitToAdmin) await req.emitToAdmin('pedido-atualizado', payload);
   if (req.emitToGarcom) await req.emitToGarcom('pedido-atualizado', payload);
   if (req.emitToPedido) await req.emitToPedido(pedidoId, 'pedido-atualizado', payload);
   res.json({ success: true, ...payload });
+}));
+
+router.put('/:id/solicitar-entrega', publicLimiter, wrapAsync(async (req, res) => {
+  const pedidoId = parseInt(req.params.id);
+  const pedido = await db.get('SELECT * FROM pedidos WHERE id = $1', pedidoId);
+  if (!pedido) return res.status(404).json({ error: 'Pedido não encontrado' });
+  const isRetirada = pedido.bairro_entrega === 'Retirada no local' || (pedido.endereco_entrega && pedido.endereco_entrega.startsWith('Retirada'));
+  if (!isRetirada) return res.status(400).json({ error: 'Pedido não é retirada' });
+  if (['entregue','cancelado'].includes(pedido.status)) return res.status(400).json({ error: 'Pedido já finalizado' });
+  if (pedido.observacoes && pedido.observacoes.includes('SOLICITOU ENTREGA')) {
+    return res.json({ success: true, jaSolicitado: true });
+  }
+  const novaObs = pedido.observacoes ? pedido.observacoes + ' | SOLICITOU ENTREGA' : 'SOLICITOU ENTREGA';
+  await db.run('UPDATE pedidos SET observacoes = $1, atualizado_em = NOW() WHERE id = $2', novaObs, pedidoId);
+  const payload = { id: pedidoId, observacoes: novaObs };
+  if (req.emitToAdmin) await req.emitToAdmin('pedido-atualizado', payload);
+  if (req.emitToGarcom) await req.emitToGarcom('pedido-atualizado', payload);
+  if (req.emitToPedido) await req.emitToPedido(pedidoId, 'pedido-atualizado', payload);
+  res.json({ success: true });
 }));
 
 module.exports = router;

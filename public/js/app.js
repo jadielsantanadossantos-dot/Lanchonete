@@ -1411,15 +1411,20 @@ async function carregarDetalhesPedido(pedidoId) {
   }
 }
 
-function solicitarEntrega(pedidoId) {
+async function solicitarEntrega(pedidoId) {
   const p = meusPedidosCache.find(x => String(x.id) === String(pedidoId));
   if (!p) return;
+  try {
+    await fetch(`/api/pedidos/${pedidoId}/solicitar-entrega`, { method: 'PUT', headers: { 'Content-Type': 'application/json' } });
+  } catch(e) {}
   const lojaTel = (config.loja_telefone || '').replace(/\D/g, '');
   const tel = lojaTel ? (lojaTel.startsWith('55') ? lojaTel : '55' + lojaTel) : '';
   const lojaEnd = config.loja_endereco || '';
-  const msg = `Olá! Pedido #${p.id} (Retirada no local) - gostaria de solicitar entrega. Total R$ ${Number(p.total).toFixed(2)}. ${lojaEnd ? 'Endereço da loja: ' + lojaEnd : ''}`;
+  const msg = `Olá! Pedido #${p.id} (Retirada no local) - gostaria de solicitar entrega para meu endereço. Total R$ ${Number(p.total).toFixed(2)}. ${lojaEnd ? 'Retirada seria em: ' + lojaEnd : ''}. Aguardo confirmação da taxa de entrega.`;
   const url = tel ? `https://wa.me/${tel}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`;
   window.open(url, '_blank');
+  mostrarToast('Solicitação enviada! Aguarde o PDV confirmar.');
+  setTimeout(() => buscarPedidos(), 1000);
 }
 function fecharDetalhe(detailId) {
   const detail = document.getElementById(detailId)?.closest('details');

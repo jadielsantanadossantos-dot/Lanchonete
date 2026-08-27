@@ -340,8 +340,9 @@ function renderPedidoCard(p) {
   if (p.status !== 'cancelado' && p.status !== 'entregue') {
     actionsHtml.push(`<button class="btn btn-danger btn-xs" onclick="atualizarStatus(${p.id}, 'cancelado')">Cancelar</button>`);
   }
-  if (isRetirada && !['entregue','cancelado'].includes(p.status)) {
-    actionsHtml.push(`<button class="btn btn-warning btn-xs" onclick="converterParaEntrega(${p.id})">🚚 Mudar para entrega</button>`);
+  const solicitouEntrega = isRetirada && p.observacoes && p.observacoes.includes('SOLICITOU ENTREGA');
+  if (solicitouEntrega && !['entregue','cancelado'].includes(p.status)) {
+    actionsHtml.push(`<button class="btn btn-warning btn-xs" onclick="converterParaEntrega(${p.id})" style="white-space:normal;line-height:1.2;text-align:center;min-width:140px">🚚 Mudar para entrega</button>`);
   }
   if (p.forma_pagamento === 'pix' && !p.pix_confirmado) {
     actionsHtml.push(`<button class="btn btn-warning btn-xs" onclick="confirmarPix(${p.id})">Confirmar Pix</button>`);
@@ -364,8 +365,9 @@ function renderPedidoCard(p) {
   const cardExtraClass = isNovo ? ' pedido-card--novo' : '';
   const mesaBadge = p.mesa_id ? `<span class="badge-mesa">Mesa ${p.mesa_id}</span>` : (p.bairro_entrega === 'Avulso' ? `<span class="badge-avulso">Avulso</span>` : '');
 
+  const solicitouTag = p.observacoes && p.observacoes.includes('SOLICITOU ENTREGA') ? `<div style="background:#FFF3E0;border:1px solid #FFB74D;border-radius:6px;padding:6px 8px;margin-top:6px;font-size:0.82rem;color:#E65100">⚠️ Cliente solicitou entrega via WhatsApp</div>` : '';
   const enderecoHtml = isRetirada
-    ? `<div class="pedido-endereco" style="background:#E8F5E9;border:1px solid #A5D6A7;border-radius:6px;padding:6px 8px;margin-top:6px">🏠 Retirada no local</div>`
+    ? `<div class="pedido-endereco" style="background:#E8F5E9;border:1px solid #A5D6A7;border-radius:6px;padding:6px 8px;margin-top:6px">🏠 Retirada no local</div>${solicitouTag}`
     : (p.endereco_entrega ? `<div class="pedido-endereco">&#128205; ${escapeHtml(p.endereco_entrega)} - ${escapeHtml(p.bairro_entrega)}</div>` : '');
   return `
     <div class="pedido-card status-${p.status}${cardExtraClass}" data-pedido-id="${p.id}" onclick="marcarPedidoLido(${p.id})" style="${isNovo ? 'cursor:pointer' : ''}" title="${isNovo ? 'Clique para marcar como lido' : ''}">
@@ -387,7 +389,7 @@ function renderPedidoCard(p) {
           ${trocoHtml}
         </div>
       </div>
-      <div class="pedido-actions">${actionsHtml.join('')}</div>
+      <div class="pedido-actions" style="flex-wrap:wrap">${actionsHtml.join('')}</div>
       ${motoboySelect}
     </div>
   `;
