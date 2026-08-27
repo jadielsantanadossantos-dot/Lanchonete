@@ -664,7 +664,7 @@ async function CarregarNomeLojaComanda(win) {
     if (el && cfg.loja_nome) el.textContent = cfg.loja_nome;
     const el2 = win.document.getElementById('loja-contato-comanda');
     if (el2) {
-      if (cfg.loja_telefone) el2.textContent = `📞 ${cfg.loja_telefone} • Obrigado pela preferência!`;
+      if (cfg.loja_telefone) el2.textContent = `📞 ${cfg.loja_telefone}`;
       else if (cfg.loja_nome) el2.textContent = `${cfg.loja_nome} • Volte sempre!`;
     }
   } catch (e) {}
