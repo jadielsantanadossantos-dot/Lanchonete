@@ -3,14 +3,11 @@
 
 -- Remove CHECK antigo (admin,garcom) se existir e recria com observador
 DO $$
-DECLARE
-  con TEXT;
 BEGIN
-  SELECT conname INTO con FROM pg_constraint
-  WHERE conrelid = 'usuarios'::regclass AND contype = 'c' AND pg_get_constraintdef(oid) LIKE '%perfil%IN%';
-  IF con IS NOT NULL THEN
-    EXECUTE format('ALTER TABLE usuarios DROP CONSTRAINT %I', con);
+  IF EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid='usuarios'::regclass AND conname='usuarios_perfil_check') THEN
+    ALTER TABLE usuarios DROP CONSTRAINT usuarios_perfil_check;
   END IF;
+EXCEPTION WHEN undefined_object THEN NULL;
 END $$;
 
 ALTER TABLE usuarios ADD CONSTRAINT usuarios_perfil_check CHECK (perfil IN ('admin','garcom','observador'));
