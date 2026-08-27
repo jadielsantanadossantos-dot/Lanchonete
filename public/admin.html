@@ -375,6 +375,21 @@
            </div>
           </div>
         </div>
+
+        <div class="modal-overlay" id="modal-cliente-detalhes">
+          <div class="modal">
+           <div class="modal-content">
+            <div class="modal-header">
+              <h3>Detalhes do Cliente</h3>
+              <button class="modal-close" onclick="document.getElementById('modal-cliente-detalhes').classList.remove('active')">&times;</button>
+            </div>
+            <div id="cliente-detalhes-conteudo" style="padding:12px"></div>
+            <div style="padding:12px;display:flex;justify-content:flex-end">
+              <button class="btn btn-outline" onclick="document.getElementById('modal-cliente-detalhes').classList.remove('active')">Fechar</button>
+            </div>
+           </div>
+          </div>
+        </div>
       </section>
 
       <!-- BAIRROS -->

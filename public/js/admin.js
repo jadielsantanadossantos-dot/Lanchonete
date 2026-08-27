@@ -1365,7 +1365,8 @@ function renderClientes(clientes) {
         <td>${escapeHtml(c.telefone)}</td>
         <td>${escapeHtml(c.bairro || '-')}</td>
         <td>${c.bloqueado ? '<span class="status-badge status-cancelado">Bloqueado</span>' : '<span class="status-badge status-entregue">Ativo</span>'}</td>
-        <td>
+        <td style="white-space:nowrap;display:flex;gap:4px;flex-wrap:wrap">
+          <button class="btn btn-xs btn-primary" onclick="verDetalhesCliente(${c.id})">Detalhes</button>
           <button class="btn btn-xs btn-primary" onclick="verPedidosCliente(${c.id}, '${escapeHtml(c.nome)}')">Pedidos</button>
           <button class="btn btn-xs ${c.bloqueado ? 'btn-success' : 'btn-warning'}" onclick="toggleBloqueioCliente(${c.id}, ${c.bloqueado})">
             ${c.bloqueado ? 'Desbloquear' : 'Bloquear'}
@@ -1375,6 +1376,30 @@ function renderClientes(clientes) {
       </tr>
     `).join('')}</tbody>
   </table>`;
+}
+
+async function verDetalhesCliente(id) {
+  const c = allClientes.find(x => x.id === id);
+  if (!c) { showToast('Cliente não encontrado'); return; }
+  let pedidosCount = '-';
+  try {
+    const r = await authFetch(`/api/clientes/${id}/pedidos`);
+    if (r.ok) { const ped = await r.json(); pedidosCount = ped.length; }
+  } catch(e) {}
+  const end = [c.rua, c.numero ? `, ${c.numero}` : '', c.complemento ? ` - ${c.complemento}` : '', c.bairro ? ` - ${c.bairro}` : '', c.ponto_referencia ? ` (${c.ponto_referencia})` : ''].join('') || 'Não informado';
+  const html = `
+    <div style="display:grid;gap:10px;font-size:0.9rem">
+      <div><strong>Nome:</strong> ${escapeHtml(c.nome)}</div>
+      <div><strong>Telefone:</strong> ${escapeHtml(c.telefone)} ${c.telefone ? `<a href="https://wa.me/${c.telefone.replace(/\D/g,'').replace(/^0+/,'')}" target="_blank" style="margin-left:6px;color:var(--color-primary)">WhatsApp</a>` : ''}</div>
+      <div><strong>Bairro:</strong> ${escapeHtml(c.bairro || '-')}</div>
+      <div><strong>Endereço:</strong> ${escapeHtml(end)}</div>
+      <div><strong>Status:</strong> ${c.bloqueado ? '<span class="status-badge status-cancelado">Bloqueado</span>' : '<span class="status-badge status-entregue">Ativo</span>'}</div>
+      <div><strong>Cadastro:</strong> ${c.criado_em ? new Date(c.criado_em).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'}) : '-'}</div>
+      <div><strong>Total de pedidos:</strong> ${pedidosCount}</div>
+    </div>
+  `;
+  document.getElementById('cliente-detalhes-conteudo').innerHTML = html;
+  document.getElementById('modal-cliente-detalhes').classList.add('active');
 }
 
 async function toggleBloqueioCliente(id, statusAtual) {
