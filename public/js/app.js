@@ -1371,6 +1371,17 @@ async function carregarDetalhesPedido(pedidoId) {
       }
     }
 
+    const isRetirada = p.bairro_entrega === 'Retirada no local' || (p.endereco_entrega && String(p.endereco_entrega).startsWith('Retirada'));
+    const lojaEnd = config.loja_endereco || '';
+    const lojaEndHtml = isRetirada ? `
+      <div class="pedido-detalhe-section" style="margin-top:12px;background:#E8F5E9;border:1px solid #A5D6A7;border-radius:8px;padding:12px">
+        <div style="font-weight:700;margin-bottom:6px">🏠 Retirada no local</div>
+        <div style="font-size:0.85rem;line-height:1.4">${escapeHtml(lojaEnd || 'Endereço da loja não configurado')}</div>
+        ${lojaEnd ? `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(lojaEnd)}" target="_blank" class="btn btn-outline btn-sm" style="margin-top:8px;display:inline-flex;align-items:center;gap:6px">📍 Abrir no Google Maps</a>` : ''}
+      </div>
+    ` : '';
+    const enderecoHtml = isRetirada ? lojaEndHtml : (p.endereco_entrega ? `<div class="pedido-detalhe-row" style="display:flex;justify-content:space-between;padding:4px 0;font-size:0.85rem"><span>Endereço:</span><span>${escapeHtml(p.endereco_entrega)} - ${escapeHtml(p.bairro_entrega)}</span></div>` : '');
+    const solicitarEntregaBtn = isRetirada && !['entregue','cancelado'].includes(p.status) ? `<button class="btn btn-warning btn-sm" onclick="solicitarEntrega(${p.id})">🚚 Solicitar entrega</button>` : '';
     container.innerHTML = `
       <div class="pedido-detalhe-section">
         <h4 style="margin-bottom:8px;font-size:0.9rem;color:var(--dark)">Itens</h4>
@@ -1382,7 +1393,7 @@ async function carregarDetalhesPedido(pedidoId) {
         <div class="pedido-detalhe-row" style="display:flex;justify-content:space-between;padding:4px 0;font-size:0.85rem">
           <span>Forma de pagamento:</span><span>${payLabels[p.forma_pagamento] || p.forma_pagamento}</span>
         </div>
-        ${p.endereco_entrega ? `<div class="pedido-detalhe-row" style="display:flex;justify-content:space-between;padding:4px 0;font-size:0.85rem"><span>Endereço:</span><span>${escapeHtml(p.endereco_entrega)} - ${escapeHtml(p.bairro_entrega)}</span></div>` : ''}
+        ${enderecoHtml}
         ${trocoHtml}
         ${p.observacoes && !p.observacoes.includes('Troco para') ? `<div class="pedido-detalhe-row" style="display:flex;justify-content:space-between;padding:4px 0;font-size:0.85rem"><span>Observações:</span><span>${p.observacoes.replace(' | Troco para R$', '').replace(/Troco para R\$ [\d.,]+/,'').trim()}</span></div>` : ''}
         <div class="pedido-detalhe-row" style="display:flex;justify-content:space-between;padding:8px 0;font-size:0.95rem;font-weight:700;border-top:1px solid var(--light);margin-top:8px">
@@ -1391,6 +1402,7 @@ async function carregarDetalhesPedido(pedidoId) {
       </div>
       <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn btn-primary btn-sm" onclick="refazerPedido(${p.id})">Refazer pedido</button>
+        ${solicitarEntregaBtn}
         <button class="btn btn-outline btn-sm" onclick="fecharDetalhe('pedido-detail-${p.id}')">Fechar</button>
       </div>
     `;
@@ -1399,6 +1411,16 @@ async function carregarDetalhesPedido(pedidoId) {
   }
 }
 
+function solicitarEntrega(pedidoId) {
+  const p = meusPedidosCache.find(x => String(x.id) === String(pedidoId));
+  if (!p) return;
+  const lojaTel = (config.loja_telefone || '').replace(/\D/g, '');
+  const tel = lojaTel ? (lojaTel.startsWith('55') ? lojaTel : '55' + lojaTel) : '';
+  const lojaEnd = config.loja_endereco || '';
+  const msg = `Olá! Pedido #${p.id} (Retirada no local) - gostaria de solicitar entrega. Total R$ ${Number(p.total).toFixed(2)}. ${lojaEnd ? 'Endereço da loja: ' + lojaEnd : ''}`;
+  const url = tel ? `https://wa.me/${tel}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+  window.open(url, '_blank');
+}
 function fecharDetalhe(detailId) {
   const detail = document.getElementById(detailId)?.closest('details');
   if (detail) detail.open = false;

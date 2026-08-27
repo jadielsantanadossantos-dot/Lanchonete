@@ -274,8 +274,12 @@ function renderPedidos(pedidos) {
   container.innerHTML = html;
 }
 
+function isRetiradaPedido(p) {
+  return p.bairro_entrega === 'Retirada no local' || (p.endereco_entrega && String(p.endereco_entrega).startsWith('Retirada'));
+}
 function renderPedidoCard(p) {
   const isNovo = pedidosNovos.has(p.id);
+  const isRetirada = isRetiradaPedido(p);
   let maxItemTime = 0;
   let isNewPedido = false;
   if (isNovo) {
@@ -336,14 +340,17 @@ function renderPedidoCard(p) {
   if (p.status !== 'cancelado' && p.status !== 'entregue') {
     actionsHtml.push(`<button class="btn btn-danger btn-xs" onclick="atualizarStatus(${p.id}, 'cancelado')">Cancelar</button>`);
   }
+  if (isRetirada && !['entregue','cancelado'].includes(p.status)) {
+    actionsHtml.push(`<button class="btn btn-warning btn-xs" onclick="converterParaEntrega(${p.id})">🚚 Mudar para entrega</button>`);
+  }
   if (p.forma_pagamento === 'pix' && !p.pix_confirmado) {
     actionsHtml.push(`<button class="btn btn-warning btn-xs" onclick="confirmarPix(${p.id})">Confirmar Pix</button>`);
   }
   actionsHtml.push(`<button class="btn btn-primary btn-xs" onclick="imprimirComanda(${p.id})">Imprimir</button>`);
 
-  // Selecao de motoboy para pedidos de entrega (oculta para mesa e avulso do garçom)
+  // Selecao de motoboy para pedidos de entrega (oculta para mesa, avulso e retirada)
   const ehAvulsoGarcom = p.bairro_entrega === 'Avulso' || (p.observacoes && p.observacoes.includes('AVULSO'));
-  const motoboySelect = !p.mesa_id && !ehAvulsoGarcom && p.status !== 'cancelado' ? `
+  const motoboySelect = !isRetirada && !p.mesa_id && !ehAvulsoGarcom && p.status !== 'cancelado' ? `
     <div style="margin-top: 8px;">
       <select class="filter-select" style="width:100%; font-size: 0.78rem; padding: 6px 8px;" onchange="atribuirMotoboy(${p.id}, this.value)">
         <option value="">🏍️ Motoboy não definido</option>
@@ -357,6 +364,9 @@ function renderPedidoCard(p) {
   const cardExtraClass = isNovo ? ' pedido-card--novo' : '';
   const mesaBadge = p.mesa_id ? `<span class="badge-mesa">Mesa ${p.mesa_id}</span>` : (p.bairro_entrega === 'Avulso' ? `<span class="badge-avulso">Avulso</span>` : '');
 
+  const enderecoHtml = isRetirada
+    ? `<div class="pedido-endereco" style="background:#E8F5E9;border:1px solid #A5D6A7;border-radius:6px;padding:6px 8px;margin-top:6px">🏠 Retirada no local</div>`
+    : (p.endereco_entrega ? `<div class="pedido-endereco">&#128205; ${escapeHtml(p.endereco_entrega)} - ${escapeHtml(p.bairro_entrega)}</div>` : '');
   return `
     <div class="pedido-card status-${p.status}${cardExtraClass}" data-pedido-id="${p.id}" onclick="marcarPedidoLido(${p.id})" style="${isNovo ? 'cursor:pointer' : ''}" title="${isNovo ? 'Clique para marcar como lido' : ''}">
       <div class="pedido-header">
@@ -368,7 +378,7 @@ function renderPedidoCard(p) {
       <div class="pedido-tel">${escapeHtml(p.cliente_telefone)}</div>
       <div class="pedido-items">${itensHtml}</div>
       ${p.observacoes ? `<div class="pedido-obs">${escapeHtml(p.observacoes)}</div>` : ''}
-      ${p.endereco_entrega ? `<div class="pedido-endereco">&#128205; ${escapeHtml(p.endereco_entrega)} - ${escapeHtml(p.bairro_entrega)}</div>` : ''}
+      ${enderecoHtml}
       <div class="pedido-footer">
         <div>
           <div class="pedido-total">Total: R$ ${p.total.toFixed(2)}</div>
@@ -457,6 +467,32 @@ async function atribuirMotoboy(pedidoId, motoboyId) {
   } catch (e) {
     showToast(e.message);
   }
+}
+
+async function converterParaEntrega(pedidoId) {
+  const p = todosPedidos.find(x => String(x.id) === String(pedidoId));
+  if (!p) { showToast('Pedido não encontrado'); return; }
+  let bairros = [];
+  try {
+    const r = await authFetch('/api/bairros');
+    bairros = await r.json();
+  } catch(e) { bairros = []; }
+  if (!bairros.length) { showToast('Nenhum bairro cadastrado'); return; }
+  const lista = bairros.map(b => `${b.nome} - R$ ${Number(b.taxa_entrega).toFixed(2)}`).join('\n');
+  const nomeBairro = prompt(`Bairros disponíveis:\n${lista}\n\nDigite o nome do bairro para entrega:`);
+  if (!nomeBairro) return;
+  const bairro = bairros.find(b => b.nome.toLowerCase() === nomeBairro.trim().toLowerCase());
+  if (!bairro) { showToast('Bairro não encontrado'); return; }
+  const endereco = prompt('Endereço completo para entrega (rua, número, complemento):', '');
+  if (endereco === null) return;
+  const enderecoFinal = (endereco && endereco.trim()) ? endereco.trim() : bairro.nome;
+  try {
+    const res = await authFetch(`/api/pedidos/${pedidoId}/converter-entrega`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bairro_entrega: bairro.nome, endereco_entrega: enderecoFinal, taxa_entrega: bairro.taxa_entrega }) });
+    await verificarResposta(res);
+    const data = await res.json();
+    showToast(`Pedido #${pedidoId} convertido para entrega - taxa R$ ${Number(data.taxa_entrega).toFixed(2)} - total R$ ${Number(data.total).toFixed(2)}`);
+    carregarPedidos();
+  } catch(e) { showToast(e.message); }
 }
 
 async function carregarRelatorioMotoboys() {

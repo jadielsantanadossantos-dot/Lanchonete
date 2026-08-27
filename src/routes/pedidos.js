@@ -244,4 +244,32 @@ router.put('/:id/pix', middlewareAdmin, wrapAsync(async (req, res) => {
   res.json({ success: true });
 }));
 
+router.put('/:id/converter-entrega', middlewareAdmin, wrapAsync(async (req, res) => {
+  const pedidoId = parseInt(req.params.id);
+  const pedido = await db.get('SELECT * FROM pedidos WHERE id = $1', pedidoId);
+  if (!pedido) return res.status(404).json({ error: 'Pedido não encontrado' });
+  const isRetirada = pedido.bairro_entrega === 'Retirada no local' || (pedido.endereco_entrega && pedido.endereco_entrega.startsWith('Retirada'));
+  if (!isRetirada) return res.status(400).json({ error: 'Pedido não é retirada no local' });
+  if (['entregue','cancelado'].includes(pedido.status)) return res.status(400).json({ error: 'Pedido já finalizado' });
+  let { bairro_entrega, endereco_entrega, taxa_entrega } = req.body;
+  if (!bairro_entrega || String(bairro_entrega).trim().length === 0) return res.status(400).json({ error: 'Bairro obrigatório' });
+  bairro_entrega = sanitizarString(String(bairro_entrega).trim());
+  endereco_entrega = sanitizarString(String(endereco_entrega || bairro_entrega).trim());
+  if (taxa_entrega === undefined || taxa_entrega === null || taxa_entrega === '') {
+    const brow = await db.get('SELECT taxa_entrega FROM bairros WHERE nome = $1', bairro_entrega);
+    taxa_entrega = brow ? parseFloat(brow.taxa_entrega) || 0 : 0;
+  } else {
+    taxa_entrega = parseFloat(taxa_entrega) || 0;
+  }
+  if (taxa_entrega < 0) taxa_entrega = 0;
+  const subtotal = parseFloat(pedido.subtotal) || 0;
+  const total = subtotal + taxa_entrega;
+  await db.run('UPDATE pedidos SET bairro_entrega = $1, endereco_entrega = $2, taxa_entrega = $3, total = $4, atualizado_em = NOW() WHERE id = $5', bairro_entrega, endereco_entrega, taxa_entrega, total, pedidoId);
+  const payload = { id: pedidoId, bairro_entrega, endereco_entrega, taxa_entrega, total };
+  if (req.emitToAdmin) await req.emitToAdmin('pedido-atualizado', payload);
+  if (req.emitToGarcom) await req.emitToGarcom('pedido-atualizado', payload);
+  if (req.emitToPedido) await req.emitToPedido(pedidoId, 'pedido-atualizado', payload);
+  res.json({ success: true, ...payload });
+}));
+
 module.exports = router;
