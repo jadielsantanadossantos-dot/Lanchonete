@@ -474,25 +474,54 @@ async function atribuirMotoboy(pedidoId, motoboyId) {
 async function converterParaEntrega(pedidoId) {
   const p = todosPedidos.find(x => String(x.id) === String(pedidoId));
   if (!p) { showToast('Pedido não encontrado'); return; }
+  // busca dados completos do cliente para preencher automaticamente
+  let cliente = null;
+  try {
+    if (p.cliente_id) {
+      const cr = await authFetch(`/api/clientes/${p.cliente_id}`);
+      if (cr.ok) cliente = await cr.json();
+    }
+  } catch(e) {}
+  let bairroNome = cliente?.bairro || '';
+  let enderecoFmt = '';
+  if (cliente) {
+    if (cliente.rua) enderecoFmt += cliente.rua;
+    if (cliente.numero) enderecoFmt += `, ${cliente.numero}`;
+    if (cliente.complemento) enderecoFmt += ` - ${cliente.complemento}`;
+    if (cliente.ponto_referencia) enderecoFmt += ` (Ref: ${cliente.ponto_referencia})`;
+  }
+  // se cliente sem endereço, cai no fluxo manual de bairros
   let bairros = [];
+  try { const r = await authFetch('/api/bairros'); bairros = await r.json(); } catch(e) { bairros = []; }
+  let bairro = bairros.find(b => b.nome.toLowerCase() === String(bairroNome).toLowerCase());
+  let taxa = bairro ? bairro.taxa_entrega : 0;
+  if (!bairroNome || !bairro) {
+    if (!bairros.length) { showToast('Cliente sem bairro cadastrado e nenhum bairro disponível'); return; }
+    const lista = bairros.map(b => `${b.nome} - R$ ${Number(b.taxa_entrega).toFixed(2)}`).join('\n');
+    // pré-preenche com bairro do cliente se houver
+    const nomeBairro = prompt(`Cliente: ${p.cliente_nome} - ${cliente ? (cliente.bairro || 'sem bairro') : ''}\nBairros disponíveis:\n${lista}\n\nDigite o bairro para entrega:`, bairroNome || '');
+    if (!nomeBairro) return;
+    bairro = bairros.find(b => b.nome.toLowerCase() === nomeBairro.trim().toLowerCase());
+    if (!bairro) { showToast('Bairro não encontrado'); return; }
+    bairroNome = bairro.nome;
+    taxa = bairro.taxa_entrega;
+    const endereco = prompt('Endereço completo para entrega (rua, número, complemento):', enderecoFmt || '');
+    if (endereco === null) return;
+    enderecoFmt = (endereco && endereco.trim()) ? endereco.trim() : bairroNome;
+  } else {
+    // cliente já tem endereço completo - confirmar com admin
+    const confirma = confirm(`Converter pedido #${pedidoId} de ${p.cliente_nome} para entrega?\n\nBairro: ${bairroNome} - Taxa R$ ${Number(taxa).toFixed(2)}\nEndereço: ${enderecoFmt || bairroNome}\n\nOs dados do cliente serão usados. Confirmar?`);
+    if (!confirma) {
+      const endereco = prompt('Editar endereço se necessário:', enderecoFmt || bairroNome);
+      if (endereco === null) return;
+      if (endereco.trim()) enderecoFmt = endereco.trim();
+    }
+  }
   try {
-    const r = await authFetch('/api/bairros');
-    bairros = await r.json();
-  } catch(e) { bairros = []; }
-  if (!bairros.length) { showToast('Nenhum bairro cadastrado'); return; }
-  const lista = bairros.map(b => `${b.nome} - R$ ${Number(b.taxa_entrega).toFixed(2)}`).join('\n');
-  const nomeBairro = prompt(`Bairros disponíveis:\n${lista}\n\nDigite o nome do bairro para entrega:`);
-  if (!nomeBairro) return;
-  const bairro = bairros.find(b => b.nome.toLowerCase() === nomeBairro.trim().toLowerCase());
-  if (!bairro) { showToast('Bairro não encontrado'); return; }
-  const endereco = prompt('Endereço completo para entrega (rua, número, complemento):', '');
-  if (endereco === null) return;
-  const enderecoFinal = (endereco && endereco.trim()) ? endereco.trim() : bairro.nome;
-  try {
-    const res = await authFetch(`/api/pedidos/${pedidoId}/converter-entrega`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bairro_entrega: bairro.nome, endereco_entrega: enderecoFinal, taxa_entrega: bairro.taxa_entrega }) });
+    const res = await authFetch(`/api/pedidos/${pedidoId}/converter-entrega`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bairro_entrega: bairroNome, endereco_entrega: enderecoFmt || bairroNome, taxa_entrega: taxa }) });
     await verificarResposta(res);
     const data = await res.json();
-    showToast(`Pedido #${pedidoId} convertido para entrega - taxa R$ ${Number(data.taxa_entrega).toFixed(2)} - total R$ ${Number(data.total).toFixed(2)}`);
+    showToast(`Pedido #${pedidoId} convertido para entrega - ${bairroNome} - taxa R$ ${Number(data.taxa_entrega).toFixed(2)} - total R$ ${Number(data.total).toFixed(2)}`);
     carregarPedidos();
   } catch(e) { showToast(e.message); }
 }

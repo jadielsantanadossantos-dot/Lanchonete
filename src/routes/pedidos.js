@@ -252,7 +252,24 @@ router.put('/:id/converter-entrega', middlewareAdmin, wrapAsync(async (req, res)
   if (!isRetirada) return res.status(400).json({ error: 'Pedido não é retirada no local' });
   if (['entregue','cancelado'].includes(pedido.status)) return res.status(400).json({ error: 'Pedido já finalizado' });
   let { bairro_entrega, endereco_entrega, taxa_entrega } = req.body;
-  if (!bairro_entrega || String(bairro_entrega).trim().length === 0) return res.status(400).json({ error: 'Bairro obrigatório' });
+  // se não enviado, tenta usar endereço cadastrado do cliente
+  if (!bairro_entrega || String(bairro_entrega).trim().length === 0) {
+    if (pedido.cliente_id) {
+      const cliente = await db.get('SELECT * FROM clientes WHERE id = $1', pedido.cliente_id);
+      if (cliente) {
+        if (cliente.bairro) bairro_entrega = cliente.bairro;
+        if (!endereco_entrega) {
+          let end = '';
+          if (cliente.rua) end += cliente.rua;
+          if (cliente.numero) end += `, ${cliente.numero}`;
+          if (cliente.complemento) end += ` - ${cliente.complemento}`;
+          if (cliente.ponto_referencia) end += ` (Ref: ${cliente.ponto_referencia})`;
+          if (end) endereco_entrega = end;
+        }
+      }
+    }
+  }
+  if (!bairro_entrega || String(bairro_entrega).trim().length === 0) return res.status(400).json({ error: 'Bairro obrigatório - cliente sem endereço cadastrado, informe manualmente' });
   bairro_entrega = sanitizarString(String(bairro_entrega).trim());
   endereco_entrega = sanitizarString(String(endereco_entrega || bairro_entrega).trim());
   if (taxa_entrega === undefined || taxa_entrega === null || taxa_entrega === '') {
