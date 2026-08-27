@@ -18,6 +18,10 @@
   },
   "overrides": [
     {
+      "files": ["tests/**/*.js"],
+      "parserOptions": { "sourceType": "module" }
+    },
+    {
       "files": ["public/js/**/*.js"],
       "env": {
         "browser": true,

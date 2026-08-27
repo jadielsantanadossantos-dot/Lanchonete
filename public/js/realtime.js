@@ -30,14 +30,21 @@ function notifyListeners(event, data) {
 }
 
 function ensureTopic(topic) {
-  if (!supabaseClient || channels.has(topic)) return;
+  if (channels.has(topic)) return;
+  if (!supabaseClient) {
+    // aguarda init
+    initRealtime().then(() => ensureTopic(topic)).catch(()=>{});
+    return;
+  }
   const ch = supabaseClient.channel(topic, { config: { broadcast: { self: false } } });
   EVENTS.forEach(ev => {
     ch.on('broadcast', { event: ev }, ({ payload }) => notifyListeners(ev, payload));
   });
   ch.subscribe(status => {
-    if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+    if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
       console.error(`Realtime canal ${topic}:`, status);
+      channels.delete(topic);
+      setTimeout(() => ensureTopic(topic), 3000);
     }
   });
   channels.set(topic, ch);
@@ -53,7 +60,13 @@ function initRealtime() {
       ensureTopic('admin');
       ensureTopic('garcom');
       console.log('Supabase Realtime conectado');
-    })().catch(e => console.error('Erro ao inicializar Realtime:', e));
+    })().catch(e => {
+      console.error('Erro ao inicializar Realtime:', e);
+      initPromise = null;
+      // retry em 5s
+      setTimeout(() => initRealtime().catch(()=>{}), 5000);
+      throw e;
+    });
   }
   return initPromise;
 }

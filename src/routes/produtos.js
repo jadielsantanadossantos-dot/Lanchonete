@@ -173,17 +173,23 @@ router.get('/:id', wrapAsync(async (req, res) => {
 
 router.post('/', middlewareAdmin, upload.single('foto'), wrapAsync(async (req, res) => {
   const { nome, categoria_id, descricao, preco, ativo, adicionais_ids, unidade, somente_garcom, limite_sabores } = req.body;
+  if (!nome || String(nome).trim().length < 2) return res.status(400).json({ error: 'Nome obrigatório (min 2)' });
+  const precoNum = parseFloat(preco);
+  if (isNaN(precoNum) || precoNum < 0) return res.status(400).json({ error: 'Preço inválido (deve ser >= 0)' });
+  if (!categoria_id) return res.status(400).json({ error: 'Categoria obrigatória' });
   const foto = req.file ? await uploadFoto(req.file) : null;
   const soGarcom = somente_garcom === true || somente_garcom === '1';
   const limiteSab = parseInt(limite_sabores) || 0;
 
   const info = await db.run(
     'INSERT INTO produtos (nome, categoria_id, descricao, preco, foto, ativo, unidade, somente_garcom, limite_sabores) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id',
-    nome, categoria_id, descricao || '', parseFloat(preco), foto, ativo !== undefined ? ativo : true, unidade === 'kg' ? 'kg' : 'un', soGarcom, limiteSab
+    String(nome).trim().replace(/[<>]/g, ''), categoria_id, String(descricao || '').replace(/[<>]/g, ''), precoNum, foto, ativo !== undefined ? ativo : true, unidade === 'kg' ? 'kg' : 'un', soGarcom, limiteSab
   );
 
   if (adicionais_ids) {
-    const ids = JSON.parse(adicionais_ids);
+    let ids;
+    try { ids = JSON.parse(adicionais_ids); } catch (e) { return res.status(400).json({ error: 'adicionais_ids JSON inválido' }); }
+    if (!Array.isArray(ids)) return res.status(400).json({ error: 'adicionais_ids deve ser array' });
     for (const aid of ids) {
       await db.run('INSERT INTO produto_adicionais (produto_id, adicional_id) VALUES ($1, $2)', info.lastInsertRowid, aid);
     }
@@ -197,15 +203,20 @@ router.put('/:id', middlewareAdmin, upload.single('foto'), wrapAsync(async (req,
   // Campos nao enviados sao preservados (permite atualizacoes parciais, ex.: toggle ativo)
   const existing = await db.get('SELECT foto, nome, categoria_id, descricao, preco, ativo, unidade, somente_garcom, limite_sabores FROM produtos WHERE id = $1', req.params.id);
   if (!existing) return res.status(404).json({ error: 'Produto não encontrado' });
+  if (nome !== undefined && String(nome).trim().length < 2) return res.status(400).json({ error: 'Nome inválido (min 2)' });
+  if (preco !== undefined) {
+    const pn = parseFloat(preco);
+    if (isNaN(pn) || pn < 0) return res.status(400).json({ error: 'Preço inválido (deve ser >= 0)' });
+  }
   const foto = req.file ? await uploadFoto(req.file) : existing.foto;
   const soGarcom = somente_garcom !== undefined ? (somente_garcom === true || somente_garcom === '1') : existing.somente_garcom;
   const limiteSab = limite_sabores !== undefined ? (parseInt(limite_sabores) || 0) : existing.limite_sabores;
 
   await db.run(
     'UPDATE produtos SET nome=$1, categoria_id=$2, descricao=$3, preco=$4, foto=$5, ativo=$6, unidade=$7, somente_garcom=$8, limite_sabores=$9 WHERE id=$10',
-    nome !== undefined ? nome : existing.nome,
+    nome !== undefined ? String(nome).trim().replace(/[<>]/g, '') : existing.nome,
     categoria_id !== undefined ? categoria_id : existing.categoria_id,
-    descricao !== undefined ? descricao : existing.descricao,
+    descricao !== undefined ? String(descricao).replace(/[<>]/g, '') : existing.descricao,
     preco !== undefined ? parseFloat(preco) : existing.preco,
     foto,
     ativo !== undefined ? ativo : existing.ativo,
@@ -217,7 +228,9 @@ router.put('/:id', middlewareAdmin, upload.single('foto'), wrapAsync(async (req,
 
   await db.run('DELETE FROM produto_adicionais WHERE produto_id = $1', req.params.id);
   if (adicionais_ids) {
-    const ids = JSON.parse(adicionais_ids);
+    let ids;
+    try { ids = JSON.parse(adicionais_ids); } catch (e) { return res.status(400).json({ error: 'adicionais_ids JSON inválido' }); }
+    if (!Array.isArray(ids)) return res.status(400).json({ error: 'adicionais_ids deve ser array' });
     for (const aid of ids) {
       await db.run('INSERT INTO produto_adicionais (produto_id, adicional_id) VALUES ($1, $2)', req.params.id, aid);
     }

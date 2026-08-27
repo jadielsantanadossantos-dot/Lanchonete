@@ -11,28 +11,38 @@ function getConfig() {
   };
 }
 
-async function broadcast(topic, event, payload) {
+async function broadcast(topic, event, payload, retries = 2) {
   const { url, key } = getConfig();
   if (!url || !key) {
     console.warn(`Realtime desabilitado (sem SUPABASE_URL/SERVICE_ROLE_KEY): ${event}`);
     return;
   }
-  try {
-    const res = await fetch(`${url}/realtime/v1/api/broadcast`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        apikey: key
-      },
-      body: JSON.stringify({
-        messages: [{ topic, event, payload }]
-      })
-    });
-    if (!res.ok && res.status !== 202) {
-      console.error(`Realtime broadcast falhou (${event}): HTTP ${res.status}`);
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    try {
+      const res = await fetch(`${url}/realtime/v1/api/broadcast`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: key,
+          Authorization: `Bearer ${key}`
+        },
+        body: JSON.stringify({ messages: [{ topic, event, payload }] }),
+        signal: controller.signal
+      });
+      clearTimeout(timeout);
+      if (res.ok || res.status === 202) return;
+      console.error(`Realtime broadcast falhou (${event}) tentativa ${attempt + 1}: HTTP ${res.status}`);
+      if (attempt === retries) return;
+    } catch (e) {
+      clearTimeout(timeout);
+      const isAbort = e.name === 'AbortError';
+      console.error(`Realtime broadcast erro (${event}) tentativa ${attempt + 1}:`, isAbort ? 'timeout 5s' : e.message);
+      if (attempt === retries) return;
     }
-  } catch (e) {
-    console.error(`Realtime broadcast erro (${event}):`, e.message);
+    // backoff exponencial simples
+    await new Promise(r => setTimeout(r, 300 * Math.pow(2, attempt)));
   }
 }
 

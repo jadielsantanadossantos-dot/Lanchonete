@@ -44,10 +44,12 @@ const validarAtualizarUsuario = criarValidador({
 });
 
 function gerarSenhaAleatoria(tamanho = 12) {
+  const crypto = require('crypto');
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%';
   let senha = '';
   for (let i = 0; i < tamanho; i++) {
-    senha += chars.charAt(Math.floor(Math.random() * chars.length));
+    const idx = crypto.randomInt(0, chars.length);
+    senha += chars.charAt(idx);
   }
   return senha;
 }

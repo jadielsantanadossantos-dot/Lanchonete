@@ -1,6 +1,4 @@
 const { Pool, types } = require('pg');
-const bcrypt = require('bcryptjs');
-const crypto = require('crypto');
 
 // NUMERIC/BIGINT chegam como string por padrao no pg;
 // converte para numero para manter compatibilidade com o codigo legado (SQLite)
@@ -39,10 +37,15 @@ function getPool() {
 
     pool = new Pool({
       connectionString: finalConnectionString,
-      max: process.env.VERCEL ? 3 : 20,
+      max: process.env.VERCEL ? 5 : 20,
       idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 5000,
+      connectionTimeoutMillis: 10000,
+      statement_timeout: 15000,
+      query_timeout: 15000,
       ssl: needsSsl ? { rejectUnauthorized: false } : undefined,
+    });
+    pool.on('connect', (client) => {
+      client.query("SET TIME ZONE 'America/Sao_Paulo'").catch(() => {});
     });
     pool.on('error', (err) => {
       console.error('Erro inesperado no pool PostgreSQL:', err);
@@ -138,15 +141,23 @@ const dbWrapper = {
     const client = await p.connect();
     try {
       await client.query('BEGIN');
+      await client.query("SET LOCAL TIME ZONE 'America/Sao_Paulo'");
       const result = await callback(client);
       await client.query('COMMIT');
       return result;
     } catch (e) {
-      await client.query('ROLLBACK');
+      try { await client.query('ROLLBACK'); } catch (_) {}
       throw e;
     } finally {
       client.release();
     }
+  },
+
+  // Helpers para uso dentro de transaction com client direto
+  async queryWithClient(client, sql, ...params) {
+    const flat = PgStatement.normalizeParams(params);
+    const result = await client.query(sql, flat);
+    return result;
   },
 
   async close() {

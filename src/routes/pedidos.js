@@ -132,36 +132,36 @@ router.post('/', validarPedido, wrapAsync(async (req, res) => {
   const taxaEntrega = parseFloat(taxa_entrega) || 0;
   const total = subtotal + taxaEntrega;
 
-  const info = await db.run(
-    'INSERT INTO pedidos (cliente_id, subtotal, taxa_entrega, total, forma_pagamento, observacoes, endereco_entrega, bairro_entrega, mesa_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id',
-    cliente_id, subtotal, taxaEntrega, total, forma_pagamento, observacoes || '', endereco_entrega || '', bairro_entrega || '', mesa_id || null
-  );
-
-  const pedidoId = info.lastInsertRowid;
-  const itemStmt = db.prepare('INSERT INTO pedido_itens (pedido_id, produto_id, produto_nome, quantidade, preco_unitario, observacao, unidade) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id');
-  const adicStmt = db.prepare('INSERT INTO pedido_item_adicionais (pedido_item_id, adicional_nome, preco) VALUES ($1,$2,$3)');
-
-  // sanitiza observação de cada item para mitigar XSS stored
-  for (const item of itens) {
-    const obsSanitizada = sanitizarString(item.observacao || '');
-    const itemInfo = await itemStmt.run(pedidoId, item.produto_id, item.produto_nome, item.quantidade, item.preco_unitario, obsSanitizada, item.unidade === 'kg' ? 'kg' : 'un');
-    if (item.adicionais) {
-      for (const a of item.adicionais) {
-        await adicStmt.run(itemInfo.lastInsertRowid, a.nome, a.preco);
+  // Transação atômica: pedido + itens + adicionais
+  const pedidoId = await db.transaction(async (client) => {
+    const r1 = await client.query(
+      'INSERT INTO pedidos (cliente_id, subtotal, taxa_entrega, total, forma_pagamento, observacoes, endereco_entrega, bairro_entrega, mesa_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id',
+      [cliente_id, subtotal, taxaEntrega, total, forma_pagamento, observacoes || '', endereco_entrega || '', bairro_entrega || '', mesa_id || null]
+    );
+    const pid = r1.rows[0].id;
+    for (const item of itens) {
+      const obsSanitizada = sanitizarString(item.observacao || '');
+      const r2 = await client.query(
+        'INSERT INTO pedido_itens (pedido_id, produto_id, produto_nome, quantidade, preco_unitario, observacao, unidade) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id',
+        [pid, item.produto_id, item.produto_nome, item.quantidade, item.preco_unitario, obsSanitizada, item.unidade === 'kg' ? 'kg' : 'un']
+      );
+      const itemId = r2.rows[0].id;
+      if (item.adicionais && item.adicionais.length) {
+        for (const a of item.adicionais) {
+          await client.query('INSERT INTO pedido_item_adicionais (pedido_item_id, adicional_nome, preco) VALUES ($1,$2,$3)', [itemId, a.nome, a.preco]);
+        }
       }
     }
-  }
+    return pid;
+  });
 
   const pedido = await db.get(
     'SELECT p.*, c.nome as cliente_nome, c.telefone as cliente_telefone FROM pedidos p JOIN clientes c ON p.cliente_id = c.id WHERE p.id = $1',
     pedidoId
   );
   const pedidoItens = await db.all('SELECT * FROM pedido_itens WHERE pedido_id = $1', pedidoId);
-  const adicionaisStmt2 = db.prepare('SELECT * FROM pedido_item_adicionais WHERE pedido_item_id = $1');
-  pedido.itens = pedidoItens.map(i => ({ ...i, adicionais: [] }));
-  for (const item of pedido.itens) {
-    item.adicionais = await adicionaisStmt2.all(item.id);
-  }
+  const adicionaisAll = pedidoItens.length ? await db.all('SELECT * FROM pedido_item_adicionais WHERE pedido_item_id = ANY($1)', pedidoItens.map(i => i.id)) : [];
+  pedido.itens = pedidoItens.map(i => ({ ...i, adicionais: adicionaisAll.filter(a => a.pedido_item_id === i.id) }));
 
   if (req.emitToAdmin) {
     await req.emitToAdmin('novo-pedido', pedido);

@@ -41,6 +41,7 @@ function buildApp() {
   const supabaseOrigin = process.env.SUPABASE_URL
     ? process.env.SUPABASE_URL.replace(/\/$/, '')
     : '';
+  const supabaseWss = supabaseOrigin ? supabaseOrigin.replace('https://', 'wss://') : '';
 
   const cspValue = `
     default-src 'self';
@@ -48,8 +49,8 @@ function buildApp() {
     script-src-attr 'unsafe-inline';
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
     font-src 'self' https://fonts.gstatic.com;
-    img-src 'self' data: blob: ${supabaseOrigin};
-    connect-src 'self' ${supabaseOrigin} ${supabaseOrigin.replace('https://', 'wss://')};
+    img-src 'self' data: blob: ${supabaseOrigin || 'https:'};
+    connect-src 'self' ${supabaseOrigin} ${supabaseWss};
     object-src 'none';
     frame-ancestors 'none';
     base-uri 'self';
@@ -81,18 +82,21 @@ function buildApp() {
     next();
   });
 
+  app.use(cors(corsOptions));
+
+  // Limites maiores mas com json limit para mitigar DoS
+  app.use(express.json({ limit: '100kb' }));
+  app.use(express.urlencoded({ extended: true, limit: '100kb' }));
+
   const globalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 500,
     message: { error: 'Muitas requisições, tente novamente mais tarde' },
     standardHeaders: true,
-    legacyHeaders: false
+    legacyHeaders: false,
+    skip: (req) => req.method === 'OPTIONS'
   });
   app.use(globalLimiter);
-
-  app.use(cors(corsOptions));
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
 
   if (!process.env.VERCEL) {
     app.use(express.static(path.join(__dirname, '..', 'public')));

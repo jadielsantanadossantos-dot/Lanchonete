@@ -36,16 +36,19 @@ async function getOuCriaClienteMesa(mesaId, clienteNome) {
 }
 
 async function getOrCreateComanda(mesaId, clienteNome) {
-  let comanda = await getComandaAberta(mesaId);
-  if (!comanda) {
-    const info = await db.run('INSERT INTO comandas (mesa_id, cliente_nome, status) VALUES ($1, $2, $3) RETURNING id', mesaId, clienteNome || null, 'aberta');
-    comanda = { id: info.lastInsertRowid, mesa_id: mesaId, cliente_nome: clienteNome || null, status: 'aberta' };
-    await db.run('UPDATE mesas SET status = $1 WHERE id = $2', 'ocupada', mesaId);
-  } else if (clienteNome && !comanda.cliente_nome) {
-    await db.run('UPDATE comandas SET cliente_nome = $1 WHERE id = $2', clienteNome, comanda.id);
-    comanda.cliente_nome = clienteNome;
-  }
-  return comanda;
+  return db.transaction(async (client) => {
+    const r = await client.query('SELECT * FROM comandas WHERE mesa_id = $1 AND status = $2 FOR UPDATE', [mesaId, 'aberta']);
+    let comanda = r.rows[0];
+    if (!comanda) {
+      const ins = await client.query('INSERT INTO comandas (mesa_id, cliente_nome, status) VALUES ($1, $2, $3) RETURNING id', [mesaId, clienteNome || null, 'aberta']);
+      comanda = { id: ins.rows[0].id, mesa_id: mesaId, cliente_nome: clienteNome || null, status: 'aberta' };
+      await client.query('UPDATE mesas SET status = $1 WHERE id = $2', ['ocupada', mesaId]);
+    } else if (clienteNome && !comanda.cliente_nome) {
+      await client.query('UPDATE comandas SET cliente_nome = $1 WHERE id = $2', [clienteNome, comanda.id]);
+      comanda.cliente_nome = clienteNome;
+    }
+    return comanda;
+  });
 }
 
 async function getPedidoVinculadoComanda(comandaId) {
@@ -62,47 +65,30 @@ async function atualizarPedidoComItens(pedidoId, itensComAdicionais, formaPagame
     subtotalNovos += itemTotal;
   });
 
-  const pedidoAtual = await db.get('SELECT subtotal, status, observacoes, forma_pagamento FROM pedidos WHERE id=$1', pedidoId);
-  const subtotalAtual = pedidoAtual ? parseFloat(pedidoAtual.subtotal) || 0 : 0;
-  const subtotal = subtotalAtual + subtotalNovos;
-  const taxaEntrega = 0;
-  const total = subtotal + taxaEntrega;
-
-  let obsFinal = pedidoAtual ? (pedidoAtual.observacoes || '') : '';
-  if (observacoes) {
-    obsFinal = obsFinal ? obsFinal + ' | ' + observacoes : observacoes;
-  }
-  if (formaPagamento === 'dinheiro' && trocoPara) {
-    obsFinal += ` | Troco para R$ ${parseFloat(trocoPara).toFixed(2)}`;
-  }
-
-  const novoPedidoItensStmt = db.prepare(`
-    INSERT INTO pedido_itens (pedido_id, produto_id, produto_nome, quantidade, preco_unitario, observacao)
-    VALUES ($1, $2, $3, $4, $5, $6) RETURNING id
-  `);
-  const novoAdicStmt = db.prepare(`
-    INSERT INTO pedido_item_adicionais (pedido_item_id, adicional_nome, preco)
-    VALUES ($1, $2, $3)
-  `);
-
-  for (const item of itensComAdicionais) {
-    const itemInfo = await novoPedidoItensStmt.run(pedidoId, item.produto_id, item.produto_nome, item.quantidade, item.preco_unitario, item.observacao || '');
-    if (item.adicionais && item.adicionais.length) {
-      for (const a of item.adicionais) {
-        await novoAdicStmt.run(itemInfo.lastInsertRowid, a.nome, a.preco);
+  await db.transaction(async (client) => {
+    const rc = await client.query('SELECT subtotal, status, observacoes, forma_pagamento FROM pedidos WHERE id=$1 FOR UPDATE', [pedidoId]);
+    const pedidoAtual = rc.rows[0];
+    const subtotalAtual = pedidoAtual ? parseFloat(pedidoAtual.subtotal) || 0 : 0;
+    const subtotal = subtotalAtual + subtotalNovos;
+    const total = subtotal;
+    let obsFinal = pedidoAtual ? (pedidoAtual.observacoes || '') : '';
+    if (observacoes) obsFinal = obsFinal ? obsFinal + ' | ' + observacoes : observacoes;
+    if (formaPagamento === 'dinheiro' && trocoPara) obsFinal += ` | Troco para R$ ${parseFloat(trocoPara).toFixed(2)}`;
+    for (const item of itensComAdicionais) {
+      const r = await client.query('INSERT INTO pedido_itens (pedido_id, produto_id, produto_nome, quantidade, preco_unitario, observacao) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id', [pedidoId, item.produto_id, item.produto_nome, item.quantidade, item.preco_unitario, item.observacao || '']);
+      const newId = r.rows[0].id;
+      if (item.adicionais && item.adicionais.length) {
+        for (const a of item.adicionais) {
+          await client.query('INSERT INTO pedido_item_adicionais (pedido_item_id, adicional_nome, preco) VALUES ($1,$2,$3)', [newId, a.nome, a.preco]);
+        }
       }
     }
-  }
+    const novoStatus = (formaPagamento && formaPagamento !== 'mesa') ? 'entregue' : (pedidoAtual ? pedidoAtual.status : 'recebido');
+    const formaFinal = formaPagamento || (pedidoAtual ? pedidoAtual.forma_pagamento : 'mesa');
+    await client.query('UPDATE pedidos SET subtotal=$1, total=$2, forma_pagamento=$3, observacoes=$4, status=$5, atualizado_em=NOW() WHERE id=$6', [subtotal, total, formaFinal, obsFinal, novoStatus, pedidoId]);
+  });
 
-  const novoStatus = (formaPagamento && formaPagamento !== 'mesa') ? 'entregue' : (pedidoAtual ? pedidoAtual.status : 'recebido');
-  const formaFinal = formaPagamento || (pedidoAtual ? pedidoAtual.forma_pagamento : 'mesa');
-  await db.run('UPDATE pedidos SET subtotal = $1, total = $2, forma_pagamento = $3, observacoes = $4, status = $5, atualizado_em = NOW() WHERE id = $6',
-    subtotal, total, formaFinal, obsFinal, novoStatus, pedidoId);
-
-  return db.get(`
-    SELECT p.*, c.nome as cliente_nome, c.telefone as cliente_telefone FROM pedidos p
-    JOIN clientes c ON p.cliente_id = c.id WHERE p.id = $1
-  `, pedidoId);
+  return db.get(`SELECT p.*, c.nome as cliente_nome, c.telefone as cliente_telefone FROM pedidos p JOIN clientes c ON p.cliente_id = c.id WHERE p.id=$1`, pedidoId);
 }
 
 function wrapAsync(fn) {
@@ -322,43 +308,34 @@ router.post('/mesa/:mesaId/enviar-cozinha', wrapAsync(async (req, res) => {
 
     const pedidoId = info.lastInsertRowid;
 
-    const itemStmt = db.prepare(`
-      INSERT INTO pedido_itens (pedido_id, produto_id, produto_nome, quantidade, preco_unitario, observacao)
-      VALUES ($1, $2, $3, $4, $5, $6) RETURNING id
-    `);
-    const adicStmt = db.prepare(`
-      INSERT INTO pedido_item_adicionais (pedido_item_id, adicional_nome, preco)
-      VALUES ($1, $2, $3)
-    `);
 
-    for (const item of itensComAdicionais) {
-      const itemInfo = await itemStmt.run(pedidoId, item.produto_id, item.produto_nome, item.quantidade, item.preco_unitario, item.observacao || '');
-      await db.run('UPDATE comanda_itens SET enviado_cozinha = true, pedido_item_id = $1 WHERE id = $2', itemInfo.lastInsertRowid, item.id);
-      
-      if (item.adicionais && item.adicionais.length) {
-        for (const a of item.adicionais) {
-          await adicStmt.run(itemInfo.lastInsertRowid, a.nome, a.preco);
+    // Transação: itens + marcação enviado_cozinha em lote
+    await db.transaction(async (client) => {
+      for (const item of itensComAdicionais) {
+        const r = await client.query('INSERT INTO pedido_itens (pedido_id, produto_id, produto_nome, quantidade, preco_unitario, observacao) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id', [pedidoId, item.produto_id, item.produto_nome, item.quantidade, item.preco_unitario, item.observacao || '']);
+        const newItemId = r.rows[0].id;
+        await client.query('UPDATE comanda_itens SET enviado_cozinha = true, pedido_item_id = $1 WHERE id = $2', [newItemId, item.id]);
+        if (item.adicionais && item.adicionais.length) {
+          for (const a of item.adicionais) {
+            await client.query('INSERT INTO pedido_item_adicionais (pedido_item_id, adicional_nome, preco) VALUES ($1,$2,$3)', [newItemId, a.nome, a.preco]);
+          }
         }
       }
-    }
+      // Garante marcação em lote (idempotente) para itens não cobertos acima
+      const ids = itens.map(i => i.id);
+      await client.query('UPDATE comanda_itens SET enviado_cozinha = true WHERE id = ANY($1)', [ids]);
+    });
 
     pedido = await db.get(`
       SELECT p.*, c.nome as cliente_nome, c.telefone as cliente_telefone FROM pedidos p
       JOIN clientes c ON p.cliente_id = c.id WHERE p.id = $1
     `, pedidoId);
     const pedItens = await db.all('SELECT * FROM pedido_itens WHERE pedido_id = $1', pedidoId);
-    const adicionaisStmt2 = db.prepare('SELECT * FROM pedido_item_adicionais WHERE pedido_item_id = $1');
-    pedido.itens = [];
-    for (const i of pedItens) {
-      const ads = await adicionaisStmt2.all(i.id);
-      pedido.itens.push({ ...i, adicionais: ads });
-    }
+    const adicionaisBatch = pedItens.length ? await db.all('SELECT * FROM pedido_item_adicionais WHERE pedido_item_id = ANY($1)', pedItens.map(i=>i.id)) : [];
+    pedido.itens = pedItens.map(i => ({ ...i, adicionais: adicionaisBatch.filter(a => a.pedido_item_id === i.id) }));
   }
 
-  // Marcar itens da comanda como enviados (apenas os que acabaram de ser enviados)
-  for (const item of itens) {
-    await db.run('UPDATE comanda_itens SET enviado_cozinha = true WHERE id = $1', item.id);
-  }
+  // Itens já marcados em lote dentro da transação — sem loop extra
 
   const isAtualizacao = !!pedidoExistente;
   if (req.emitToAdmin) {
@@ -412,18 +389,18 @@ router.post('/mesa/:mesaId/fechar', wrapAsync(async (req, res) => {
   const agora = getBrasilTimestamp();
 
   if (registrar_apenas) {
-    await db.run('UPDATE comandas SET status = $1, fechada_em = $2 WHERE id = $3', 'fechada', agora, comanda.id);
-    await db.run('UPDATE mesas SET status = $1 WHERE id = $2', 'livre', mesaId);
     const pedidosAtualizados = await db.all('SELECT id FROM pedidos WHERE comanda_id = $1 AND status != $2', comanda.id, 'entregue');
-    await db.run('UPDATE pedidos SET status = $1, atualizado_em = NOW() WHERE comanda_id = $2 AND status != $3', 'entregue', comanda.id, 'entregue');
-
-    if (req.app.get('io')) {
-      req.app.get('io').emit('mesa-atualizada', { mesaId: parseInt(mesaId), status: 'livre' });
-      pedidosAtualizados.forEach(p => {
-        req.app.get('io').emit('pedido-atualizado', { id: p.id, status: 'entregue' });
-      });
+    await db.transaction(async (client) => {
+      await client.query('UPDATE comandas SET status=$1, fechada_em=$2 WHERE id=$3', ['fechada', agora, comanda.id]);
+      await client.query('UPDATE mesas SET status=$1 WHERE id=$2', ['livre', mesaId]);
+      await client.query('UPDATE pedidos SET status=$1, atualizado_em=NOW() WHERE comanda_id=$2 AND status != $3', ['entregue', comanda.id, 'entregue']);
+    });
+    if (req.emitToGarcom) await req.emitToGarcom('mesa-atualizada', { mesaId: parseInt(mesaId), status: 'livre' });
+    if (req.emitToAdmin) {
+      await req.emitToAdmin('mesa-atualizada', { mesaId: parseInt(mesaId), status: 'livre' });
+      for (const p of pedidosAtualizados) await req.emitToAdmin('pedido-atualizado', { id: p.id, status: 'entregue' });
     }
-
+    if (req.emitToMesa) await req.emitToMesa(mesaId, 'mesa-atualizada', { mesaId: parseInt(mesaId), status: 'livre' });
     return res.json({ success: true, mensagem: 'Comanda registrada sem pagamento' });
   }
 
@@ -476,62 +453,41 @@ router.post('/mesa/:mesaId/fechar', wrapAsync(async (req, res) => {
       obsFinal += ` | Troco para R$ ${parseFloat(troco_para).toFixed(2)}`;
     }
 
-    const info = await db.run(`
-      INSERT INTO pedidos (cliente_id, subtotal, taxa_entrega, total, forma_pagamento, observacoes, endereco_entrega, bairro_entrega, mesa_id, status, comanda_id)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id
-    `,
-      cliente.id,
-      subtotal,
-      taxaEntrega,
-      total,
-      forma_pagamento || 'mesa',
-      obsFinal,
-      `Mesa ${mesaId}${nomeClienteComanda ? ' - ' + nomeClienteComanda : ''}`,
-      'Mesa',
-      mesaId,
-      'entregue',
-      comanda.id
-    );
-
-    const pedidoId = info.lastInsertRowid;
-
-    const itemStmt = db.prepare(`
-      INSERT INTO pedido_itens (pedido_id, produto_id, produto_nome, quantidade, preco_unitario, observacao)
-      VALUES ($1, $2, $3, $4, $5, $6) RETURNING id
-    `);
-    const adicStmt = db.prepare(`
-      INSERT INTO pedido_item_adicionais (pedido_item_id, adicional_nome, preco)
-      VALUES ($1, $2, $3)
-    `);
-
-    for (const item of itensComAdicionais) {
-      const itemInfo = await itemStmt.run(pedidoId, item.produto_id, item.produto_nome, item.quantidade, item.preco_unitario, item.observacao || '');
-      if (item.adicionais && item.adicionais.length) {
-        for (const a of item.adicionais) {
-          await adicStmt.run(itemInfo.lastInsertRowid, a.nome, a.preco);
+    const pedidoId = await db.transaction(async (client) => {
+      const r = await client.query(`INSERT INTO pedidos (cliente_id, subtotal, taxa_entrega, total, forma_pagamento, observacoes, endereco_entrega, bairro_entrega, mesa_id, status, comanda_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id`, [cliente.id, subtotal, taxaEntrega, total, forma_pagamento || 'mesa', obsFinal, `Mesa ${mesaId}${nomeClienteComanda ? ' - ' + nomeClienteComanda : ''}`, 'Mesa', mesaId, 'entregue', comanda.id]);
+      const pid = r.rows[0].id;
+      for (const item of itensComAdicionais) {
+        const ri = await client.query('INSERT INTO pedido_itens (pedido_id, produto_id, produto_nome, quantidade, preco_unitario, observacao) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id', [pid, item.produto_id, item.produto_nome, item.quantidade, item.preco_unitario, item.observacao || '']);
+        const nid = ri.rows[0].id;
+        if (item.adicionais && item.adicionais.length) {
+          for (const a of item.adicionais) await client.query('INSERT INTO pedido_item_adicionais (pedido_item_id, adicional_nome, preco) VALUES ($1,$2,$3)', [nid, a.nome, a.preco]);
         }
       }
-    }
+      await client.query('UPDATE comandas SET status=$1, fechada_em=$2 WHERE id=$3', ['fechada', agora, comanda.id]);
+      await client.query('UPDATE mesas SET status=$1 WHERE id=$2', ['livre', mesaId]);
+      return pid;
+    });
 
-    pedido = await db.get(`
-      SELECT p.*, c.nome as cliente_nome, c.telefone as cliente_telefone FROM pedidos p
-      JOIN clientes c ON p.cliente_id = c.id WHERE p.id = $1
-    `, pedidoId);
-    const pedItens = await db.all('SELECT * FROM pedido_itens WHERE pedido_id = $1', pedidoId);
-    const adicionaisStmt2 = db.prepare('SELECT * FROM pedido_item_adicionais WHERE pedido_item_id = $1');
-    pedido.itens = [];
-    for (const i of pedItens) {
-      const ads = await adicionaisStmt2.all(i.id);
-      pedido.itens.push({ ...i, adicionais: ads });
-    }
+    pedido = await db.get(`SELECT p.*, c.nome as cliente_nome, c.telefone as cliente_telefone FROM pedidos p JOIN clientes c ON p.cliente_id = c.id WHERE p.id=$1`, pedidoId);
+    const pedItens2 = await db.all('SELECT * FROM pedido_itens WHERE pedido_id=$1', pedidoId);
+    const adsBatch = pedItens2.length ? await db.all('SELECT * FROM pedido_item_adicionais WHERE pedido_item_id = ANY($1)', pedItens2.map(i=>i.id)) : [];
+    pedido.itens = pedItens2.map(i => ({ ...i, adicionais: adsBatch.filter(a=>a.pedido_item_id===i.id)}));
   }
 
-  await db.run('UPDATE comandas SET status = $1, fechada_em = $2 WHERE id = $3', 'fechada', agora, comanda.id);
-  await db.run('UPDATE mesas SET status = $1 WHERE id = $2', 'livre', mesaId);
+  // Fechar comanda/mesa quando veio de pedidoExistente (já faz close no caso novo pedido)
+  if (pedidoExistente) {
+    await db.transaction(async (client) => {
+      await client.query('UPDATE comandas SET status=$1, fechada_em=$2 WHERE id=$3', ['fechada', agora, comanda.id]);
+      await client.query('UPDATE mesas SET status=$1 WHERE id=$2', ['livre', mesaId]);
+    });
+  }
 
-  if (req.app.get('io')) {
-    req.app.get('io').emit('novo-pedido', pedido);
-    req.app.get('io').emit('mesa-atualizada', { mesaId: parseInt(mesaId), status: 'livre' });
+  if (pedido) {
+    if (req.emitToAdmin) await req.emitToAdmin('novo-pedido', pedido);
+    if (req.emitToGarcom) await req.emitToGarcom('novo-pedido', pedido);
+    if (req.emitToMesa) await req.emitToMesa(mesaId, 'mesa-atualizada', { mesaId: parseInt(mesaId), status: 'livre' });
+    if (req.emitToAdmin) await req.emitToAdmin('mesa-atualizada', { mesaId: parseInt(mesaId), status: 'livre' });
+    if (req.emitToGarcom) await req.emitToGarcom('mesa-atualizada', { mesaId: parseInt(mesaId), status: 'livre' });
   }
 
   res.json({ success: true, pedido });
@@ -547,9 +503,9 @@ router.post('/mesa/:mesaId/liberar', wrapAsync(async (req, res) => {
   // Caso 1: Sem comanda - apenas libera mesa
   if (!comanda) {
     await db.run('UPDATE mesas SET status = $1 WHERE id = $2', 'livre', mesaId);
-    if (req.app.get('io')) {
-      req.app.get('io').emit('mesa-atualizada', { mesaId: parseInt(mesaId), status: 'livre' });
-    }
+    if (req.emitToGarcom) await req.emitToGarcom('mesa-atualizada', { mesaId: parseInt(mesaId), status: 'livre' });
+    if (req.emitToAdmin) await req.emitToAdmin('mesa-atualizada', { mesaId: parseInt(mesaId), status: 'livre' });
+    if (req.emitToMesa) await req.emitToMesa(mesaId, 'mesa-atualizada', { mesaId: parseInt(mesaId), status: 'livre' });
     return res.json({ success: true, mensagem: 'Mesa liberada' });
   }
 
