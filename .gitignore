@@ -49,3 +49,20 @@ test_dbwrapper.js
 # Binarios/locais
 cloudflared.exe
 *.old
+
+# Temporários de simulação/carga e debug local
+.tmp-simulacao.js
+*-tmp.js
+shots*.js
+checkdiv-tmp.js
+
+# Backups e cardápio artefatos locais (não versionar - usar Supabase)
+backup-cardapio*.json
+cardapio_dados.json
+cardápio/
+
+# Artes/debug locais
+debug_policies.sql
+install-gh*.ps1
+logo/
+RELATORIO_*.md

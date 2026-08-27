@@ -287,7 +287,7 @@ router.delete('/usuarios/:id', middlewareAdmin, wrapAsync(async (req, res) => {
 router.get('/auditoria', middlewareAdmin, wrapAsync(async (req, res) => {
   const { usuario_id, acao, data_inicio, data_fim, limite } = req.query;
   const auditoria = require('../utils/audit');
-  const resultados = auditoria.getAuditoria({
+  const resultados = await auditoria.getAuditoria({
     usuarioId: usuario_id ? parseInt(usuario_id) : null,
     acao,
     dataInicio: data_inicio,

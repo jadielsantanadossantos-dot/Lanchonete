@@ -33,16 +33,22 @@ async function resetDemo() {
       ('tempo_espera','30-40 min')
     ON CONFLICT (chave) DO UPDATE SET valor=EXCLUDED.valor
   `);
-  // Recria usuários demo se faltar (hash bcrypt para "demo" - demo/demo igual PDV/garcom)
+  // Recria usuários demo - demo/demo1234 observador (panfleto) + garcom/demo
   await db.exec(`
     INSERT INTO usuarios (nome, usuario, senha_hash, perfil, ativo, trocar_senha)
-    VALUES ('Administrador Demo','demo','$2a$10$JghWnajrvrIPrskG3diTweooG0K81cryK1cNc0sSB.TYHy9R.dMUW','admin',true,false)
-    ON CONFLICT (usuario) DO UPDATE SET senha_hash=EXCLUDED.senha_hash, perfil='admin', ativo=true
+    VALUES ('Demo Observador','demo','$2a$10$B2yrT5823I2XYMktdzkNqOc9fav5O8Vlk8s0FLTTfOFb6czgz5/Z6','observador',true,false)
+    ON CONFLICT (usuario) DO UPDATE SET senha_hash=EXCLUDED.senha_hash, perfil='observador', ativo=true, trocar_senha=false
   `);
   await db.exec(`
     INSERT INTO usuarios (nome, usuario, senha_hash, perfil, ativo, trocar_senha)
     VALUES ('Garçom Demo','garcom','$2a$10$JghWnajrvrIPrskG3diTweooG0K81cryK1cNc0sSB.TYHy9R.dMUW','garcom',true,false)
     ON CONFLICT (usuario) DO UPDATE SET senha_hash=EXCLUDED.senha_hash, perfil='garcom', ativo=true
+  `);
+  // Mantém admin demo antigo se existir como backup (admin/demo) sem sobrescrever demo observador
+  await db.exec(`
+    INSERT INTO usuarios (nome, usuario, senha_hash, perfil, ativo, trocar_senha)
+    VALUES ('Administrador Demo','admin_demo','$2a$10$JghWnajrvrIPrskG3diTweooG0K81cryK1cNc0sSB.TYHy9R.dMUW','admin',true,false)
+    ON CONFLICT (usuario) DO NOTHING
   `);
 }
 

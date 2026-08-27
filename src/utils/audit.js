@@ -49,12 +49,12 @@ async function getAuditoria(filtros = {}) {
     sql += ` AND criado_em <= $${paramIndex++}`;
     params.push(filtros.dataFim + ' 23:59:59');
   }
+  sql += ' ORDER BY criado_em DESC';
+
   if (filtros.limite) {
     sql += ` LIMIT $${paramIndex}`;
     params.push(filtros.limite);
   }
-
-  sql += ' ORDER BY criado_em DESC';
 
   return db.all(sql, ...params);
 }
