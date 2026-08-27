@@ -1044,12 +1044,31 @@ async function concluirPedido() {
   }
 
   try {
+    // preservar endereço cadastrado quando for retirada (não sobrescrever com "Retirada no local")
+    let clientePayload;
+    if (tipoEntrega === 'retirada') {
+      if (clienteLogado && clienteLogado.telefone === telefone) {
+        clientePayload = { nome, telefone, rua: clienteLogado.rua || '', numero: clienteLogado.numero || '', bairro: clienteLogado.bairro || '', complemento: clienteLogado.complemento || '', ponto_referencia: clienteLogado.ponto_referencia || '' };
+      } else {
+        // novo cliente sem cadastro prévio e escolheu retirada: não salvar "Retirada" como bairro
+        clientePayload = { nome, telefone, rua: '', numero: '', bairro: '', complemento: '', ponto_referencia: '' };
+      }
+    } else {
+      clientePayload = { nome, telefone, rua, numero, bairro: bairroNome, complemento, ponto_referencia: referencia };
+    }
     const clienteRes = await fetch('/api/clientes', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nome, telefone, rua, numero, bairro: bairroNome, complemento, ponto_referencia: referencia })
+      body: JSON.stringify(clientePayload)
     });
     const cliente = await clienteRes.json();
+    // manter cache com endereço real, não "Retirada"
+    if (tipoEntrega === 'retirada' && clienteLogado && clienteLogado.telefone === telefone) {
+      salvarClienteLocal({ ...cliente, rua: clienteLogado.rua, numero: clienteLogado.numero, bairro: clienteLogado.bairro, complemento: clienteLogado.complemento, ponto_referencia: clienteLogado.ponto_referencia });
+    } else if (tipoEntrega === 'retirada') {
+      // mescla o retorno com o cache anterior se houver
+      salvarClienteLocal(cliente);
+    }
 
     let observacoes = obs;
     if (formaPagamento === 'dinheiro') {
