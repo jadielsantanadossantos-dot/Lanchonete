@@ -253,11 +253,11 @@ router.put('/:id/converter-entrega', middlewareAdmin, wrapAsync(async (req, res)
   if (['entregue','cancelado'].includes(pedido.status)) return res.status(400).json({ error: 'Pedido já finalizado' });
   let { bairro_entrega, endereco_entrega, taxa_entrega } = req.body;
   // se não enviado, tenta usar endereço cadastrado do cliente
-  if (!bairro_entrega || String(bairro_entrega).trim().length === 0) {
+  if (!bairro_entrega || String(bairro_entrega).trim().length === 0 || String(bairro_entrega).trim() === 'Retirada no local') {
     if (pedido.cliente_id) {
       const cliente = await db.get('SELECT * FROM clientes WHERE id = $1', pedido.cliente_id);
-      if (cliente) {
-        if (cliente.bairro) bairro_entrega = cliente.bairro;
+      if (cliente && cliente.bairro && cliente.bairro !== 'Retirada no local') {
+        bairro_entrega = cliente.bairro;
         if (!endereco_entrega) {
           let end = '';
           if (cliente.rua) end += cliente.rua;
@@ -266,10 +266,17 @@ router.put('/:id/converter-entrega', middlewareAdmin, wrapAsync(async (req, res)
           if (cliente.ponto_referencia) end += ` (Ref: ${cliente.ponto_referencia})`;
           if (end) endereco_entrega = end;
         }
+      } else {
+        // tenta recuperar último bairro válido de pedidos anteriores do cliente (caso cadastro corrompido)
+        const ult = await db.get("SELECT bairro_entrega, endereco_entrega FROM pedidos WHERE cliente_id = $1 AND bairro_entrega != 'Retirada no local' AND bairro_entrega IS NOT NULL AND bairro_entrega != '' ORDER BY criado_em DESC LIMIT 1", pedido.cliente_id);
+        if (ult && ult.bairro_entrega) {
+          bairro_entrega = ult.bairro_entrega;
+          if (!endereco_entrega && ult.endereco_entrega) endereco_entrega = ult.endereco_entrega;
+        }
       }
     }
   }
-  if (!bairro_entrega || String(bairro_entrega).trim().length === 0) return res.status(400).json({ error: 'Bairro obrigatório - cliente sem endereço cadastrado, informe manualmente' });
+  if (!bairro_entrega || String(bairro_entrega).trim().length === 0 || String(bairro_entrega).trim() === 'Retirada no local') return res.status(400).json({ error: 'Bairro obrigatório - cliente sem endereço cadastrado, informe manualmente' });
   bairro_entrega = sanitizarString(String(bairro_entrega).trim());
   endereco_entrega = sanitizarString(String(endereco_entrega || bairro_entrega).trim());
   if (taxa_entrega === undefined || taxa_entrega === null || taxa_entrega === '') {

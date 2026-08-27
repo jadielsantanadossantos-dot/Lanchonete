@@ -483,12 +483,28 @@ async function converterParaEntrega(pedidoId) {
     }
   } catch(e) {}
   let bairroNome = cliente?.bairro || '';
+  // trata cadastro corrompido antigo onde bairro ficou "Retirada no local"
+  if (bairroNome === 'Retirada no local') bairroNome = '';
   let enderecoFmt = '';
   if (cliente) {
     if (cliente.rua) enderecoFmt += cliente.rua;
     if (cliente.numero) enderecoFmt += `, ${cliente.numero}`;
     if (cliente.complemento) enderecoFmt += ` - ${cliente.complemento}`;
     if (cliente.ponto_referencia) enderecoFmt += ` (Ref: ${cliente.ponto_referencia})`;
+  }
+  // se ainda sem bairro (cadastro corrompido), tenta último pedido válido do cliente
+  if (!bairroNome && p.cliente_id) {
+    try {
+      const hr = await authFetch(`/api/clientes/${p.cliente_id}/pedidos`);
+      if (hr.ok) {
+        const hist = await hr.json();
+        const ult = hist.find(x => x.bairro_entrega && x.bairro_entrega !== 'Retirada no local');
+        if (ult) {
+          bairroNome = ult.bairro_entrega;
+          if (!enderecoFmt && ult.endereco_entrega) enderecoFmt = ult.endereco_entrega;
+        }
+      }
+    } catch(e) {}
   }
   // se cliente sem endereço, cai no fluxo manual de bairros
   let bairros = [];
