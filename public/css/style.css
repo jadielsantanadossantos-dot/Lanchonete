@@ -137,9 +137,11 @@ input, select, textarea { font-family: inherit; font-size: inherit; }
 
 /* Cart Page */
 .page-title { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-4) var(--space-4); font-size: var(--text-lg); font-weight: var(--font-bold); color: var(--color-text); border-bottom: 1px solid var(--color-border); background: var(--color-bg); position: sticky; top: var(--header-h); z-index: calc(var(--z-sticky) - 2); }
-.back-btn { width: 44px; height: 44px; border-radius: var(--radius-full); background: var(--color-bg-alt); color: var(--color-text-secondary); display: flex; align-items: center; justify-content: center; font-size: var(--text-xl); transition: all var(--transition-fast); flex-shrink: 0; touch-action: manipulation; }
-.back-btn:hover { background: var(--color-border); color: var(--color-text); }
-.back-btn:active { transform: scale(0.95); }
+.back-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 38px; padding: 0 var(--space-4); border-radius: var(--radius-full); background: var(--gradient-primary); color: var(--color-primary-contrast); font-size: var(--text-sm); font-weight: var(--font-bold); letter-spacing: 0.2px; box-shadow: var(--shadow-sm); border: 1px solid transparent; transition: all var(--transition-fast); flex-shrink: 0; touch-action: manipulation; }
+.back-btn::before { content: "←"; font-size: 1.05rem; line-height: 1; font-weight: 800; }
+.back-btn:hover { background: var(--color-primary-light); transform: translateY(-1px); box-shadow: var(--shadow); filter: brightness(1.05); }
+.back-btn:active { transform: scale(0.97); background: var(--color-primary-dark); box-shadow: var(--shadow-xs); }
+.back-btn:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
 .cart-items { padding: var(--space-4); }
 .cart-item { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-4); margin-bottom: var(--space-3); box-shadow: var(--shadow-sm); }
 .cart-item-header { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-3); margin-bottom: var(--space-3); }
