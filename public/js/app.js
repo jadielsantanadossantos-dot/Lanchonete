@@ -1430,15 +1430,23 @@ async function carregarDetalhesPedido(pedidoId) {
   }
 }
 
-async function solicitarEntrega(pedidoId) {
+function solicitarEntrega(pedidoId) {
   const p = meusPedidosCache.find(x => String(x.id) === String(pedidoId));
   if (!p) return;
-  try {
-    await fetch(`/api/pedidos/${pedidoId}/solicitar-entrega`, { method: 'PUT', headers: { 'Content-Type': 'application/json' } });
-  } catch(e) {}
-  const lojaTel = (config.loja_telefone || '').replace(/\D/g, '');
+  // dispara solicitação em segundo plano sem bloquear gesto do usuário (evita bloqueio de popup no celular)
+  fetch(`/api/pedidos/${pedidoId}/solicitar-entrega`, { method: 'PUT', headers: { 'Content-Type': 'application/json' } }).catch(()=>{}).then(()=> setTimeout(() => buscarPedidos(), 800));
+  let lojaTel = (config && config.loja_telefone ? String(config.loja_telefone) : '').replace(/\D/g, '');
+  if (!lojaTel) {
+    // tenta buscar telefone fresco se config ainda não carregou
+    fetch('/api/config/public').then(r=>r.json()).then(cfg=>{
+      if (cfg.loja_telefone) config.loja_telefone = cfg.loja_telefone;
+    }).catch(()=>{});
+  }
   const tel = lojaTel ? (lojaTel.startsWith('55') ? lojaTel : '55' + lojaTel) : '';
-  // endereço de cadastro do cliente (não o da loja)
+  if (!tel) {
+    mostrarToast('Telefone da loja não configurado em Configurações → Dados da Loja');
+    // ainda abre WhatsApp genérico para não travar
+  }
   let cliEnd = '';
   const c = clienteLogado;
   if (c) {
@@ -1448,12 +1456,18 @@ async function solicitarEntrega(pedidoId) {
     if (c.bairro) cliEnd += ` - ${c.bairro}`;
     if (c.ponto_referencia) cliEnd += ` (Ref: ${c.ponto_referencia})`;
   }
-  if (!cliEnd) cliEnd = p.endereco_entrega && !String(p.endereco_entrega).startsWith('Retirada') ? `${p.endereco_entrega} - ${p.bairro_entrega}` : 'endereço cadastrado';
+  if (!cliEnd) cliEnd = p.endereco_entrega && !String(p.endereco_entrega).startsWith('Retirada') ? `${p.endereco_entrega} - ${p.bairro_entrega}` : 'endereço cadastrado (atualize em Minha Conta)';
   const msg = `Olá! Pedido #${p.id} (Retirada no local) - gostaria de solicitar entrega.\nMeu endereço: ${cliEnd}\nTotal atual: R$ ${Number(p.total).toFixed(2)}\nAguardo confirmação da taxa de entrega.`;
   const url = tel ? `https://wa.me/${tel}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`;
-  window.open(url, '_blank');
+  // abertura síncrona via anchor para funcionar no celular (iOS/Android bloqueiam window.open após await)
+  const a = document.createElement('a');
+  a.href = url;
+  a.target = '_blank';
+  a.rel = 'noopener noreferrer';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=> a.remove(), 500);
   mostrarToast('Solicitação enviada! Aguarde o PDV confirmar.');
-  setTimeout(() => buscarPedidos(), 1000);
 }
 function fecharDetalhe(detailId) {
   const detail = document.getElementById(detailId)?.closest('details');
