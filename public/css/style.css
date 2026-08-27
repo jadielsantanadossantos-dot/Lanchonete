@@ -385,7 +385,7 @@ textarea.form-control { min-height: 100px; resize: vertical; }
   .cart-badge { min-width: 18px; height: 18px; font-size: 10px; top: -1px; right: -1px; }
   .page-dados, .page-pagamento, .page-pix, .page-sucesso, .page-acompanhar, .page-cadastro, .page-editar-cadastro { padding: var(--space-2); }
   .page-title { padding: var(--space-2); font-size: var(--text-base); }
-  .back-btn { width: 44px; height: 44px; font-size: var(--text-lg); }
+  .back-btn { width: auto; min-height: 36px; padding: 0 14px; font-size: var(--text-sm); border-radius: var(--radius-full); gap: 6px; }
   .section-title { font-size: var(--text-sm); }
   .form-row { flex-direction: column; gap: 0; }
   .form-row .form-group { flex: none; }
