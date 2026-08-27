@@ -74,7 +74,9 @@ router.get('/:id/pedidos', middlewareAdmin, wrapAsync(async (req, res) => {
 }));
 
 router.post('/', validarCliente, wrapAsync(async (req, res) => {
-  const { nome, telefone, rua, numero, bairro, complemento, ponto_referencia } = req.body;
+  let { nome, telefone, rua, numero, bairro, complemento, ponto_referencia } = req.body;
+  // nunca salvar "Retirada no local" como bairro do cadastro
+  if (bairro === 'Retirada no local') bairro = '';
   try {
     const info = await db.run(
       'INSERT INTO clientes (nome, telefone, rua, numero, bairro, complemento, ponto_referencia) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id',
@@ -85,11 +87,18 @@ router.post('/', validarCliente, wrapAsync(async (req, res) => {
   } catch (e) {
     const existing = await db.get('SELECT * FROM clientes WHERE telefone = $1', telefone);
     if (existing) {
+      // mesclar: não sobrescrever com vazio e nunca com "Retirada"
+      const novoBairro = (bairro && bairro !== 'Retirada no local') ? bairro : existing.bairro;
+      const novoRua = rua || existing.rua;
+      const novoNumero = numero || existing.numero;
+      const novoComp = complemento || existing.complemento;
+      const novoRef = ponto_referencia || existing.ponto_referencia;
       await db.run(
         'UPDATE clientes SET nome=$1, rua=$2, numero=$3, bairro=$4, complemento=$5, ponto_referencia=$6 WHERE id=$7',
-        nome, rua || '', numero || '', bairro || '', complemento || '', ponto_referencia || '', existing.id
+        nome, novoRua || '', novoNumero || '', novoBairro || '', novoComp || '', novoRef || '', existing.id
       );
-      return res.json(existing);
+      const atualizado = await db.get('SELECT * FROM clientes WHERE id = $1', existing.id);
+      return res.json(atualizado);
     }
     res.status(400).json({ error: 'Erro ao cadastrar cliente' });
   }

@@ -1046,8 +1046,9 @@ async function concluirPedido() {
   try {
     // preservar endereço cadastrado quando for retirada (não sobrescrever com "Retirada no local")
     let clientePayload;
+    const telNorm = (s) => String(s || '').replace(/\D/g, '');
     if (tipoEntrega === 'retirada') {
-      if (clienteLogado && clienteLogado.telefone === telefone) {
+      if (clienteLogado && telNorm(clienteLogado.telefone) === telNorm(telefone)) {
         clientePayload = { nome, telefone, rua: clienteLogado.rua || '', numero: clienteLogado.numero || '', bairro: clienteLogado.bairro || '', complemento: clienteLogado.complemento || '', ponto_referencia: clienteLogado.ponto_referencia || '' };
       } else {
         // novo cliente sem cadastro prévio e escolheu retirada: não salvar "Retirada" como bairro
@@ -1063,10 +1064,9 @@ async function concluirPedido() {
     });
     const cliente = await clienteRes.json();
     // manter cache com endereço real, não "Retirada"
-    if (tipoEntrega === 'retirada' && clienteLogado && clienteLogado.telefone === telefone) {
+    if (tipoEntrega === 'retirada' && clienteLogado && String(clienteLogado.telefone).replace(/\D/g,'') === String(telefone).replace(/\D/g,'')) {
       salvarClienteLocal({ ...cliente, rua: clienteLogado.rua, numero: clienteLogado.numero, bairro: clienteLogado.bairro, complemento: clienteLogado.complemento, ponto_referencia: clienteLogado.ponto_referencia });
     } else if (tipoEntrega === 'retirada') {
-      // mescla o retorno com o cache anterior se houver
       salvarClienteLocal(cliente);
     }
 
