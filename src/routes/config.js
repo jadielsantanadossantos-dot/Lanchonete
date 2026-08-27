@@ -37,6 +37,7 @@ router.get('/public', wrapAsync(async (req, res) => {
     supabaseUrl: process.env.SUPABASE_URL || '',
     supabaseAnonKey: process.env.SUPABASE_ANON_KEY || '',
     logo_url: map.logo_url || '',
+    loja_endereco: map.loja_endereco || '',
     loja_aberta: map.loja_aberta || 'true',
     loja_aberta_efetiva: efetiva ? 'true' : 'false',
     loja_modo: map.loja_modo || 'manual',

@@ -128,6 +128,19 @@
       <label>Telefone <span class="required">*</span></label>
       <input class="form-control" id="cli-telefone" placeholder="(00) 00000-0000" type="tel" required>
     </div>
+    <div class="form-group">
+      <label>Como deseja receber? <span class="required">*</span></label>
+      <div style="display:flex;gap:12px">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="radio" name="tipo-entrega" value="entrega" checked onchange="alternarTipoEntrega()"> Entrega</label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="radio" name="tipo-entrega" value="retirada" onchange="alternarTipoEntrega()"> Retirar no local</label>
+      </div>
+    </div>
+    <div id="retirada-info" style="display:none;background:#E8F5E9;border:1px solid #A5D6A7;border-radius:8px;padding:12px;margin-bottom:12px">
+      <div style="font-weight:700;margin-bottom:6px">Retirar no local</div>
+      <div id="retirada-endereco" style="font-size:0.92rem;line-height:1.4"></div>
+      <a id="retirada-maps" href="#" target="_blank" class="btn btn-outline btn-sm" style="margin-top:8px;display:inline-flex;align-items:center;gap:6px">📍 Abrir no Google Maps</a>
+    </div>
+    <div id="entrega-campos">
     <div class="section-title">Endereço de entrega</div>
     <div class="form-group">
       <label>Bairro <span class="required">*</span></label>
@@ -136,7 +149,7 @@
       </select>
     </div>
     <div class="form-row">
-<div class="form-group">
+ <div class="form-group">
         <label>Rua</label>
         <input class="form-control" id="cli-rua" placeholder="Rua, Avenida, etc.">
       </div>
@@ -152,6 +165,7 @@
     <div class="form-group">
       <label>Ponto de referência</label>
       <input class="form-control" id="cli-referencia" placeholder="Próximo a...">
+    </div>
     </div>
     <button class="btn btn-primary" onclick="irParaPagamento()">
       Ir para pagamento

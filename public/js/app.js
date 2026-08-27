@@ -908,7 +908,32 @@ function renderResumoPagamento() {
   }).join('');
 }
 
+function getTipoEntrega() {
+  const el = document.querySelector('input[name="tipo-entrega"]:checked');
+  return el ? el.value : 'entrega';
+}
+function alternarTipoEntrega() {
+  const tipo = getTipoEntrega();
+  const entrega = document.getElementById('entrega-campos');
+  const retirada = document.getElementById('retirada-info');
+  if (tipo === 'retirada') {
+    if (entrega) entrega.style.display = 'none';
+    if (retirada) retirada.style.display = 'block';
+    taxaEntregaAtual = 0;
+    atualizarTotais();
+    const end = (config && config.loja_endereco) ? config.loja_endereco : '';
+    const elEnd = document.getElementById('retirada-endereco');
+    if (elEnd) elEnd.textContent = end ? end : 'Endereço não configurado — informe na administração';
+    const elMaps = document.getElementById('retirada-maps');
+    if (elMaps) elMaps.href = end ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(end)}` : '#';
+  } else {
+    if (entrega) entrega.style.display = 'block';
+    if (retirada) retirada.style.display = 'none';
+    atualizarTaxaBairro();
+  }
+}
 function atualizarTaxaBairro() {
+  if (getTipoEntrega() === 'retirada') { taxaEntregaAtual = 0; atualizarTotais(); return; }
   const select = document.getElementById('cli-bairro');
   const option = select.options[select.selectedIndex];
   taxaEntregaAtual = option && option.dataset.taxa ? parseFloat(option.dataset.taxa) : 0;
@@ -958,11 +983,13 @@ function selecionarPagamento(el, tipo) {
 function irParaPagamento() {
   const nome = document.getElementById('cli-nome').value.trim();
   const telefone = document.getElementById('cli-telefone').value.trim();
+  const tipo = getTipoEntrega();
   const bairro = document.getElementById('cli-bairro').value;
 
   if (!lojaAberta) { mostrarToast('A loja está fechada e não está aceitando pedidos'); return; }
   if (!nome || !telefone) { mostrarToast('Preencha nome e telefone!'); return; }
-  if (!bairro) { mostrarToast('Selecione o bairro!'); return; }
+  if (tipo === 'entrega' && !bairro) { mostrarToast('Selecione o bairro!'); return; }
+  if (tipo === 'retirada' && !config.loja_endereco) { mostrarToast('Retirada indisponível: endereço da loja não configurado'); return; }
 
   renderResumoPagamento();
   atualizarTotais();
@@ -991,11 +1018,13 @@ async function concluirPedido() {
     mostrarPagina('page-cardapio');
     return;
   }
+  const tipoEntrega = getTipoEntrega();
   const nome = document.getElementById('cli-nome').value.trim();
   const telefone = document.getElementById('cli-telefone').value.trim();
   const bairroId = document.getElementById('cli-bairro').value;
   const bairroSelect = document.getElementById('cli-bairro');
-  const bairroNome = bairroSelect.options[bairroSelect.selectedIndex].text.split(' - ')[0];
+  let bairroNome = bairroSelect.options[bairroSelect.selectedIndex]?.text.split(' - ')[0] || '';
+  if (tipoEntrega === 'retirada') bairroNome = 'Retirada no local';
 
   const rua = document.getElementById('cli-rua').value.trim();
   const numero = document.getElementById('cli-numero').value.trim();
@@ -1004,10 +1033,15 @@ async function concluirPedido() {
   const obs = document.getElementById('pedido-obs').value.trim();
 
   let enderecoCompleto = '';
-  if (rua) enderecoCompleto += rua;
-  if (numero) enderecoCompleto += `, ${numero}`;
-  if (complemento) enderecoCompleto += ` - ${escapeHtml(complemento)}`;
-  if (referencia) enderecoCompleto += ` (Ref: ${escapeHtml(referencia)})`;
+  if (tipoEntrega === 'retirada') {
+    enderecoCompleto = config.loja_endereco ? `Retirada no local - ${config.loja_endereco}` : 'Retirada no local';
+    taxaEntregaAtual = 0;
+  } else {
+    if (rua) enderecoCompleto += rua;
+    if (numero) enderecoCompleto += `, ${numero}`;
+    if (complemento) enderecoCompleto += ` - ${escapeHtml(complemento)}`;
+    if (referencia) enderecoCompleto += ` (Ref: ${escapeHtml(referencia)})`;
+  }
 
   try {
     const clienteRes = await fetch('/api/clientes', {

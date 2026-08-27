@@ -483,10 +483,15 @@
             <label>Nome da loja</label>
             <input class="form-control" id="cfg-loja-nome">
           </div>
-           <div class="form-group">
-             <label>Telefone da loja</label>
-             <input class="form-control" id="cfg-loja-telefone">
-           </div>
+            <div class="form-group">
+              <label>Telefone da loja</label>
+              <input class="form-control" id="cfg-loja-telefone">
+            </div>
+            <div class="form-group">
+              <label>Endereço da loja (para retirada no local)</label>
+              <input class="form-control" id="cfg-loja-endereco" placeholder="Ex: Rua Exemplo, 123 - Bairro, Cidade/UF">
+              <small style="color:var(--color-text-muted)">Exibido quando cliente escolher "Retirar no local" com link para Google Maps.</small>
+            </div>
            <div class="form-group">
              <label>Mensagem WhatsApp "Saiu para entrega"</label>
              <textarea class="form-control" id="cfg-whatsapp-msg-saiu" placeholder="Ex: Olá {nome}, seu pedido #{id} saiu para entrega! Total R$ {total} - {loja}"></textarea>

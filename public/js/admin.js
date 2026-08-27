@@ -1436,6 +1436,8 @@ async function carregarConfigAdmin() {
   const cfg = await res.json();
   document.getElementById('cfg-loja-nome').value = cfg.loja_nome || '';
    document.getElementById('cfg-loja-telefone').value = cfg.loja_telefone || '';
+  const elEnd = document.getElementById('cfg-loja-endereco');
+  if (elEnd) elEnd.value = cfg.loja_endereco || '';
    document.getElementById('cfg-whatsapp-msg-saiu').value = cfg.whatsapp_mensagem_saiu_entrega || '';
   // Logo preview
   const logoPrev = document.getElementById('cfg-logo-preview');
@@ -1557,6 +1559,7 @@ async function salvarConfig(e) {
   const config = {
     loja_nome: document.getElementById('cfg-loja-nome').value,
     loja_telefone: document.getElementById('cfg-loja-telefone').value,
+    loja_endereco: document.getElementById('cfg-loja-endereco')?.value || '',
     whatsapp_mensagem_saiu_entrega: document.getElementById('cfg-whatsapp-msg-saiu')?.value || '',
     loja_modo: auto ? 'auto' : 'manual',
     loja_horario_abertura: document.getElementById('cfg-horario-abertura')?.value || '',
