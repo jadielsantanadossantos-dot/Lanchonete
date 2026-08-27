@@ -30,7 +30,7 @@
 
   <nav class="sidebar" id="sidebar" role="navigation" aria-label="Menu principal">
     <div class="sidebar-header">
-      <img src="/logo.jpeg" alt="Logo" style="height: 40px; width: auto; margin-bottom: 12px;">
+      <img src="/logo.jpeg" id="site-logo-admin" alt="Logo" style="height: 40px; width: auto; margin-bottom: 12px;" onerror="this.src='/logo.jpeg'">
       <h2 class="sidebar-title">Admin</h2>
       <button class="sidebar-close" onclick="toggleSidebar()" aria-label="Fechar menu">&#10005;</button>
     </div>
@@ -492,12 +492,57 @@
              <textarea class="form-control" id="cfg-whatsapp-msg-saiu" placeholder="Ex: Olá {nome}, seu pedido #{id} saiu para entrega! Total R$ {total} - {loja}"></textarea>
              <small style="color:var(--color-text-muted)">Variáveis: {nome}, {id}, {total}, {loja}. Envia para o cliente quando o status mudar para "saiu p/ entrega". O WhatsApp Web precisa estar aberto neste navegador.</small>
            </div>
-          <h3 style="margin-top:20px">Tempo de Espera</h3>
-          <div class="form-group">
-            <label>Tempo de espera do dia</label>
-            <input class="form-control" id="cfg-tempo-espera" placeholder="Ex: 30-40 min">
-            <small style="color:var(--color-text-muted)">Exibido para o cliente no cardápio (ex: 30-40 min, 25 min)</small>
-          </div>
+           <h3 style="margin-top:20px">Logo da Loja</h3>
+           <div class="form-group">
+             <label>Logo (JPG/PNG/WebP/GIF, máx 2MB)</label>
+             <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+               <img id="cfg-logo-preview" src="/logo.jpeg" alt="Preview logo" style="height:80px;width:80px;object-fit:cover;border:1px solid var(--color-border);border-radius:8px;background:#fff">
+               <div style="display:flex;flex-direction:column;gap:6px">
+                 <input type="file" id="cfg-logo-file" accept=".jpg,.jpeg,.png,.webp,.gif">
+                 <div style="display:flex;gap:8px">
+                   <button type="button" class="btn btn-outline btn-sm" onclick="uploadLogo()">Enviar logo</button>
+                   <button type="button" class="btn btn-outline btn-sm" onclick="removerLogo()" style="color:#c62828;border-color:#ef9a9a">Remover</button>
+                 </div>
+                 <small style="color:var(--color-text-muted)">Aparece para clientes não logados. Ao remover apaga do storage.</small>
+               </div>
+             </div>
+           </div>
+           <h3 style="margin-top:20px">Horário de Funcionamento (Automático)</h3>
+           <div class="form-group">
+             <label style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="cfg-horario-auto"> Ativar abertura/fechamento automático</label>
+             <small style="color:var(--color-text-muted)">Quando ativo, avalia todo pedido pelo horário BRT. O botão "Loja Aberta/Fechada" do topo sempre pode desligar manualmente e pausa o automático.</small>
+           </div>
+           <div id="horario-campos" style="display:none">
+             <div style="display:flex;gap:12px;flex-wrap:wrap">
+               <div class="form-group" style="flex:1;min-width:140px">
+                 <label>Abertura</label>
+                 <input class="form-control" type="time" id="cfg-horario-abertura">
+               </div>
+               <div class="form-group" style="flex:1;min-width:140px">
+                 <label>Fechamento</label>
+                 <input class="form-control" type="time" id="cfg-horario-fechamento">
+               </div>
+             </div>
+             <div class="form-group">
+               <label>Dias abertos</label>
+               <div id="cfg-horario-dias" style="display:flex;gap:8px;flex-wrap:wrap">
+                 <label><input type="checkbox" value="1" checked> Seg</label>
+                 <label><input type="checkbox" value="2" checked> Ter</label>
+                 <label><input type="checkbox" value="3" checked> Qua</label>
+                 <label><input type="checkbox" value="4" checked> Qui</label>
+                 <label><input type="checkbox" value="5" checked> Sex</label>
+                 <label><input type="checkbox" value="6" checked> Sáb</label>
+                 <label><input type="checkbox" value="0" checked> Dom</label>
+               </div>
+               <small style="color:var(--color-text-muted)">Suporta virada madrugada (ex: 18:00–02:00).</small>
+             </div>
+           </div>
+           <h3 style="margin-top:20px">Tempo de Espera</h3>
+           <div class="form-group">
+             <label>Tempo de espera do dia</label>
+             <input class="form-control" id="cfg-tempo-espera" placeholder="Ex: 30-40 min">
+             <small style="color:var(--color-text-muted)">Exibido para o cliente no cardápio (ex: 30-40 min, 25 min)</small>
+           </div>
           <h3 style="margin-top:20px">Configuração Pix</h3>
           <div class="form-group">
             <label>Tipo da chave</label>

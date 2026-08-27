@@ -142,13 +142,17 @@ async function init() {
 
 async function carregarConfig() {
   try {
-    const res = await fetch('/api/config');
+    const res = await fetch('/api/config/public');
     config = await res.json();
     if (config.loja_nome) {
       document.getElementById('loja-nome').textContent = config.loja_nome;
       document.title = config.loja_nome;
     }
-    atualizarStatusLoja(config.loja_aberta !== 'false');
+    // Logo dinâmica para cliente não logado
+    const logoEl = document.getElementById('site-logo');
+    if (logoEl && config.logo_url) logoEl.src = config.logo_url;
+    const efetiva = config.loja_aberta_efetiva !== undefined ? config.loja_aberta_efetiva !== 'false' : config.loja_aberta !== 'false';
+    atualizarStatusLoja(efetiva);
     atualizarBotaoWhatsapp(config.loja_telefone);
     atualizarVisibilidadeComprovante();
     const box = document.getElementById('tempo-espera-box');
@@ -166,9 +170,9 @@ async function carregarConfig() {
 
 async function verificarLojaAberta() {
   try {
-    const res = await fetch('/api/config');
+    const res = await fetch('/api/config/public');
     const cfg = await res.json();
-    const aberta = cfg.loja_aberta !== 'false';
+    const aberta = cfg.loja_aberta_efetiva !== undefined ? cfg.loja_aberta_efetiva !== 'false' : cfg.loja_aberta !== 'false';
     atualizarStatusLoja(aberta);
     return aberta;
   } catch (e) { return true; }

@@ -19,7 +19,16 @@ function escapeHtml(s){ if(s==null) return ''; return String(s).replace(/&/g,'&a
 
 document.addEventListener('DOMContentLoaded', () => init());
 
+async function carregarLogoGarcom() {
+  try {
+    const r = await fetch('/api/config/public');
+    const c = await r.json();
+    const el = document.getElementById('site-logo-garcom');
+    if (el && c.logo_url) el.src = c.logo_url;
+  } catch(_) {}
+}
 async function init() {
+  carregarLogoGarcom();
   if (!verificarAuth()) {
     console.log('Garcom: sem token, redirecionando para login');
     redirecionarSemAuth('/login-garcom');

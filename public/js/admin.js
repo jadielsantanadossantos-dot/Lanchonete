@@ -1440,6 +1440,27 @@ async function carregarConfigAdmin() {
   document.getElementById('cfg-loja-nome').value = cfg.loja_nome || '';
    document.getElementById('cfg-loja-telefone').value = cfg.loja_telefone || '';
    document.getElementById('cfg-whatsapp-msg-saiu').value = cfg.whatsapp_mensagem_saiu_entrega || '';
+  // Logo preview
+  const logoPrev = document.getElementById('cfg-logo-preview');
+  if (logoPrev) logoPrev.src = cfg.logo_url || '/logo.jpeg';
+  // Horário automático
+  const auto = cfg.loja_modo === 'auto';
+  const chkAuto = document.getElementById('cfg-horario-auto');
+  if (chkAuto) chkAuto.checked = auto;
+  const boxH = document.getElementById('horario-campos');
+  if (boxH) boxH.style.display = auto ? 'block' : 'none';
+  const elAb = document.getElementById('cfg-horario-abertura');
+  if (elAb) elAb.value = cfg.loja_horario_abertura || '';
+  const elFe = document.getElementById('cfg-horario-fechamento');
+  if (elFe) elFe.value = cfg.loja_horario_fechamento || '';
+  try {
+    const dias = cfg.loja_horario_dias ? JSON.parse(cfg.loja_horario_dias) : ['1','2','3','4','5','6','0'];
+    document.querySelectorAll('#cfg-horario-dias input[type=checkbox]').forEach(cb => { cb.checked = dias.includes(cb.value); });
+  } catch(_) {}
+  if (chkAuto && !chkAuto._bound) {
+    chkAuto.addEventListener('change', () => { const b = document.getElementById('horario-campos'); if (b) b.style.display = chkAuto.checked ? 'block' : 'none'; });
+    chkAuto._bound = true;
+  }
   document.getElementById('cfg-tempo-espera').value = cfg.tempo_espera || '';
   document.getElementById('cfg-pix-tipo').value = cfg.pix_tipo || 'cpf';
   document.getElementById('cfg-pix-chave').value = cfg.pix_chave || '';
@@ -1468,6 +1489,9 @@ async function carregarConfigAdmin() {
     else status.textContent = `Ativo: ${prov} (${cfg.psp_ambiente || 'producao'}) — webhook pronto para colar no banco.`;
   }
   config = cfg;
+  // atualizar logo do sidebar admin
+  const logoAdmin = document.getElementById('site-logo-admin');
+  if (logoAdmin && cfg.logo_url) logoAdmin.src = cfg.logo_url;
   togglePspFields();
   carregarSomPrefs();
 }
@@ -1504,12 +1528,43 @@ async function registrarWebhookPsp() {
   navigator.clipboard.writeText(url).then(() => showToast('URL copiada! Cole no painel do banco em: Config > Webhook Pix.')).catch(() => showToast('Copie manualmente a URL do webhook.'));
 }
 
+async function uploadLogo() {
+  const inp = document.getElementById('cfg-logo-file');
+  if (!inp || !inp.files[0]) { showToast('Selecione uma imagem (máx 2MB)'); return; }
+  const fd = new FormData();
+  fd.append('logo', inp.files[0]);
+  const res = await authFetch('/api/config/logo', { method: 'PUT', body: fd });
+  const data = await res.json().catch(()=>({}));
+  if (!res.ok) { showToast(data.error || 'Erro ao enviar logo'); return; }
+  const prev = document.getElementById('cfg-logo-preview');
+  if (prev && data.logo_url) prev.src = data.logo_url;
+  if (inp) inp.value = '';
+  showToast('Logo enviada!');
+}
+
+async function removerLogo() {
+  if (!confirm('Remover logo? Voltará para /logo.jpeg e o arquivo será apagado do storage.')) return;
+  const res = await authFetch('/api/config/logo', { method: 'DELETE' });
+  if (!res.ok) { showToast('Erro ao remover logo'); return; }
+  const prev = document.getElementById('cfg-logo-preview');
+  if (prev) prev.src = '/logo.jpeg';
+  const inp = document.getElementById('cfg-logo-file');
+  if (inp) inp.value = '';
+  showToast('Logo removida');
+}
+
 async function salvarConfig(e) {
   e.preventDefault();
+  const diasSel = Array.from(document.querySelectorAll('#cfg-horario-dias input[type=checkbox]:checked')).map(cb => cb.value);
+  const auto = document.getElementById('cfg-horario-auto')?.checked || false;
   const config = {
     loja_nome: document.getElementById('cfg-loja-nome').value,
     loja_telefone: document.getElementById('cfg-loja-telefone').value,
     whatsapp_mensagem_saiu_entrega: document.getElementById('cfg-whatsapp-msg-saiu')?.value || '',
+    loja_modo: auto ? 'auto' : 'manual',
+    loja_horario_abertura: document.getElementById('cfg-horario-abertura')?.value || '',
+    loja_horario_fechamento: document.getElementById('cfg-horario-fechamento')?.value || '',
+    loja_horario_dias: JSON.stringify(diasSel),
     tempo_espera: document.getElementById('cfg-tempo-espera').value,
     pix_tipo: document.getElementById('cfg-pix-tipo').value,
     pix_chave: document.getElementById('cfg-pix-chave').value,
@@ -1558,10 +1613,19 @@ async function toggleLojaStatus() {
     if (!res.ok) { showToast('Erro ao ler status da loja'); return; }
     const cfg = await res.json();
     const vaiAbrir = cfg.loja_aberta === 'false';
-    const put = await authFetch('/api/config', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ loja_aberta: vaiAbrir ? 'true' : 'false' }) });
+    // Se estava em modo auto e vai fechar manualmente, desativa automático para override manual vencer
+    const payload = { loja_aberta: vaiAbrir ? 'true' : 'false' };
+    if (cfg.loja_modo === 'auto' && !vaiAbrir) {
+      payload.loja_modo = 'manual';
+      const chk = document.getElementById('cfg-horario-auto');
+      if (chk) chk.checked = false;
+      const box = document.getElementById('horario-campos');
+      if (box) box.style.display = 'none';
+    }
+    const put = await authFetch('/api/config', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     if (!put.ok) { showToast('Erro ao alterar status da loja'); return; }
     atualizarBotaoLoja(vaiAbrir);
-    showToast(vaiAbrir ? 'Loja ABERTA - recebendo pedidos' : 'Loja FECHADA - clientes não podem fazer pedidos');
+    showToast(vaiAbrir ? 'Loja ABERTA - recebendo pedidos' : 'Loja FECHADA - automático pausado');
   } catch (e) { showToast('Erro de conexão'); }
 }
 

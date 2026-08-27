@@ -1,8 +1,13 @@
 const express = require('express');
+const multer = require('multer');
+const crypto = require('crypto');
+const path = require('path');
+const { createClient } = require('@supabase/supabase-js');
 const router = express.Router();
 const db = require('../db/database');
 const QRCode = require('qrcode');
 const { middlewareAdmin } = require('../auth/auth');
+const { isLojaAbertaEfetiva } = require('../utils/horario');
 
 function wrapAsync(fn) {
   return (req, res, next) => {
@@ -23,18 +28,104 @@ router.get('/', wrapAsync(async (req, res) => {
   res.json(config);
 }));
 
-router.get('/public', (req, res) => {
+router.get('/public', wrapAsync(async (req, res) => {
+  const all = await db.all('SELECT chave, valor FROM configuracoes');
+  const map = {};
+  all.forEach(r => map[r.chave] = r.valor);
+  const efetiva = isLojaAbertaEfetiva(map);
   res.json({
     supabaseUrl: process.env.SUPABASE_URL || '',
-    supabaseAnonKey: process.env.SUPABASE_ANON_KEY || ''
+    supabaseAnonKey: process.env.SUPABASE_ANON_KEY || '',
+    logo_url: map.logo_url || '',
+    loja_aberta: map.loja_aberta || 'true',
+    loja_aberta_efetiva: efetiva ? 'true' : 'false',
+    loja_modo: map.loja_modo || 'manual',
+    loja_horario_abertura: map.loja_horario_abertura || '',
+    loja_horario_fechamento: map.loja_horario_fechamento || '',
+    loja_horario_dias: map.loja_horario_dias || ''
   });
-});
+}));
 
 router.put('/', middlewareAdmin, wrapAsync(async (req, res) => {
   const stmt = db.prepare('INSERT INTO configuracoes (chave, valor) VALUES ($1, $2) ON CONFLICT (chave) DO UPDATE SET valor = $2, atualizado_em = NOW()');
   for (const [chave, valor] of Object.entries(req.body)) {
     await stmt.run(chave, valor);
   }
+  res.json({ success: true });
+}));
+
+// === LOGO UPLOAD === 2MB, bucket logos, admin only
+const ALLOWED_MIME_TYPES_LOGO = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+const ALLOWED_EXTENSIONS_LOGO = ['.jpg', '.jpeg', '.png', '.webp', '.gif'];
+let storageClientLogo = null;
+function getStorageLogo() {
+  if (!storageClientLogo) {
+    const url = process.env.SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!url || !key) throw new Error('SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY não configurados para upload');
+    storageClientLogo = createClient(url, key, { auth: { persistSession: false } });
+  }
+  return storageClientLogo;
+}
+function validarBufferImagemLogo(buffer) {
+  if (!buffer || buffer.length < 12) return false;
+  if (buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF) return true;
+  if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47) return true;
+  if (buffer[0] === 0x47 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x38) return true;
+  if (buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46 && buffer[8] === 0x57 && buffer[9] === 0x45 && buffer[10] === 0x42 && buffer[11] === 0x50) return true;
+  return false;
+}
+async function uploadLogo(file) {
+  if (!validarBufferImagemLogo(file.buffer)) throw new Error('Arquivo não é uma imagem válida (conteúdo não corresponde ao tipo)');
+  const ext = path.extname(file.originalname).toLowerCase();
+  const nome = `logo-${Date.now()}-${crypto.randomBytes(6).toString('hex')}${ext}`;
+  const supabase = getStorageLogo();
+  try {
+    const { error } = await supabase.storage.from('logos').upload(nome, file.buffer, { contentType: file.mimetype, cacheControl: '31536000' });
+    if (error) throw error;
+  } catch (e) {
+    if (/Bucket not found/i.test(e.message)) {
+      const { error: createErr } = await supabase.storage.createBucket('logos', { public: true });
+      if (createErr && !/already exists/i.test(createErr.message)) throw createErr;
+      const { error: retryErr } = await supabase.storage.from('logos').upload(nome, file.buffer, { contentType: file.mimetype, cacheControl: '31536000' });
+      if (retryErr) throw retryErr;
+    } else throw e;
+  }
+  const { data } = supabase.storage.from('logos').getPublicUrl(nome);
+  return data.publicUrl;
+}
+function fileFilterLogo(req, file, cb) {
+  if (!ALLOWED_MIME_TYPES_LOGO.includes(file.mimetype)) return cb(new Error('Tipo de arquivo não permitido. Use JPEG, PNG, WebP ou GIF.'), false);
+  const ext = path.extname(file.originalname).toLowerCase();
+  if (!ALLOWED_EXTENSIONS_LOGO.includes(ext)) return cb(new Error('Extensão de arquivo não permitida.'), false);
+  cb(null, true);
+}
+const uploadLogoMulter = multer({ storage: multer.memoryStorage(), limits: { fileSize: 2 * 1024 * 1024 }, fileFilter: fileFilterLogo });
+
+router.put('/logo', middlewareAdmin, (req, res, next) => {
+  if (req.usuario && req.usuario.perfil === 'observador') return res.status(403).json({ error: 'Acesso de demonstração: apenas visualização.' });
+  next();
+}, uploadLogoMulter.single('logo'), wrapAsync(async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'Arquivo de logo obrigatório' });
+  const url = await uploadLogo(req.file);
+  await db.run('INSERT INTO configuracoes (chave, valor) VALUES ($1,$2) ON CONFLICT (chave) DO UPDATE SET valor=$2, atualizado_em=NOW()', 'logo_url', url);
+  res.json({ logo_url: url });
+}));
+
+router.delete('/logo', middlewareAdmin, wrapAsync(async (req, res) => {
+  if (req.usuario && req.usuario.perfil === 'observador') return res.status(403).json({ error: 'Acesso de demonstração: apenas visualização.' });
+  const row = await db.get("SELECT valor FROM configuracoes WHERE chave='logo_url'");
+  const url = row ? row.valor : '';
+  if (url) {
+    try {
+      const supabase = getStorageLogo();
+      // extrair nome após /logos/
+      const m = url.match(/\/logos\/([^?]+)/);
+      const nome = m ? decodeURIComponent(m[1]) : null;
+      if (nome) await supabase.storage.from('logos').remove([nome]);
+    } catch (e) { console.warn('Falha ao remover logo do storage:', e.message); }
+  }
+  await db.run("DELETE FROM configuracoes WHERE chave='logo_url'");
   res.json({ success: true });
 }));
 

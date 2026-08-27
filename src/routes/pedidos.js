@@ -75,9 +75,12 @@ router.get('/:id', middlewareAdmin, wrapAsync(async (req, res) => {
 }));
 
 router.post('/', validarPedido, wrapAsync(async (req, res) => {
-  // Cliente publico so pede com a loja aberta; garcom/admin (com token) podem sempre
-  const cfgLoja = await db.get("SELECT valor FROM configuracoes WHERE chave = 'loja_aberta'");
-  const lojaAberta = !cfgLoja || cfgLoja.valor !== 'false';
+  // Cliente publico so pede com a loja aberta (considera horário automático); garcom/admin podem sempre
+  const { isLojaAbertaEfetiva } = require('../utils/horario');
+  const cfgRows = await db.all('SELECT chave, valor FROM configuracoes');
+  const cfgMap = {};
+  cfgRows.forEach(r => cfgMap[r.chave] = r.valor);
+  const lojaAberta = isLojaAbertaEfetiva(cfgMap);
   if (!lojaAberta && !req.usuario) {
     return res.status(403).json({ error: 'A loja está fechada e não está aceitando pedidos no momento' });
   }
