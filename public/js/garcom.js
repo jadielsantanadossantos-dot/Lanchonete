@@ -468,6 +468,10 @@ function configurarPizzaModal(contexto) {
       produtos,
       toast: showToast,
       async onAdd(item) {
+        if (adicionandoItem || !mesaAtual) return;
+        adicionandoItem = true;
+        const btnPizza = document.getElementById('pm-btn-add');
+        if (btnPizza) btnPizza.disabled = true;
         try {
           const res = await authFetch(`/api/comandas/mesa/${mesaAtual.id}/item`, {
             method: 'POST',
@@ -488,6 +492,7 @@ function configurarPizzaModal(contexto) {
           await carregarComanda();
           mostrarTela('g-page-comanda', mesaAtual.nome || ('Mesa ' + mesaAtual.numero));
         } catch (e) { showToast('Erro ao adicionar pizza'); }
+        finally { adicionandoItem = false; if (btnPizza) btnPizza.disabled = false; }
       }
     };
   } else {
