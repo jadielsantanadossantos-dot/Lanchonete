@@ -1773,6 +1773,19 @@ let whatsappCarrinho = [];
 let whatsappCategoriaFiltro = '';
 let whatsappProdutoSelecionado = null;
 let whatsappQtd = 1;
+let adicionandoItemWhatsApp = false;
+
+function adicionarItemWhatsApp(item) {
+  if (adicionandoItemWhatsApp) return;
+  adicionandoItemWhatsApp = true;
+  try {
+    whatsappCarrinho.push(item);
+    renderCarrinhoWhatsApp();
+    showToast(`${item.quantidade}x ${escapeHtml(item.produto_nome)} adicionado!`);
+  } finally {
+    adicionandoItemWhatsApp = false;
+  }
+}
 
 async function abrirModalPedidoWhatsApp() {
   whatsappCarrinho = [];
@@ -1835,11 +1848,7 @@ function whatsappRenderAgrupado(lista){
       if(pizzasInseridas) return '';
       pizzasInseridas=true;
       if(window.PizzaModal){
-        window.__pizzaCfgWhatsApp={ produtos: whatsappProdutos, toast: showToast, onAdd:item=>{
-          whatsappCarrinho.push(item);
-          renderCarrinhoWhatsApp();
-          showToast(`${item.quantidade}x ${escapeHtml(item.produto_nome)} adicionado!`);
-        }};
+        window.__pizzaCfgWhatsApp={ produtos: whatsappProdutos, toast: showToast, onAdd:item=>adicionarItemWhatsApp(item) };
       }
       const cardHtml = window.PizzaModal ? window.PizzaModal.cardHtml('cliente').replace(/window\.__pizzaCfg/g,'window.__pizzaCfgWhatsApp') : '';
       return `<div class="category-section"><div class="category-heading">Pizzas</div><div class="category-items">${cardHtml}</div></div>`;
@@ -1891,7 +1900,7 @@ async function carregarDadosWhatsApp() {
     catContainer.value = whatsappCategoriaFiltro;
     // Configurar pizza para WhatsApp
     if(window.PizzaModal){
-      window.__pizzaCfgWhatsApp={ produtos: whatsappProdutos, toast: showToast, onAdd:item=>{ whatsappCarrinho.push(item); renderCarrinhoWhatsApp(); showToast(`${item.quantidade}x ${escapeHtml(item.produto_nome)} adicionado!`); }};
+      window.__pizzaCfgWhatsApp={ produtos: whatsappProdutos, toast: showToast, onAdd:item=>adicionarItemWhatsApp(item) };
     }
     renderProdutosWhatsApp();
   } catch(e){ showToast('Erro ao carregar dados do pedido'); }
@@ -1925,7 +1934,7 @@ function renderProdutosWhatsApp() {
       const temPizza = lista.some(p=>isPizzaWhatsApp(p));
       if(temPizza && window.PizzaModal){
         const prodsPizza = whatsappCategoriaFiltro==='__pizzas__' ? whatsappProdutos.filter(p=>isPizzaWhatsApp(p)) : whatsappProdutos.filter(p=>p.categoria_nome===whatsappCategoriaFiltro);
-        window.__pizzaCfgWhatsApp={ produtos: prodsPizza.length?prodsPizza:whatsappProdutos, toast: showToast, onAdd:item=>{ whatsappCarrinho.push(item); renderCarrinhoWhatsApp(); showToast(`${item.quantidade}x ${escapeHtml(item.produto_nome)} adicionado!`); }};
+        window.__pizzaCfgWhatsApp={ produtos: prodsPizza.length?prodsPizza:whatsappProdutos, toast: showToast, onAdd:item=>adicionarItemWhatsApp(item) };
         const card = window.PizzaModal.cardHtml('cliente').replace(/window\.__pizzaCfg/g,'window.__pizzaCfgWhatsApp');
         extraPizza = `<div class="category-section"><div class="category-heading">Montar Pizza</div><div class="category-items">${card}</div></div>`;
         // Para Pizzas, não mostrar lista de tamanhos individuais, só o card
@@ -1945,7 +1954,7 @@ function renderProdutosWhatsApp() {
     } else if(whatsappCategoriaFiltro==='__pizzas__' && buscaPizza){
       // Busca vazia + filtro Pizzas sem itens (caso pizza sem produtos, mostrar só card)
       if(window.PizzaModal){
-        window.__pizzaCfgWhatsApp={ produtos: whatsappProdutos.filter(p=>isPizzaWhatsApp(p)), toast: showToast, onAdd:item=>{ whatsappCarrinho.push(item); renderCarrinhoWhatsApp(); showToast(`${item.quantidade}x ${escapeHtml(item.produto_nome)} adicionado!`); }};
+        window.__pizzaCfgWhatsApp={ produtos: whatsappProdutos.filter(p=>isPizzaWhatsApp(p)), toast: showToast, onAdd:item=>adicionarItemWhatsApp(item) };
         const card = window.PizzaModal.cardHtml('cliente').replace(/window\.__pizzaCfg/g,'window.__pizzaCfgWhatsApp');
         html += `<div class="category-section"><div class="category-heading">Pizzas</div><div class="category-items">${card}</div></div>`;
       }
@@ -2072,7 +2081,7 @@ function confirmarAddWhatsApp(){
   document.querySelectorAll('#whatsapp-qtd-adicionais-lista input:checked').forEach(c=>{
     adicionais.push({id: parseInt(c.value), nome: c.dataset.nome, preco: parseFloat(c.dataset.preco)});
   });
-  whatsappCarrinho.push({
+  adicionarItemWhatsApp({
     produto_id: whatsappProdutoSelecionado.id,
     produto_nome: whatsappProdutoSelecionado.nome,
     preco_unitario: whatsappProdutoSelecionado.preco,
@@ -2081,8 +2090,6 @@ function confirmarAddWhatsApp(){
     adicionais
   });
   fecharModalWhatsAppQtd();
-  renderCarrinhoWhatsApp();
-  showToast(`${escapeHtml(whatsappProdutoSelecionado.nome)} adicionado!`);
 }
 function renderCarrinhoWhatsApp(){
   const lista=document.getElementById('whatsapp-carrinho-lista');
