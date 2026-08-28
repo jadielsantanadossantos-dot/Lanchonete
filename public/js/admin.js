@@ -596,8 +596,7 @@ async function imprimirComanda(pedidoId) {
           </div>
           ${(item.adicionais && item.adicionais.length) ? `
             <div class="item-adics">
-              <div style="font-size:7px; font-weight:800; letter-spacing:0.5px; text-transform:uppercase; margin-bottom:1mm">Adicionais:</div>
-              ${item.adicionais.map(a=>`<div class="adic-linha"><span class="adic-nome">↳ ${escapeHtml(a.adicional_nome)} — R$ ${a.preco.toFixed(2)} × ${item.quantidade}</span><span class="adic-val">R$ ${(a.preco * item.quantidade).toFixed(2)}</span></div>`).join('')}
+              ${item.adicionais.map(a=>`<div class="adic-linha"><span class="adic-nome">↳ ${escapeHtml(a.adicional_nome)}</span><span class="adic-val">${a.preco > 0 ? 'R$ ' + (a.preco * item.quantidade).toFixed(2) : 'Incluído'}</span></div>`).join('')}
             </div>
           ` : ''}
           ${item.observacao ? `<div class="item-obs">💬 OBS: ${escapeHtml(item.observacao)}</div>` : ''}
@@ -654,8 +653,8 @@ async function imprimirComanda(pedidoId) {
   .item-nome { flex: 1; font-weight: 900; font-size: 13px; text-transform: uppercase; letter-spacing: 0.3px; }
   .item-val { font-weight: 900; white-space: nowrap; font-size: 12px; border: 1px solid #000; padding: 0.5mm 2mm; background: #fff; color: #000; }
   .item-detalhe { font-size: 8px; margin: 1mm 0 0 0; font-style: italic; font-weight: 600; color: #000; }
-  .item-adics { margin: 2mm 0 0 0; border: 1.5px solid #000; padding: 2mm; }
-  .adic-linha { display: flex; justify-content: space-between; font-size: 9px; padding: 1mm 0; border-bottom: 1px dashed #000; font-weight: 600; color: #000; }
+  .item-adics { margin: 1.5mm 0 0 0; padding: 0 0 0 3mm; }
+  .adic-linha { display: flex; justify-content: space-between; font-size: 9px; padding: 0.8mm 0; border-bottom: 1px dashed #000; font-weight: 600; color: #000; }
   .adic-linha:last-child { border-bottom: none; }
   .adic-nome { color: #000; }
   .adic-val { font-weight: 900; white-space: nowrap; margin-left: 2mm; color: #000; }
