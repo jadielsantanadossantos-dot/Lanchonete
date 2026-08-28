@@ -25,15 +25,15 @@
 
     <div class="auth-error" id="auth-error"></div>
 
-    <form id="login-form" class="auth-form">
+    <form id="login-form" class="auth-form" autocomplete="off">
       <div class="auth-form-group">
         <label for="usuario">Usuário</label>
-        <input type="text" id="usuario" name="usuario" placeholder="admin" required autocomplete="username">
+        <input type="text" id="usuario" name="usuario_admin" placeholder="admin" required autocomplete="section-admin username">
       </div>
 
       <div class="auth-form-group">
         <label for="senha">Senha</label>
-        <input type="password" id="senha" name="senha" placeholder="••••••••" required autocomplete="current-password">
+        <input type="password" id="senha" name="senha_admin" placeholder="••••••••" required autocomplete="section-admin current-password">
       </div>
 
       <button type="submit" class="auth-btn" id="login-btn">Entrar</button>
