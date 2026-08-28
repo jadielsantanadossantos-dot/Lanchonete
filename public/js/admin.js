@@ -645,9 +645,10 @@ async function imprimirComanda(pedidoId) {
   .info-value { flex: 1; font-weight: 800; word-break: break-word; color: #000; }
   .sep { border: none; border-top: 1px dashed #000; margin: 3mm 0; }
   .sep-strong { border-top: 2px solid #000; margin: 3mm 0; }
-  .itens-lista { margin: 2mm 0; }
+  .itens-lista { border: 2px solid #000; padding: 2.5mm; margin: 3mm 0; }
   .itens-titulo { font-size: 9px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; text-align: center; border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 1.5mm 0; margin-bottom: 2mm; }
-  .item-bloco { border: 2px solid #000; padding: 2.5mm; margin: 3mm 0; }
+  .item-bloco { border-bottom: 1px dashed #000; padding: 0 0 2mm 0; margin: 0 0 2mm 0; }
+  .item-bloco:last-child { border-bottom: none; padding-bottom: 0; margin-bottom: 0; }
   .item-header { display: flex; align-items: center; gap: 2mm; font-size: 12px; border-bottom: 1px solid #000; padding-bottom: 1.5mm; margin-bottom: 1.5mm; }
   .item-qty { border: 1.5px solid #000; font-weight: 900; font-size: 11px; padding: 1mm 2mm; min-width: 10mm; text-align: center; flex-shrink: 0; background: #fff; color: #000; }
   .item-nome { flex: 1; font-weight: 900; font-size: 13px; text-transform: uppercase; letter-spacing: 0.3px; }
