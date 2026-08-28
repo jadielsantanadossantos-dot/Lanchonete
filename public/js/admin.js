@@ -632,7 +632,8 @@ async function imprimirComanda(pedidoId) {
 <title>Comanda #${p.id}</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { width: 80mm; font-family: 'Courier New', monospace; font-size: 11px; color: #000; padding: 0; background: #fff; }
+  body { width: 80mm; font-family: 'Courier New', monospace; font-size: 11px; color: #000; padding: 0; background: #fff; font-weight: 700; }
+  .ticket * { font-weight: 700 !important; }
   .ticket { padding: 4mm; }
   .header { text-align: center; padding: 3mm 2mm; border-bottom: 2px solid #000; margin-bottom: 3mm; }
   .header h1 { font-size: 16px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; }
