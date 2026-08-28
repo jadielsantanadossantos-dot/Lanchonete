@@ -1,6 +1,6 @@
 // ============================================
 // PIZZA MODAL - Montar sua Pizza
-// Fluxo: tipo -> tamanho -> sabores -> extras
+// Fluxo: tamanho -> sabores -> extras (o tipo e definido pelos sabores escolhidos)
 // Usado pelo cardapio do cliente (app.js) e painel do garcom (garcom.js)
 // O item entra no carrinho/comanda como o produto real do tamanho escolhido
 // ============================================
@@ -13,7 +13,8 @@
   let tamanhoId = null;     // produto_id do tamanho escolhido
   let quantidade = 1;
   const saboresSel = new Set();
-  const extrasSel = new Map(); // id -> adicional
+  const extrasSel = new Map();
+  const saborGrupoPorId = new Map(); // id -> adicional
 
   function isPizza(p) {
     return !!(p && p.categoria_nome && p.categoria_nome.toLowerCase().includes('pizza'));
@@ -22,6 +23,11 @@
   function tamanhoDe(nome) {
     const m = (nome || '').trim().match(/\s([PMGF])$/i);
     return m ? m[1].toUpperCase() : '';
+  }
+
+  // Rótulo do tamanho = parte do nome após a categoria (ex.: "Pizza Tradicional Pequena" -> "Pequena")
+  function rotuloTamanho(nome, catNome) {
+    return (nome || '').replace(catNome || '', '').replace(/^[\s-]+|[\s-]+$/g, '').trim();
   }
 
   function limiteSabores(produto) {
@@ -114,13 +120,46 @@
     return produtosDoTipo(tipoId).find(p => p.id === tamanhoId) || null;
   }
 
-  function saboresDoTipo() {
-    const prods = produtosDoTipo(tipoId);
-    const porId = new Map();
-    prods.forEach(p => (p.adicionais || []).forEach(a => {
-      if (a.tipo === 'sabor' && a.ativo !== false) porId.set(a.id, a);
-    }));
-    return [...porId.values()];
+  function isCategoriaDoce(nome) {
+    return /doce/i.test(nome || '');
+  }
+
+  function classificarGrupoSabor(nomeCat) {
+    const doce = /doce/i.test(nomeCat || '');
+    const esp = /especial/i.test(nomeCat || '');
+    if (doce && esp) return 'doce_esp';
+    if (doce) return 'doce_trad';
+    if (esp) return 'especial';
+    return 'tradicional';
+  }
+
+  const GRUPOS_SABOR = [
+    { key: 'tradicional', titulo: 'Tradicional' },
+    { key: 'especial', titulo: 'Especial' },
+    { key: 'doce_trad', titulo: 'Tradicional Doce' },
+    { key: 'doce_esp', titulo: 'Especial Doce' }
+  ];
+
+  // Todos os sabores juntos (salgada + doce), agrupados na ordem:
+  // Tradicional -> Especial -> Tradicional Doce -> Especial Doce.
+  // O limite de sabores continua vindo do tamanho escolhido.
+  function saboresAgrupados() {
+    const visto = new Set();
+    const map = {};
+    GRUPOS_SABOR.forEach(g => { map[g.key] = []; });
+    (cfg.produtos || []).forEach(p => {
+      if (!isPizza(p)) return;
+      const g = classificarGrupoSabor(p.categoria_nome);
+      (p.adicionais || []).forEach(a => {
+        if (a.tipo === 'sabor' && a.ativo !== false && !visto.has(a.id)) {
+          visto.add(a.id);
+          map[g].push(a);
+          saborGrupoPorId.set(a.id, g);
+        }
+      });
+    });
+    return GRUPOS_SABOR.map(g => ({ key: g.key, titulo: g.titulo, itens: map[g.key] }))
+      .filter(g => g.itens.length);
   }
 
   function extrasDoTamanho() {
@@ -140,63 +179,76 @@
     return n;
   }
 
+  const ORDEM_TIER = ['tradicional', 'especial', 'doce_trad', 'doce_esp'];
+
+  // Preço final considera o maior tier entre os sabores selecionados:
+  // se houver 1 tradicional + 1 especial, cobra o preço da especial (mesmo tamanho).
+  function precoFinal() {
+    const prod = produtoTamanho();
+    if (!prod) return { nome: '', preco: 0 };
+    let tier = 'tradicional';
+    saboresSel.forEach(id => {
+      const t = saborGrupoPorId.get(id) || 'tradicional';
+      if (ORDEM_TIER.indexOf(t) > ORDEM_TIER.indexOf(tier)) tier = t;
+    });
+    const letra = rotuloTamanho(prod.nome, prod.categoria_nome);
+    const alvo = (cfg.produtos || []).find(p =>
+      isPizza(p) && classificarGrupoSabor(p.categoria_nome) === tier && rotuloTamanho(p.nome, p.categoria_nome) === letra
+    );
+    const base = alvo || prod;
+    return { id: base.id, nome: base.nome, preco: base.preco };
+  }
+
   function totalAtual() {
     const prod = produtoTamanho();
     if (!prod) return 0;
-    let total = prod.preco * quantidade;
+    let total = precoFinal().preco * quantidade;
     extrasSel.forEach(a => { total += a.preco * quantidade; });
     return total;
   }
 
   function renderCorpo() {
-    const cats = categoriasPizza();
     const prod = produtoTamanho();
     const lim = prod ? limiteSabores(prod) : null;
 
-    const tipoNome = (cats.find(c => c.id === tipoId) || {}).nome || '';
+    let html = '';
 
-    let html = `
-      <div class="pm-step-label">1. Tipo da pizza</div>
-      <div class="pm-chips">
-        ${cats.map(c => `<button class="pm-chip ${tipoId === c.id ? 'selected' : ''}" onclick="PizzaModal._selTipo(${c.id})">${c.nome}</button>`).join('')}
-      </div>
-    `;
-
-    if (tipoId) {
-      html += `<div class="pm-step-label">2. Tamanho</div><div class="pm-tamanhos">`;
-      produtosDoTipo(tipoId).forEach(p => {
-        html += `
-          <div class="pm-tam ${tamanhoId === p.id ? 'selected' : ''}" onclick="PizzaModal._selTamanho(${p.id})">
-            <div class="pm-tam-letra">${tamanhoDe(p.nome) || '&#127869;'}</div>
-            <div class="pm-tam-preco">R$ ${p.preco.toFixed(2)}</div>
-          </div>`;
-      });
-      html += `</div>`;
-    }
+    html += `<div class="pm-step-label">1. Tamanho</div><div class="pm-tamanhos">`;
+    (produtosDoTipo(tipoId) || []).forEach(p => {
+      html += `
+        <div class="pm-tam ${tamanhoId === p.id ? 'selected' : ''}" onclick="PizzaModal._selTamanho(${p.id})">
+          <div class="pm-tam-letra">${tamanhoDe(p.nome) || '&#127869;'}</div>
+          <div class="pm-tam-preco">R$ ${p.preco.toFixed(2)}</div>
+        </div>`;
+    });
+    html += `</div>`;
 
     if (prod) {
-      const sabores = saboresDoTipo();
-      html += `<div class="pm-step-label">3. Sabores${lim ? ` (máx: ${lim})` : ''} — ${tipoNome}</div>`;
-      if (sabores.length) {
-        html += sabores.map(a => `
-          <div class="pm-item">
-            <label onclick="event.stopPropagation()">
-              <input type="checkbox" ${saboresSel.has(a.id) ? 'checked' : ''} onchange="PizzaModal._selSabor(${a.id}, this)">
-              <div>
-                <span>${a.nome}</span>
-                ${a.descricao ? `<br><small style="color:#666; font-size:0.8rem; display:block; margin-top:2px; line-height:1.3">${a.descricao}</small>` : ''}
-              </div>
-            </label>
-            <span class="pm-preco-adic">${a.preco > 0 ? '+ R$ ' + a.preco.toFixed(2) : 'Incluído'}</span>
-          </div>`).join('');
+      const gruposSabores = saboresAgrupados();
+      html += `<div class="pm-step-label">2. Sabores${lim ? ` (máx: ${lim})` : ''}</div>`;
+      if (gruposSabores.length) {
+        gruposSabores.forEach(g => {
+          html += `<div class="pm-step-label" style="opacity:.75;font-size:.72rem;margin-top:10px">${g.titulo}</div>`;
+          html += g.itens.map(a => `
+            <div class="pm-item">
+              <label onclick="event.stopPropagation()">
+                <input type="checkbox" ${saboresSel.has(a.id) ? 'checked' : ''} onchange="PizzaModal._selSabor(${a.id}, this)">
+                <div>
+                  <span>${a.nome}</span>
+                  ${a.descricao ? `<br><small style="color:#666; font-size:0.8rem; display:block; margin-top:2px; line-height:1.3">${a.descricao}</small>` : ''}
+                </div>
+              </label>
+              <span class="pm-preco-adic">${a.preco > 0 ? '+ R$ ' + a.preco.toFixed(2) : 'Incluído'}</span>
+            </div>`).join('');
+        });
       } else {
-        html += `<div class="pm-vazio">Nenhum sabor cadastrado para este tipo</div>`;
+        html += `<div class="pm-vazio">Nenhum sabor cadastrado</div>`;
       }
 
       const extras = extrasDoTamanho();
       const bordas = extras.filter(a => a.tipo === 'borda');
       const adicionaisExtras = extras.filter(a => a.tipo !== 'borda');
-      let passo = 4;
+      let passo = 3;
 
       if (bordas.length) {
         const limBordas = limiteGrupo(bordas);
@@ -256,7 +308,9 @@
 
   function abrir(config) {
     cfg = config;
-    tipoId = null;
+    const cats = categoriasPizza();
+    const base = cats.find(c => /tradicional/i.test(c.nome) && !/doce/i.test(c.nome)) || cats[0];
+    tipoId = base ? base.id : null;
     tamanhoId = null;
     quantidade = 1;
     saboresSel.clear();
@@ -333,7 +387,7 @@
             <div class="g-produto-info">
               <div class="g-produto-text">
                 <div class="g-produto-nome">Montar sua Pizza</div>
-                <div class="g-produto-desc">Tipo, tamanho e sabores</div>
+                <div class="g-produto-desc">Tamanho e sabores</div>
                 ${precoTxt ? `<div class="g-produto-preco">${precoTxt}</div>` : ''}
               </div>
               <button class="g-produto-add-icon">+</button>
@@ -348,7 +402,7 @@
           <div class="product-info">
             <div>
               <div class="product-name">Montar sua Pizza</div>
-              <div class="product-desc">Escolha o tipo, o tamanho e os sabores</div>
+              <div class="product-desc">Escolha o tamanho e os sabores</div>
             </div>
             <div class="product-footer">
               ${precoTxt ? `<span class="product-price" style="font-size:var(--text-base)">${precoTxt}</span>` : ''}
@@ -356,11 +410,6 @@
             </div>
           </div>
         </div>`;
-    },
-    _selTipo(id) {
-      if (tipoId !== id) { tamanhoId = null; saboresSel.clear(); extrasSel.clear(); }
-      tipoId = id;
-      renderCorpo();
     },
     _selTamanho(id) {
       if (tamanhoId !== id) { saboresSel.clear(); extrasSel.clear(); }
@@ -409,7 +458,10 @@
 
       const adicionais = [];
       const todosPorId = new Map();
-      produtosDoTipo(tipoId).forEach(p => (p.adicionais || []).forEach(a => todosPorId.set(a.id, a)));
+      (cfg.produtos || []).forEach(p => {
+        if (!isPizza(p)) return;
+        (p.adicionais || []).forEach(a => { if (!todosPorId.has(a.id)) todosPorId.set(a.id, a); });
+      });
       saboresSel.forEach(id => {
         const a = todosPorId.get(id);
         if (a) adicionais.push({ id: a.id, nome: a.nome, preco: parseFloat(a.preco) || 0, tipo: 'sabor' });
@@ -418,10 +470,12 @@
 
       const obs = (document.getElementById('pm-obs')?.value || '').trim();
 
+      const final = precoFinal();
+
       const item = {
-        produto_id: prod.id,
-        produto_nome: prod.nome,
-        preco_unitario: parseFloat(prod.preco),
+        produto_id: final.id,
+        produto_nome: final.nome,
+        preco_unitario: parseFloat(final.preco),
         quantidade,
         unidade: 'un',
         observacao: obs,
