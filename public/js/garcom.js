@@ -1280,16 +1280,197 @@ async function enviarPedidoAvulso() {
 
     if (!pedidoRes.ok) { showToast('Erro ao enviar pedido'); return; }
 
+    const pedidoCriado = await pedidoRes.json();
+
+    // Impressão automática da comanda do avulso
+    try {
+      await imprimirComandaGarcom(pedidoCriado);
+    } catch (e) {
+      console.error('Erro ao imprimir comanda avulsa:', e);
+    }
+
     carrinhoAvulso = [];
     document.getElementById('g-avulso-telefone').value = '';
     document.getElementById('g-avulso-nome').value = '';
-    showToast('Pedido avulso enviado!');
+    showToast('Pedido avulso enviado! Comanda impressa.');
     mostrarTela('g-page-mesas', 'Mesas');
   } catch (e) { showToast('Erro ao enviar pedido'); }
   finally {
     enviandoAvulso = false;
     if (btn) { btn.disabled = false; btn.textContent = 'Enviar Pedido para Cozinha'; }
   }
+}
+
+// ============= IMPRESSÃO COMANDA AVULSO =============
+async function imprimirComandaGarcom(p) {
+  try {
+    // p já vem do POST /api/pedidos com itens; garante compatibilidade cliente/mesa
+    if (!p || !p.id) throw new Error('Pedido inválido');
+    const payLabels = { pix: 'Pix', dinheiro: 'Dinheiro', cartao: 'Cartão', mesa: 'Mesa' };
+    const statusLabels = { recebido: 'Recebido', em_preparo: 'Em preparo', saiu_entrega: 'Saiu p/ entrega', entregue: 'Entregue', cancelado: 'Cancelado' };
+    const dataHora = new Date(p.criado_em || Date.now()).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+    const payLabel = payLabels[p.forma_pagamento] || p.forma_pagamento || '—';
+    const statusLabel = statusLabels[p.status] || p.status || 'recebido';
+
+    let itensHtml = '';
+    let subtotalItens = 0;
+    let totalAdicionais = 0;
+    const itens = p.itens || [];
+    itens.forEach((item, idx) => {
+      const qtd = Number(item.quantidade) || 0;
+      const itemTotal = (Number(item.preco_unitario) || 0) * qtd;
+      subtotalItens += itemTotal;
+      const adicionaisTotal = (item.adicionais || []).reduce((s, a) => s + (Number(a.preco) || 0) * qtd, 0);
+      totalAdicionais += adicionaisTotal;
+      const qtdLabel = item.unidade === 'kg' ? formatarPesoGarcom(qtd) : `${qtd}x`;
+      itensHtml += `
+        <div class="item-bloco">
+          <div class="item-header">
+            <span class="item-qty">${escapeHtml(qtdLabel)}</span>
+            <span class="item-nome">${escapeHtml(item.produto_nome)}</span>
+            <span class="item-val">R$ ${itemTotal.toFixed(2)}</span>
+          </div>
+          ${(item.adicionais && item.adicionais.length) ? `
+            <div class="item-adics">
+              ${item.adicionais.map(a=>`<div class="adic-linha"><span class="adic-nome">↳ ${escapeHtml(a.nome || a.adicional_nome)}</span><span class="adic-val">${(Number(a.preco)||0) > 0 ? 'R$ ' + ((Number(a.preco)||0) * qtd).toFixed(2) : 'Incluído'}</span></div>`).join('')}
+            </div>
+          ` : ''}
+          ${item.observacao ? `<div class="item-obs">${escapeHtml(item.observacao)}</div>` : ''}
+        </div>
+        ${idx < itens.length - 1 ? '<div class="item-sep"></div>' : ''}
+      `;
+    });
+
+    let trocoHtml = '';
+    if (p.forma_pagamento === 'dinheiro') {
+      const match = p.observacoes?.match(/Troco para R\$ ([\d.,]+)/);
+      if (match) {
+        const valorRecebido = parseFloat(match[1].replace(',', '.'));
+        const troco = valorRecebido - Number(p.total || 0);
+        trocoHtml = `<div class="linha"><span>Troco para:</span><span>R$ ${valorRecebido.toFixed(2)}</span></div><div class="linha destaque"><span>Troco:</span><span>R$ ${troco.toFixed(2)}</span></div>`;
+      }
+    }
+
+    let obsPedido = p.observacoes || '';
+    if (p.forma_pagamento === 'dinheiro') obsPedido = obsPedido.replace(/\s*\|\s*Troco para R\$ [\d.,]+/, '').trim();
+    obsPedido = obsPedido.replace(/\s*\|\s*Pedido WhatsApp \(admin\)/gi, '').replace(/Pedido WhatsApp \(admin\)/gi, '').trim();
+    obsPedido = obsPedido.replace(/^\|\s*/, '').replace(/\s*\|\s*$/, '').trim();
+    if (obsPedido === '|') obsPedido = '';
+
+    const win = window.open('', '_blank', 'width=420,height=650');
+    if (!win) { showToast('Pop-up bloqueado: habilite pop-ups para imprimir'); return; }
+    win.document.write(`<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Comanda #${p.id} - Avulso</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { width: 80mm; font-family: 'Courier New', monospace; font-size: 11px; color: #000; padding: 0; background: #fff; font-weight: 700; }
+  .ticket * { font-weight: 700 !important; }
+  .ticket { padding: 4mm; }
+  .header { text-align: center; padding: 3mm 2mm; border-bottom: 2px solid #000; margin-bottom: 3mm; }
+  .header h1 { font-size: 16px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; }
+  .header .sub { font-size: 9px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-top: 1mm; }
+  .badge-pedido { display: inline-block; border: 2px solid #000; padding: 1.5mm 4mm; font-size: 11px; font-weight: 900; margin-top: 3mm; text-transform: uppercase; }
+  .info-card { border: 1px solid #000; padding: 2.5mm; margin: 3mm 0; }
+  .info-row { display: flex; gap: 2mm; margin: 1.5mm 0; font-size: 13px; line-height: 1.35; }
+  .info-label { font-weight: 800; min-width: 18mm; flex-shrink: 0; color: #000; }
+  .info-value { flex: 1; font-weight: 800; word-break: break-word; color: #000; }
+  .sep-strong { border-top: 2px solid #000; margin: 3mm 0; }
+  .itens-lista { border: 2px solid #000; padding: 2.5mm; margin: 3mm 0; }
+  .itens-titulo { font-size: 9px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; text-align: center; border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 1.5mm 0; margin-bottom: 2mm; }
+  .item-bloco { border-bottom: 1px dashed #000; padding: 0 0 2mm 0; margin: 0 0 2mm 0; }
+  .item-bloco:last-child { border-bottom: none; padding-bottom: 0; margin-bottom: 0; }
+  .item-header { display: flex; align-items: center; gap: 2mm; font-size: 12px; border-bottom: 1px solid #000; padding-bottom: 1.5mm; margin-bottom: 1.5mm; }
+  .item-qty { border: 1.5px solid #000; font-weight: 900; font-size: 11px; padding: 1mm 2mm; min-width: 10mm; text-align: center; flex-shrink: 0; background: #fff; color: #000; }
+  .item-nome { flex: 1; font-weight: 900; font-size: 13px; text-transform: uppercase; letter-spacing: 0.3px; }
+  .item-val { font-weight: 900; white-space: nowrap; font-size: 12px; border: 1px solid #000; padding: 0.5mm 2mm; background: #fff; color: #000; }
+  .item-adics { margin: 2mm 0 0 0; padding: 1.2mm 2mm; border: 1.2px dashed #000; background: #fff; }
+  .adic-linha { display: flex; justify-content: space-between; align-items: flex-start; gap: 2mm; font-size: 11.5px; line-height: 1.35; padding: 1.3mm 0; border-bottom: 1px dashed #000; font-weight: 900; color: #000; text-transform: uppercase; letter-spacing: 0.2px; }
+  .adic-linha:last-child { border-bottom: none; }
+  .adic-val { font-weight: 900; white-space: nowrap; margin-left: 2mm; color: #000; }
+  .item-obs { margin: 2mm 0 0 0; border: 2px solid #000; padding: 2mm; font-size: 10px; font-weight: 800; background: #fff; text-transform: uppercase; color: #000; }
+  .item-obs::before { content: 'OBS: '; font-weight: 900; }
+  .item-sep { display: none; }
+  .totals { border: 1px solid #000; padding: 2.5mm; margin: 3mm 0; }
+  .totals .linha { display: flex; justify-content: space-between; margin: 1mm 0; font-size: 10px; }
+  .totals .linha span:last-child { font-weight: 800; color: #000; }
+  .total-box { border: 2px solid #000; padding: 3mm; margin: 2.5mm 0; display: flex; justify-content: space-between; align-items: center; font-weight: 900; color: #000; }
+  .total-box span:first-child { font-size: 12px; }
+  .total-box span:last-child { font-size: 16px; }
+  .pay-status { display: grid; grid-template-columns: 1fr 1fr; gap: 2mm; margin: 3mm 0; }
+  .pay-card { border: 1px solid #000; padding: 2mm; text-align: center; background: #fff; }
+  .pay-card .label { font-size: 7px; font-weight: 800; letter-spacing: 0.8px; text-transform: uppercase; color: #000; }
+  .pay-card .value { font-size: 10px; font-weight: 900; margin-top: 1mm; color: #000; }
+  .obs-box { border: 2px solid #000; padding: 3mm; margin: 3mm 0; font-size: 11px; font-weight: 900; text-align: center; text-transform: uppercase; color: #000; }
+  .troco-box { border: 2px solid #000; padding: 3mm; margin: 3mm 0; background: #fff; }
+  .troco-box .linha { display:flex; justify-content:space-between; font-size: 13px; font-weight: 900; line-height: 1.4; color: #000; }
+  .troco-box .linha.destaque { font-size: 15px; border-top: 1.5px solid #000; margin-top: 1.5mm; padding-top: 1.5mm; }
+  .rodape { text-align: center; margin-top: 4mm; padding-top: 3mm; border-top: 2px solid #000; }
+  .rodape .obrigado { font-size: 11px; font-weight: 900; letter-spacing: 0.5px; text-transform: uppercase; color: #000; }
+  .rodape .sub { font-size: 8px; margin-top: 1mm; color: #000; }
+  @media print { body { width: auto; } @page { size: 80mm auto; margin: 2mm; } .ticket { padding: 0; } }
+</style>
+</head>
+<body>
+  <div class="ticket">
+  <div class="header">
+    <h1 id="loja-nome-comanda">Lanchonete</h1>
+    <div class="sub">✦ Comanda de Pedido Avulso ✦</div>
+    <div class="badge-pedido">PEDIDO #${p.id} • ${escapeHtml(statusLabel.toUpperCase())}</div>
+  </div>
+  <div style="text-align:center; font-size:8px; color:#000; margin:2.5mm 0 1mm">${escapeHtml(dataHora)}</div>
+  <div class="info-card">
+    <div class="info-row"><span class="info-label">👤 Cliente</span><span class="info-value">${escapeHtml(p.cliente_nome || p.clienteNome || 'Cliente Avulso')}</span></div>
+    <div class="info-row"><span class="info-label">📞 Telefone</span><span class="info-value">${escapeHtml(p.cliente_telefone || '')}</span></div>
+    ${p.bairro_entrega ? `<div class="info-row"><span class="info-label">🏘️ Tipo</span><span class="info-value">${escapeHtml(p.bairro_entrega)}</span></div>` : ''}
+  </div>
+  <div class="sep-strong"></div>
+  <div class="itens-lista"><div class="itens-titulo">🍽️ Itens do Pedido</div>${itensHtml || '<div style="text-align:center;padding:4mm;color:#000">Sem itens</div>'}</div>
+  <div class="totals">
+    <div class="linha"><span>Subtotal itens</span><span>R$ ${subtotalItens.toFixed(2)}</span></div>
+    ${totalAdicionais > 0 ? `<div class="linha"><span>Adicionais</span><span>R$ ${totalAdicionais.toFixed(2)}</span></div>` : ''}
+    <div class="linha" style="border-top:1px solid #000; padding-top:1mm; margin-top:1mm; font-weight:800"><span>Subtotal geral</span><span>R$ ${(subtotalItens + totalAdicionais).toFixed(2)}</span></div>
+    ${p.taxa_entrega > 0 ? `<div class="linha"><span>Taxa de entrega</span><span>R$ ${Number(p.taxa_entrega).toFixed(2)}</span></div>` : `<div class="linha"><span>Taxa de entrega</span><span>Grátis</span></div>`}
+  </div>
+  <div class="total-box">
+    <span>TOTAL A PAGAR</span><span>R$ ${Number(p.total || subtotalItens + totalAdicionais).toFixed(2)}</span>
+  </div>
+  <div class="pay-status">
+    <div class="pay-card"><div class="label">Pagamento</div><div class="value">${escapeHtml(payLabel)}</div></div>
+    <div class="pay-card"><div class="label">Status</div><div class="value">${escapeHtml(statusLabel)}</div></div>
+  </div>
+  ${trocoHtml ? `<div class="troco-box">${trocoHtml}</div>` : ''}
+  ${obsPedido ? `<div class="obs-box"><strong>Obs:</strong> ${escapeHtml(obsPedido)}</div>` : ''}
+  <div class="rodape">
+    <div class="obrigado">Obrigado pela preferência! 💛</div>
+    <div class="sub">Volte sempre • Pedido preparado com carinho</div>
+  </div>
+  </div>
+</body>
+</html>`);
+    win.document.close();
+    win.focus();
+    await carregarNomeLojaComandaGarcom(win);
+    setTimeout(() => {
+      win.print();
+      setTimeout(() => win.close(), 300);
+    }, 250);
+  } catch (e) {
+    console.error('imprimirComandaGarcom:', e);
+    showToast('Pedido enviado, mas falha ao imprimir: ' + e.message);
+  }
+}
+
+async function carregarNomeLojaComandaGarcom(win) {
+  try {
+    const res = await fetch('/api/config');
+    if (!res.ok) return;
+    const cfg = await res.json();
+    const el = win.document.getElementById('loja-nome-comanda');
+    if (el && cfg.loja_nome) el.textContent = cfg.loja_nome;
+  } catch (e) {}
 }
 
 // ============= TOAST =============

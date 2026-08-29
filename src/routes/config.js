@@ -37,13 +37,16 @@ router.get('/public', wrapAsync(async (req, res) => {
     supabaseUrl: process.env.SUPABASE_URL || '',
     supabaseAnonKey: process.env.SUPABASE_ANON_KEY || '',
     logo_url: map.logo_url || '',
+    loja_nome: map.loja_nome || 'Lanchonete',
+    loja_telefone: map.loja_telefone || '',
     loja_endereco: map.loja_endereco || '',
     loja_aberta: map.loja_aberta || 'true',
     loja_aberta_efetiva: efetiva ? 'true' : 'false',
     loja_modo: map.loja_modo || 'manual',
     loja_horario_abertura: map.loja_horario_abertura || '',
     loja_horario_fechamento: map.loja_horario_fechamento || '',
-    loja_horario_dias: map.loja_horario_dias || ''
+    loja_horario_dias: map.loja_horario_dias || '',
+    tempo_espera: map.tempo_espera || ''
   });
 }));
 
