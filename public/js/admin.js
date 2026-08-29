@@ -31,6 +31,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   carregarPedidos();
+  carregarMotoboys();
   carregarSomPrefs();
   carregarLojaStatus();
   carregarConfigAdmin();
@@ -166,6 +167,10 @@ async function carregarPedidos() {
   const status = document.getElementById('filtro-status').value;
   const url = status ? `/api/pedidos?status=${status}` : '/api/pedidos';
   try {
+    // Garante lista de motoboys carregada antes de renderizar os cards (evita select vazio)
+    if (!motoboysLista.length) {
+      try { await carregarMotoboys(); } catch (e) {}
+    }
     const res = await authFetch(url);
     todosPedidos = await res.json();
     const ativos = todosPedidos.filter(p => !['entregue', 'cancelado'].includes(p.status));
@@ -407,7 +412,9 @@ async function carregarMotoboys() {
   const res = await authFetch('/api/motoboys');
   motoboysLista = await res.json();
 
-  document.getElementById('motoboys-list').innerHTML = motoboysLista.length ? `<table>
+  const el = document.getElementById('motoboys-list');
+  if (el) {
+    el.innerHTML = motoboysLista.length ? `<table>
     <thead><tr><th>Nome</th><th>Telefone</th><th>Status</th><th>Ações</th></tr></thead>
     <tbody>${motoboysLista.map(m => `
       <tr style="${m.ativo ? '' : 'opacity:.55'}">
@@ -422,6 +429,12 @@ async function carregarMotoboys() {
       </tr>
     `).join('')}</tbody>
   </table>` : '<p style="text-align:center;color:var(--gray);padding:30px">Nenhum motoboy cadastrado</p>';
+  }
+
+  // Se pedidos já estão carregados, re-renderiza os cards para preencher o select de motoboy
+  if (todosPedidos.length && document.getElementById('sec-pedidos')?.classList.contains('active')) {
+    filtrarPedidosPorTab();
+  }
 }
 
 async function salvarMotoboy() {
