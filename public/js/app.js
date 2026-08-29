@@ -901,7 +901,7 @@ function renderResumoPagamento() {
           <div class="cart-item-name">${qtdTexto} ${escapeHtml(item.produto_nome)}</div>
           <div class="cart-item-price">R$ ${itemTotal.toFixed(2)}</div>
         </div>
-        ${adcHtml ? `<div>${escapeHtml(adcHtml)}</div>` : ''}
+        ${adcHtml ? `<div>${adcHtml}</div>` : ''}
         ${item.observacao ? `<div class="cart-item-details">Obs: ${escapeHtml(item.observacao)}</div>` : ''}
       </div>
     `;

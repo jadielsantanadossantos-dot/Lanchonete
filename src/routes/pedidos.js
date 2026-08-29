@@ -130,6 +130,11 @@ router.post('/', validarPedido, wrapAsync(async (req, res) => {
     let produtosMap = new Map();
     let vinculosMap = new Map();
     let todosAdicionais = [];
+    let pizzaCatIds = new Set();
+    try {
+      const pizzaCats = await db.all("SELECT id FROM categorias WHERE nome ILIKE '%pizza%'");
+      pizzaCatIds = new Set(pizzaCats.map(r => r.id));
+    } catch (e) { pizzaCatIds = new Set([7,26,27,28]); }
     if (produtoIds.length) {
       const prods = await db.all('SELECT p.id, p.categoria_id, c.nome as categoria_nome FROM produtos p JOIN categorias c ON c.id=p.categoria_id WHERE p.id = ANY($1)', [produtoIds]);
       prods.forEach(p => produtosMap.set(p.id, p));
@@ -148,6 +153,7 @@ router.post('/', validarPedido, wrapAsync(async (req, res) => {
       const prod = produtosMap.get(parseInt(item.produto_id));
       if (!prod) continue;
       const isPizzaProd = prod.categoria_nome && ['pizza','suco','bebida'].some(cat=> prod.categoria_nome.toLowerCase().includes(cat.toLowerCase()));
+      const prodIsPizzaCat = pizzaCatIds.has(prod.categoria_id);
       for (const a of (item.adicionais||[])) {
         const reg = porAdic.get(parseInt(a.id));
         if (!reg) return res.status(400).json({ error: `Adicional inválido #${a.id} para ${item.produto_nome}` });
@@ -155,9 +161,12 @@ router.post('/', validarPedido, wrapAsync(async (req, res) => {
         const mesmaCategoria = !reg.categoria_id || reg.categoria_id === prod.categoria_id;
         const prodEsp = idsVinculados ? idsVinculados.includes(prod.id) : false;
         const global = (!idsVinculados || idsVinculados.length===0) && mesmaCategoria;
+        const isSaborPizzaCategoria = reg.tipo === 'sabor' && reg.categoria_id && pizzaCatIds.has(reg.categoria_id);
         let permitido = false;
         if (isPizzaProd) {
           if (reg.tipo==='sabor' && (prodEsp||global)) permitido=true;
+          // sabores de qualquer categoria de pizza podem ser usados em qualquer pizza (ex: CALABRESA da Pizza Tradicional na Pizza Especial)
+          if (reg.tipo==='sabor' && prodIsPizzaCat && isSaborPizzaCategoria && (!idsVinculados || idsVinculados.length===0)) permitido=true;
           else if ((prodEsp||global) && ['adicional','borda'].includes(reg.tipo) && reg.preco!==null) permitido=true;
           // bebidas: sabor incluso já tratado acima
           if (reg.tipo==='sabor' && prod.categoria_nome.toLowerCase().includes('bebida') && (prodEsp||global)) permitido=true;

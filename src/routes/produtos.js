@@ -111,6 +111,11 @@ router.get('/ativos', wrapAsync(async (req, res) => {
   `, incluirGarcom);
 
   const adicionais = await db.all('SELECT * FROM adicionais WHERE ativo = true');
+  let pizzaCatIds = new Set();
+  try {
+    const pizzaCats = await db.all("SELECT id FROM categorias WHERE nome ILIKE '%pizza%'");
+    pizzaCatIds = new Set(pizzaCats.map(r => r.id));
+  } catch (e) { pizzaCatIds = new Set([7,26,27,28]); }
 
   // Vinculos N:N adicional x produto; fallback para coluna legado produto_id
   const vinculos = await db.all('SELECT adicional_id, produto_id FROM adicional_produtos');
@@ -125,6 +130,7 @@ router.get('/ativos', wrapAsync(async (req, res) => {
     const isPizza = p.categoria_nome && ['pizza', 'suco', 'bebida'].some(
       cat => p.categoria_nome.toLowerCase().includes(cat.toLowerCase())
     );
+    const isProdutoPizzaCat = pizzaCatIds.has(p.categoria_id);
 
     // Para pizzas/sucos: retornar sabores + adicionais. Para outros: apenas adicionais
     const adicionaisFiltrados = adicionais.filter(a => {
@@ -141,6 +147,10 @@ router.get('/ativos', wrapAsync(async (req, res) => {
         // Pizzas/sucos recebem sabores (tipo='sabor') E adicionais com preço
         // Sabores vinculados a um produto específico nao vazam para outros produtos da mesma categoria
         if (a.tipo === 'sabor' && (produtoEspecifico || adicionalGlobal)) {
+          return true;
+        }
+        // sabores de qualquer categoria de pizza são compartilhados entre todas as pizzas (ex: CALABRESA da Tradicional na Especial)
+        if (a.tipo === 'sabor' && isProdutoPizzaCat && pizzaCatIds.has(a.categoria_id) && (!idsVinculados || idsVinculados.length===0)) {
           return true;
         }
         return (produtoEspecifico || adicionalGlobal) && ['adicional', 'borda'].includes(a.tipo) && a.preco > 0;
