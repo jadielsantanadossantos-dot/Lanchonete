@@ -1178,19 +1178,24 @@ function atualizarVisibilidadeComprovante() {
   const btn2 = document.getElementById('btn-falar-loja');
   const dica = document.getElementById('pix-comprovante-dica');
   if (!btn) return;
-  const tel = config && config.loja_telefone ? String(config.loja_telefone).trim() : '';
-  const temTelefone = tel && tel.replace(/\D/g,'').length >= 10;
-  // Sempre mostra os botões após gerar o Pix; se não houver telefone, o clique exibirá aviso
+  // Normaliza telefone removendo zeros à esquerda (ex: 0839... -> 839...)
+  const telRaw = config && config.loja_telefone ? String(config.loja_telefone).trim() : '';
+  const digits = telRaw.replace(/\D/g, '').replace(/^0+/, '');
+  const temTelefone = digits.length >= 10;
+  // Garante visibilidade mesmo se config ainda não carregou
   btn.style.display = 'inline-flex';
   if (btn2) btn2.style.display = 'inline-flex';
   if (dica) dica.style.display = 'block';
-  // Desabilita visualmente se faltar telefone (mas mantém visível para instruir o usuário)
   if (!temTelefone) {
     btn.title = 'WhatsApp da loja não configurado — contate o estabelecimento';
     if (btn2) btn2.title = 'WhatsApp da loja não configurado';
+    btn.style.opacity = '0.7';
+    if (btn2) btn2.style.opacity = '0.7';
   } else {
     btn.title = '';
     if (btn2) btn2.title = '';
+    btn.style.opacity = '1';
+    if (btn2) btn2.style.opacity = '1';
   }
 }
 
@@ -1200,7 +1205,7 @@ function enviarComprovantePix() {
     mostrarToast('WhatsApp da loja não configurado. Contate o estabelecimento.');
     return;
   }
-  const digits = telRaw.replace(/\D/g, '');
+  let digits = telRaw.replace(/\D/g, '').replace(/^0+/, '');
   if (digits.length < 10) {
     mostrarToast('Telefone da loja inválido');
     return;
