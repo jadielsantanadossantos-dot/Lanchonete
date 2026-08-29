@@ -1282,17 +1282,10 @@ async function enviarPedidoAvulso() {
 
     const pedidoCriado = await pedidoRes.json();
 
-    // Impressão automática da comanda do avulso
-    try {
-      await imprimirComandaGarcom(pedidoCriado);
-    } catch (e) {
-      console.error('Erro ao imprimir comanda avulsa:', e);
-    }
-
     carrinhoAvulso = [];
     document.getElementById('g-avulso-telefone').value = '';
     document.getElementById('g-avulso-nome').value = '';
-    showToast('Pedido avulso enviado! Comanda impressa.');
+    showToast('Pedido avulso enviado!');
     mostrarTela('g-page-mesas', 'Mesas');
   } catch (e) { showToast('Erro ao enviar pedido'); }
   finally {

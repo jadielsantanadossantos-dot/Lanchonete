@@ -55,6 +55,21 @@ document.addEventListener('DOMContentLoaded', async () => {
       carregarPedidos();
       tocarSomNovoPedido();
       atualizarBadgeNotificacao();
+
+      // Auto-impressão para avulso: quando garçom envia avulso, imprime direto no admin
+      try {
+        const ehAvulso = pedido && (pedido.bairro_entrega === 'Avulso' || (pedido.observacoes && String(pedido.observacoes).includes('AVULSO')));
+        if (!ehAtualizacao && ehAvulso) {
+          // Delay para garantir que o pedido foi persistido e carregarPedidos já atualizou
+          setTimeout(() => {
+            try {
+              if (typeof imprimirComanda === 'function') {
+                imprimirComanda(pedido.id);
+              }
+            } catch (e) { console.error('auto-print avulso:', e); }
+          }, 900);
+        }
+      } catch (e) {}
     });
     realtimeUnsubscribes.push(novoPedidoUnsub);
     
@@ -642,6 +657,7 @@ async function imprimirComanda(pedidoId) {
     if (obsPedido === '|') obsPedido = '';
 
     const win = window.open('', '_blank', 'width=420,height=650');
+    if (!win) { showToast('Pop-up bloqueado: habilite pop-ups para impressão automática'); return; }
     win.document.write(`<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
