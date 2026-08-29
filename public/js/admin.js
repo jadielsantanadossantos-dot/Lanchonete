@@ -1813,6 +1813,14 @@ function fecharModalPedidoWhatsApp() {
 
 function isPizzaWhatsApp(p){ return !!(p && p.categoria_nome && p.categoria_nome.toLowerCase().includes('pizza')); }
 
+// Item vendido por peso: unidade 'kg' OU categoria Açaí (vendido a R$/kg, digita-se o valor)
+function isPorPeso(p){
+  if(!p) return false;
+  if(p.unidade==='kg') return true;
+  const cat=(p.categoria_nome||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+  return cat.includes('acai');
+}
+
 function whatsappProdutoCardHtml(p){
   return `
     <div class="product-card" onclick="abrirModalWhatsAppQtd(${p.id})">
@@ -1968,9 +1976,13 @@ function abrirModalWhatsAppQtd(prodId) {
   whatsappProdutoSelecionado = whatsappProdutos.find(p=>p.id===prodId);
   if(!whatsappProdutoSelecionado) return;
   whatsappQtd = 1;
+  const porKg = isPorPeso(whatsappProdutoSelecionado);
   document.getElementById('whatsapp-qtd-nome').textContent = whatsappProdutoSelecionado.nome;
-  document.getElementById('whatsapp-qtd-preco').textContent = `R$ ${whatsappProdutoSelecionado.preco.toFixed(2)}`;
+  document.getElementById('whatsapp-qtd-preco').textContent = `R$ ${whatsappProdutoSelecionado.preco.toFixed(2)}${porKg ? ' /kg' : ''}`;
   document.getElementById('whatsapp-qtd-valor').textContent = '1';
+  document.getElementById('whatsapp-qtd-unit-control').style.display = porKg ? 'none' : 'flex';
+  document.getElementById('whatsapp-qtd-kg-control').style.display = porKg ? 'block' : 'none';
+  if (porKg) document.getElementById('whatsapp-qtd-kg-valor').value = 15;
   document.getElementById('whatsapp-qtd-obs').value = '';
   const adcBox = document.getElementById('whatsapp-qtd-adicionais');
   const adcList = document.getElementById('whatsapp-qtd-adicionais-lista');
@@ -2072,8 +2084,17 @@ function fecharModalWhatsAppQtd(){ document.getElementById('modal-whatsapp-qtd')
 function whatsappAlterarQtd(d){ whatsappQtd=Math.max(1, whatsappQtd+d); document.getElementById('whatsapp-qtd-valor').textContent=whatsappQtd; whatsappAtualizarTotal(); }
 function whatsappAtualizarTotal(){
   if(!whatsappProdutoSelecionado) return;
-  let total = whatsappProdutoSelecionado.preco * whatsappQtd;
-  document.querySelectorAll('#whatsapp-qtd-adicionais-lista input:checked').forEach(c=>{ total+=parseFloat(c.dataset.preco)*whatsappQtd; });
+  const porKg = isPorPeso(whatsappProdutoSelecionado);
+  let kg = 1;
+  let total = 0;
+  if(porKg){
+    const valor = parseFloat(document.getElementById('whatsapp-qtd-kg-valor')?.value) || 0;
+    kg = whatsappProdutoSelecionado.preco > 0 ? valor / whatsappProdutoSelecionado.preco : 0;
+    total = valor;
+  } else {
+    total = whatsappProdutoSelecionado.preco * whatsappQtd;
+  }
+  document.querySelectorAll('#whatsapp-qtd-adicionais-lista input:checked').forEach(c=>{ total += parseFloat(c.dataset.preco) * (porKg ? kg : whatsappQtd); });
   document.getElementById('whatsapp-qtd-total').textContent=`R$ ${total.toFixed(2)}`;
 }
 function confirmarAddWhatsApp(){
@@ -2082,11 +2103,24 @@ function confirmarAddWhatsApp(){
   document.querySelectorAll('#whatsapp-qtd-adicionais-lista input:checked').forEach(c=>{
     adicionais.push({id: parseInt(c.value), nome: c.dataset.nome, preco: parseFloat(c.dataset.preco)});
   });
+  const porKg = isPorPeso(whatsappProdutoSelecionado);
+  let quantidade, unidade;
+  if(porKg){
+    const valor = parseFloat(document.getElementById('whatsapp-qtd-kg-valor')?.value);
+    if(!valor || valor <= 0){ showToast('Informe o valor desejado'); return; }
+    // O campo "Valor desejado (R$)" representa o preço; converte para kg
+    quantidade = valor / (whatsappProdutoSelecionado.preco || 1);
+    unidade = 'kg';
+  } else {
+    quantidade = whatsappQtd;
+    unidade = 'un';
+  }
   adicionarItemWhatsApp({
     produto_id: whatsappProdutoSelecionado.id,
     produto_nome: whatsappProdutoSelecionado.nome,
     preco_unitario: whatsappProdutoSelecionado.preco,
-    quantidade: whatsappQtd,
+    quantidade,
+    unidade,
     observacao: document.getElementById('whatsapp-qtd-obs').value.trim(),
     adicionais
   });
@@ -2120,19 +2154,22 @@ function renderCarrinhoWhatsApp(){
     const tot=it.preco_unitario*it.quantidade + it.adicionais.reduce((s,a)=>s+a.preco*it.quantidade,0);
     subtotal+=tot;
     const adic = it.adicionais.map(a=>`+ ${escapeHtml(a.nome)}`).join(', ');
+    const isKg = it.unidade==='kg';
+    const qtdLabel = isKg ? `${it.quantidade.toFixed(2).replace('.',',')} kg` : `${it.quantidade}x`;
+    const qtdDisplay = isKg ? it.quantidade.toFixed(2).replace('.',',') : it.quantidade;
     return `<div style="border:1px solid var(--color-border); border-radius:8px; padding:8px; margin-bottom:8px; background:white">
       <div style="display:flex; justify-content:space-between; gap:8px">
         <div style="flex:1; min-width:0">
           <div style="font-weight:700; font-size:0.85rem">${escapeHtml(it.produto_nome)}</div>
           ${adic?`<div style="font-size:0.75rem; color:var(--color-text-muted)">${escapeHtml(adic)}</div>`:''}
           ${it.observacao?`<div style="font-size:0.75rem; color:#D97706; font-style:italic">Obs: ${escapeHtml(it.observacao)}</div>`:''}
-          <div style="font-size:0.8rem; color:var(--color-text-secondary)">R$ ${it.preco_unitario.toFixed(2)} x ${it.quantidade}</div>
+          <div style="font-size:0.8rem; color:var(--color-text-secondary)">R$ ${it.preco_unitario.toFixed(2)}${isKg?'/kg':''} x ${qtdLabel}</div>
         </div>
         <div style="text-align:right">
           <div style="font-weight:800; color:var(--color-primary)">R$ ${tot.toFixed(2)}</div>
           <div style="display:flex; gap:4px; margin-top:4px; justify-content:flex-end">
             <button onclick="whatsappAlterarQtdCarrinho(${i},-1)" style="width:26px; height:26px; border-radius:50%; border:1px solid var(--color-border); background:white; cursor:pointer">-</button>
-            <span style="min-width:22px; text-align:center; font-weight:700; font-size:0.85rem; line-height:26px">${it.quantidade}</span>
+            <span style="min-width:38px; text-align:center; font-weight:700; font-size:0.85rem; line-height:26px">${qtdDisplay}</span>
             <button onclick="whatsappAlterarQtdCarrinho(${i},1)" style="width:26px; height:26px; border-radius:50%; border:1px solid var(--color-border); background:white; cursor:pointer">+</button>
             <button onclick="whatsappRemover(${i})" style="width:26px; height:26px; border-radius:50%; border:none; background:#FEF2F2; color:#DC2626; cursor:pointer">×</button>
           </div>
@@ -2140,7 +2177,7 @@ function renderCarrinhoWhatsApp(){
       </div>
     </div>`;
   }).join('');
-  countEl.textContent=whatsappCarrinho.reduce((s,i)=>s+i.quantidade,0);
+  countEl.textContent=whatsappCarrinho.length;
   subtotalEl.textContent=`R$ ${subtotal.toFixed(2)}`;
   taxaEl.textContent=`R$ ${taxa.toFixed(2)}`;
   totalEl.textContent=`R$ ${(subtotal+taxa).toFixed(2)}`;
@@ -2148,8 +2185,9 @@ function renderCarrinhoWhatsApp(){
 function whatsappAlterarQtdCarrinho(idx,delta){
   const it=whatsappCarrinho[idx];
   if(!it) return;
-  it.quantidade+=delta;
-  if(it.quantidade<1) whatsappCarrinho.splice(idx,1);
+  const step = it.unidade==='kg' ? 0.1 : 1;
+  it.quantidade = +(it.quantidade + delta*step).toFixed(3);
+  if(it.quantidade < (it.unidade==='kg' ? 0.1 : 1)) whatsappCarrinho.splice(idx,1);
   renderCarrinhoWhatsApp();
 }
 function whatsappRemover(idx){ whatsappCarrinho.splice(idx,1); renderCarrinhoWhatsApp(); }
