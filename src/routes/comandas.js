@@ -128,7 +128,7 @@ router.get('/mesa/:mesaId', wrapAsync(async (req, res) => {
 }));
 
 router.post('/mesa/:mesaId/item', wrapAsync(async (req, res) => {
-  const { produto_id, quantidade, observacao, adicionais, cliente_nome } = req.body;
+  const { produto_id, quantidade, observacao, adicionais, cliente_nome, unidade } = req.body;
   const mesaId = req.params.mesaId;
 
   const produto = await db.get('SELECT * FROM produtos WHERE id = $1 AND ativo = true', produto_id);
@@ -136,12 +136,13 @@ router.post('/mesa/:mesaId/item', wrapAsync(async (req, res) => {
 
   const comanda = await getOrCreateComanda(mesaId, cliente_nome);
 
+  const unidadeItem = (unidade === 'kg' || produto.unidade === 'kg') ? 'kg' : 'un';
   const adicJson = adicionais && adicionais.length ? JSON.stringify(adicionais) : null;
   const itemStmt = db.prepare(`
-    INSERT INTO comanda_itens (comanda_id, produto_id, produto_nome, quantidade, preco_unitario, observacao, adicionais_json)
-    VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id
+    INSERT INTO comanda_itens (comanda_id, produto_id, produto_nome, quantidade, preco_unitario, observacao, adicionais_json, unidade)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id
   `);
-  await itemStmt.run(comanda.id, produto_id, produto.nome, quantidade || 1, produto.preco, observacao || '', adicJson);
+  await itemStmt.run(comanda.id, produto_id, produto.nome, quantidade || 1, produto.preco, observacao || '', adicJson, unidadeItem);
 
   if (req.emitToMesa) {
     await req.emitToMesa(mesaId, 'comanda-atualizada', { mesaId: parseInt(mesaId) });

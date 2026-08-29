@@ -17,6 +17,18 @@ let usuarioLogado = null;
 
 function escapeHtml(s){ if(s==null) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
+function formatarPesoGarcom(kg){
+  const v = typeof kg === 'number' ? kg : parseFloat(kg) || 0;
+  return `${v.toFixed(2).replace('.', ',')} kg`;
+}
+
+// Rótulo de quantidade: peso (kg) para itens por peso, ou "Nx" para unidades
+function formatarQtdItem(item){
+  if (item.unidade === 'kg') return formatarPesoGarcom(item.quantidade);
+  const q = Number(item.quantidade) || 0;
+  return `${Number.isInteger(q) ? q : q.toFixed(2).replace('.', ',')}x`;
+}
+
 document.addEventListener('DOMContentLoaded', () => init());
 
 async function carregarLogoGarcom() {
@@ -373,6 +385,9 @@ function renderComanda() {
       ? '<span class="g-badge-enviado">✓ Cozinha</span>' 
       : '<span class="g-badge-novo">🆕 NOVO</span>';
     const itemClass = isNovo ? 'g-comanda-item g-comanda-item--novo' : 'g-comanda-item';
+    const isKg = item.unidade === 'kg';
+    const qtdLabel = isKg ? formatarPesoGarcom(item.quantidade) : `${item.quantidade}x`;
+    const qtdPasso = isKg ? 0.1 : 1;
     
     return `
       <div class="${itemClass}">
@@ -383,11 +398,11 @@ function renderComanda() {
             ${item.observacao ? `<div class="g-item-details">Obs: ${escapeHtml(item.observacao)}</div>` : ''}
             ${!item.enviado_cozinha ? `
               <div class="qty-control" style="margin-top: 8px; justify-content: flex-start; display: flex;">
-                <button class="qty-btn" onclick="alterarQtdComanda(${item.id}, ${item.quantidade}, -1)" aria-label="Diminuir" style="width: 24px; height: 24px; font-size: 14px; padding: 0; line-height: 24px;">-</button>
-                <span class="qty-value" style="font-size: 14px; margin: 0 10px;">${item.quantidade}</span>
-                <button class="qty-btn" onclick="alterarQtdComanda(${item.id}, ${item.quantidade}, 1)" aria-label="Aumentar" style="width: 24px; height: 24px; font-size: 14px; padding: 0; line-height: 24px;">+</button>
+                <button class="qty-btn" onclick="alterarQtdComanda(${item.id}, ${item.quantidade}, -${qtdPasso})" aria-label="Diminuir" style="width: 24px; height: 24px; font-size: 14px; padding: 0; line-height: 24px;">-</button>
+                <span class="qty-value" style="font-size: 14px; margin: 0 10px;">${qtdLabel}</span>
+                <button class="qty-btn" onclick="alterarQtdComanda(${item.id}, ${item.quantidade}, ${qtdPasso})" aria-label="Aumentar" style="width: 24px; height: 24px; font-size: 14px; padding: 0; line-height: 24px;">+</button>
               </div>
-            ` : `<div style="font-size: 13px; color: var(--gray); margin-top: 6px;">Quantidade: ${item.quantidade}x</div>`}
+            ` : `<div style="font-size: 13px; color: var(--gray); margin-top: 6px;">Quantidade: ${qtdLabel}</div>`}
           </div>
           <button class="g-item-remove" onclick="removerItemComanda(${item.id})">&times;</button>
         </div>
@@ -809,16 +824,18 @@ function alterarQuant(delta) {
 function atualizarTotalQuant() {
   const porKg = produtoSelecionado.unidade === 'kg';
   let total = 0;
-  
+  let kg = 1;
+
   if (porKg) {
     const valor = parseFloat(document.getElementById('g-quant-kg-valor').value) || 0;
+    kg = produtoSelecionado.preco > 0 ? valor / produtoSelecionado.preco : 0;
     total = valor;
   } else {
     total = produtoSelecionado.preco * quantAtual;
   }
-  
+
   document.querySelectorAll('#g-quant-adicionais-list input:checked').forEach(c => {
-    total += parseFloat(c.dataset.preco) * (porKg ? 1 : quantAtual);
+    total += parseFloat(c.dataset.preco) * (porKg ? kg : quantAtual);
   });
   document.getElementById('g-quant-total').textContent = `R$ ${total.toFixed(2)}`;
 }
@@ -836,7 +853,15 @@ async function confirmarAdicionarItem() {
   const observacao = document.getElementById('g-quant-obs').value.trim();
 
   const porKg = produtoSelecionado.unidade === 'kg';
-  const quantidade = porKg ? parseFloat(document.getElementById('g-quant-kg-valor').value) || 1 : quantAtual;
+  let quantidade;
+  if (porKg) {
+    const valor = parseFloat(document.getElementById('g-quant-kg-valor').value);
+    if (!valor || valor <= 0) { showToast('Informe o valor desejado'); return; }
+    // O campo "Valor desejado (R$)" representa o preço; converte para kg
+    quantidade = valor / (produtoSelecionado.preco || 1);
+  } else {
+    quantidade = quantAtual;
+  }
 
   // Pedido avulso: entra no carrinho local, sem API de comanda
   if (modalQuantContexto === 'avulso') {
@@ -845,6 +870,7 @@ async function confirmarAdicionarItem() {
       produto_nome: produtoSelecionado.nome,
       preco_unitario: produtoSelecionado.preco,
       quantidade,
+      unidade: porKg ? 'kg' : 'un',
       observacao,
       adicionais
     });
@@ -864,6 +890,7 @@ async function confirmarAdicionarItem() {
       body: JSON.stringify({
         produto_id: produtoSelecionado.id,
         quantidade: quantidade,
+        unidade: porKg ? 'kg' : 'un',
         observacao,
         adicionais
       })
@@ -876,7 +903,8 @@ async function confirmarAdicionarItem() {
     }
 
     fecharModalQuant();
-    showToast(`${quantAtual}x ${escapeHtml(produtoSelecionado.nome)} adicionado!`);
+    const labelQtd = porKg ? `${quantidade.toFixed(2).replace('.', ',')} kg` : `${quantAtual}x`;
+    showToast(`${labelQtd} ${escapeHtml(produtoSelecionado.nome)} adicionado!`);
     await carregarComanda();
     mostrarTela('g-page-comanda', mesaAtual.nome || ('Mesa ' + mesaAtual.numero));
   } catch (e) { showToast('Erro ao adicionar item'); }
@@ -1097,8 +1125,10 @@ function renderListaAvulso() {
 function alterarQtdAvulso(idx, delta) {
   const item = carrinhoAvulso[idx];
   if (!item) return;
-  item.quantidade += delta;
-  if (item.quantidade < 1) {
+  const isKg = item.unidade === 'kg';
+  const passo = isKg ? 0.1 : 1;
+  item.quantidade += (isKg ? delta * passo : delta);
+  if (item.quantidade <= (isKg ? 0.1 : 0)) {
     carrinhoAvulso.splice(idx, 1);
   }
   renderCarrinhoAvulso();
@@ -1132,14 +1162,15 @@ function renderCarrinhoAvulso() {
   container.innerHTML = carrinhoAvulso.map((item, i) => {
     const itemTotal = item.preco_unitario * item.quantidade;
     total += itemTotal;
+    const isKg = item.unidade === 'kg';
     return `
       <div class="g-carrinho-item">
         <div class="g-carrinho-item-info">
           <div class="g-carrinho-item-nome">${escapeHtml(item.produto_nome)}</div>
-          <div class="g-carrinho-item-detail">R$ ${item.preco_unitario.toFixed(2)} cada</div>
+          <div class="g-carrinho-item-detail">R$ ${item.preco_unitario.toFixed(2)}${isKg ? '/kg' : ' cada'}</div>
           <div class="g-qty-control" style="justify-content:flex-start;margin-top:6px">
             <button class="g-qty-btn" style="width:32px;height:32px;font-size:1.1rem" onclick="alterarQtdAvulso(${i}, -1)">-</button>
-            <span style="font-weight:700;min-width:30px;text-align:center">${item.quantidade}</span>
+            <span style="font-weight:700;min-width:48px;text-align:center">${formatarQtdItem(item)}</span>
             <button class="g-qty-btn" style="width:32px;height:32px;font-size:1.1rem" onclick="alterarQtdAvulso(${i}, 1)">+</button>
           </div>
         </div>
