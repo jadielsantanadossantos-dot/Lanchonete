@@ -1246,16 +1246,22 @@ async function enviarPedidoAvulso() {
       const cli = await cliRes.json();
       clienteId = cli.id;
     } else {
-      const nomeParaCadastrar = nomeAvulso || 'Avulso ' + telefoneRaw;
+      // Nome do avulso é só para exibição na comanda — não polui o cadastro.
+      // Cria cliente genérico vinculado ao telefone, preservando cadastros reais.
       const novoRes = await authFetch('/api/clientes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nome: nomeParaCadastrar, telefone: telefoneRaw, bairro: 'Avulso' })
+        body: JSON.stringify({ nome: 'Cliente Avulso', telefone: telefoneRaw, bairro: 'Avulso' })
       });
       if (!novoRes.ok) { showToast('Erro ao cadastrar cliente'); return; }
       const novo = await novoRes.json();
       clienteId = novo.id;
     }
+
+    // Nome avulso vai apenas para a comanda/observação do pedido, não para o cadastro
+    const obsAvulso = nomeAvulso
+      ? `PEDIDO AVULSO (sem mesa) - Cliente: ${nomeAvulso}`
+      : 'PEDIDO AVULSO (sem mesa)';
 
     const pedidoRes = await authFetch('/api/pedidos', {
       method: 'POST',
@@ -1264,7 +1270,7 @@ async function enviarPedidoAvulso() {
         cliente_id: clienteId,
         itens: carrinhoAvulso,
         forma_pagamento: forma,
-        observacoes: 'PEDIDO AVULSO (sem mesa)',
+        observacoes: obsAvulso,
         endereco_entrega: '',
         bairro_entrega: 'Avulso',
         taxa_entrega: 0,
@@ -1276,6 +1282,7 @@ async function enviarPedidoAvulso() {
 
     carrinhoAvulso = [];
     document.getElementById('g-avulso-telefone').value = '';
+    document.getElementById('g-avulso-nome').value = '';
     showToast('Pedido avulso enviado!');
     mostrarTela('g-page-mesas', 'Mesas');
   } catch (e) { showToast('Erro ao enviar pedido'); }

@@ -9,9 +9,23 @@ function parseHHmm(v) {
 
 function getBrtNow() {
   const now = new Date();
-  // BRT UTC-3 sem horário de verão desde 2019
-  const brt = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
-  return { day: brt.getDay(), minutes: brt.getHours() * 60 + brt.getMinutes() };
+  // Usa Intl com formatToParts para obter hora/dia em BRT de forma confiável (Vercel UTC vs local)
+  const fmt = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Sao_Paulo',
+    hour12: false,
+    weekday: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZoneName: 'short'
+  });
+  const parts = fmt.formatToParts(now);
+  const get = (t) => parts.find(p => p.type === t)?.value;
+  const weekday = get('weekday'); // Sun, Mon...
+  const hour = parseInt(get('hour'), 10);
+  const minute = parseInt(get('minute'), 10);
+  const map = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  const day = map[weekday] ?? new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' })).getDay();
+  return { day, minutes: hour * 60 + minute };
 }
 
 function isDentroHorario(abertura, fechamento, dias) {

@@ -654,8 +654,8 @@ async function imprimirComanda(pedidoId) {
   .item-nome { flex: 1; font-weight: 900; font-size: 13px; text-transform: uppercase; letter-spacing: 0.3px; }
   .item-val { font-weight: 900; white-space: nowrap; font-size: 12px; border: 1px solid #000; padding: 0.5mm 2mm; background: #fff; color: #000; }
   .item-detalhe { font-size: 8px; margin: 1mm 0 0 0; font-style: italic; font-weight: 600; color: #000; }
-  .item-adics { margin: 1.5mm 0 0 0; padding: 0 0 0 3mm; }
-  .adic-linha { display: flex; justify-content: space-between; font-size: 9px; padding: 0.8mm 0; border-bottom: 1px dashed #000; font-weight: 600; color: #000; }
+  .item-adics { margin: 2mm 0 0 0; padding: 1.2mm 2mm; border: 1.2px dashed #000; background: #fff; }
+  .adic-linha { display: flex; justify-content: space-between; align-items: flex-start; gap: 2mm; font-size: 11.5px; line-height: 1.35; padding: 1.3mm 0; border-bottom: 1px dashed #000; font-weight: 900; color: #000; text-transform: uppercase; letter-spacing: 0.2px; }
   .adic-linha:last-child { border-bottom: none; }
   .adic-nome { color: #000; }
   .adic-val { font-weight: 900; white-space: nowrap; margin-left: 2mm; color: #000; }
@@ -1718,28 +1718,40 @@ async function salvarConfig(e) {
 
 async function carregarLojaStatus() {
   try {
-    const res = await authFetch('/api/config');
+    // Usa endpoint público que já calcula loja_aberta_efetiva (auto vs manual)
+    const res = await fetch('/api/config/public');
     if (!res.ok) return;
     const cfg = await res.json();
-    atualizarBotaoLoja(cfg.loja_aberta !== 'false');
+    const efetiva = cfg.loja_aberta_efetiva !== 'false';
+    const modoAuto = cfg.loja_modo === 'auto';
+    atualizarBotaoLoja(efetiva, modoAuto);
   } catch (e) { /* mantem padrao aberto */ }
 }
 
-function atualizarBotaoLoja(aberta) {
+function atualizarBotaoLoja(aberta, modoAuto) {
   const btn = document.getElementById('loja-status-btn');
   const txt = document.getElementById('loja-status-texto');
   if (!btn || !txt) return;
   btn.classList.toggle('aberto', aberta);
   btn.classList.toggle('fechado', !aberta);
-  txt.textContent = aberta ? 'Loja Aberta' : 'Loja Fechada';
+  if (modoAuto === true) {
+    txt.textContent = aberta ? 'Loja Aberta (Auto)' : 'Loja Fechada (Auto)';
+  } else if (modoAuto === false) {
+    txt.textContent = aberta ? 'Loja Aberta' : 'Loja Fechada';
+  } else {
+    txt.textContent = aberta ? 'Loja Aberta' : 'Loja Fechada';
+  }
 }
 
 async function toggleLojaStatus() {
   try {
+    const resPub = await fetch('/api/config/public');
+    const cfgPub = resPub.ok ? await resPub.json() : null;
     const res = await authFetch('/api/config');
     if (!res.ok) { showToast('Erro ao ler status da loja'); return; }
     const cfg = await res.json();
-    const vaiAbrir = cfg.loja_aberta === 'false';
+    const efetiva = cfgPub ? cfgPub.loja_aberta_efetiva !== 'false' : cfg.loja_aberta !== 'false';
+    const vaiAbrir = !efetiva;
     // Se estava em modo auto e vai fechar manualmente, desativa automático para override manual vencer
     const payload = { loja_aberta: vaiAbrir ? 'true' : 'false' };
     if (cfg.loja_modo === 'auto' && !vaiAbrir) {
@@ -1751,10 +1763,17 @@ async function toggleLojaStatus() {
     }
     const put = await authFetch('/api/config', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     if (!put.ok) { showToast('Erro ao alterar status da loja'); return; }
-    atualizarBotaoLoja(vaiAbrir);
+    // Recarrega status efetivo após alteração
+    setTimeout(carregarLojaStatus, 300);
     showToast(vaiAbrir ? 'Loja ABERTA - recebendo pedidos' : 'Loja FECHADA - automático pausado');
   } catch (e) { showToast('Erro de conexão'); }
 }
+
+// Polling do status efetivo quando em modo auto (para refletir fechamento automático sem refresh)
+setInterval(() => {
+  const chk = document.getElementById('cfg-horario-auto');
+  if (chk && chk.checked) carregarLojaStatus();
+}, 60000);
 
 // ===== RELÓGIO BRT =====
 function atualizarRelogio() {

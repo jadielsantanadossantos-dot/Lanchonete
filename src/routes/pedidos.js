@@ -124,6 +124,57 @@ router.post('/', validarPedido, wrapAsync(async (req, res) => {
     }
   }
 
+  // Valida que o adicional pertence ao produto (evita sabor de bebida cair em cachorro etc) — mesma regra de /api/produtos/ativos
+  {
+    const produtoIds = [...new Set(itens.map(i => parseInt(i.produto_id)).filter(Boolean))];
+    let produtosMap = new Map();
+    let vinculosMap = new Map();
+    let todosAdicionais = [];
+    if (produtoIds.length) {
+      const prods = await db.all('SELECT p.id, p.categoria_id, c.nome as categoria_nome FROM produtos p JOIN categorias c ON c.id=p.categoria_id WHERE p.id = ANY($1)', [produtoIds]);
+      prods.forEach(p => produtosMap.set(p.id, p));
+      const vinc = await db.all('SELECT adicional_id, produto_id FROM adicional_produtos');
+      vinc.forEach(v => {
+        if (!vinculosMap.has(v.adicional_id)) vinculosMap.set(v.adicional_id, new Set());
+        vinculosMap.get(v.adicional_id).add(v.produto_id);
+      });
+      const idsAdic = [...new Set(itens.flatMap(i => (i.adicionais||[]).map(a=>parseInt(a.id)).filter(Boolean)))];
+      if (idsAdic.length) {
+        todosAdicionais = await db.all('SELECT id, categoria_id, produto_id, tipo FROM adicionais WHERE id = ANY($1)', [idsAdic]);
+      }
+    }
+    const porAdic = new Map(todosAdicionais.map(a=>[a.id, a]));
+    for (const item of itens) {
+      const prod = produtosMap.get(parseInt(item.produto_id));
+      if (!prod) continue;
+      const isPizzaProd = prod.categoria_nome && ['pizza','suco','bebida'].some(cat=> prod.categoria_nome.toLowerCase().includes(cat.toLowerCase()));
+      for (const a of (item.adicionais||[])) {
+        const reg = porAdic.get(parseInt(a.id));
+        if (!reg) return res.status(400).json({ error: `Adicional inválido #${a.id} para ${item.produto_nome}` });
+        const idsVinculados = vinculosMap.has(reg.id) ? Array.from(vinculosMap.get(reg.id)) : (reg.produto_id ? [reg.produto_id] : null);
+        const mesmaCategoria = !reg.categoria_id || reg.categoria_id === prod.categoria_id;
+        const prodEsp = idsVinculados ? idsVinculados.includes(prod.id) : false;
+        const global = (!idsVinculados || idsVinculados.length===0) && mesmaCategoria;
+        let permitido = false;
+        if (isPizzaProd) {
+          if (reg.tipo==='sabor' && (prodEsp||global)) permitido=true;
+          else if ((prodEsp||global) && ['adicional','borda'].includes(reg.tipo) && reg.preco!==null) permitido=true;
+          // bebidas: sabor incluso já tratado acima
+          if (reg.tipo==='sabor' && prod.categoria_nome.toLowerCase().includes('bebida') && (prodEsp||global)) permitido=true;
+        } else {
+          permitido = (prodEsp||global) && (!reg.tipo || ['adicional','sabor','base','cobertura','acompanhamento','borda'].includes(reg.tipo));
+        }
+        // Caso especial: sabor de bebida (categoria Bebidas) só pode ir em produto Bebidas/Sucos/Pizza
+        if (reg.tipo==='sabor' && reg.categoria_id===2 && !isPizzaProd) {
+          permitido = false;
+        }
+        if (!permitido) {
+          return res.status(400).json({ error: `Adicional "${reg.id} - ${a.nome||reg.tipo}" não pertence ao produto "${item.produto_nome}"` });
+        }
+      }
+    }
+  }
+
   itens.forEach(item => {
     let itemTotal = item.preco_unitario * item.quantidade;
     if (item.adicionais) {
