@@ -623,6 +623,10 @@ async function imprimirComanda(pedidoId) {
     if (p.forma_pagamento === 'dinheiro') {
       obsPedido = obsPedido.replace(/\s*\|\s*Troco para R\$ [\d.,]+/, '').trim();
     }
+    // Tag interna do sistema não deve aparecer na comanda impressa
+    obsPedido = obsPedido.replace(/\s*\|\s*Pedido WhatsApp \(admin\)/gi, '').replace(/Pedido WhatsApp \(admin\)/gi, '').trim();
+    obsPedido = obsPedido.replace(/^\|\s*/, '').replace(/\s*\|\s*$/, '').trim();
+    if (obsPedido === '|') obsPedido = '';
 
     const win = window.open('', '_blank', 'width=420,height=650');
     win.document.write(`<!DOCTYPE html>
@@ -673,8 +677,9 @@ async function imprimirComanda(pedidoId) {
   .pay-card .label { font-size: 7px; font-weight: 800; letter-spacing: 0.8px; text-transform: uppercase; color: #000; }
   .pay-card .value { font-size: 10px; font-weight: 900; margin-top: 1mm; color: #000; }
   .obs-box { border: 2px solid #000; padding: 3mm; margin: 3mm 0; font-size: 11px; font-weight: 900; text-align: center; text-transform: uppercase; color: #000; }
-  .troco-box { border: 1.5px solid #000; padding: 2.5mm 3mm; margin: 2mm 0; background: #fff; }
-  .troco-box .linha { font-size: 10px; color: #000; }
+  .troco-box { border: 2px solid #000; padding: 3mm; margin: 3mm 0; background: #fff; }
+  .troco-box .linha { display:flex; justify-content:space-between; font-size: 13px; font-weight: 900; line-height: 1.4; color: #000; }
+  .troco-box .linha.destaque { font-size: 15px; border-top: 1.5px solid #000; margin-top: 1.5mm; padding-top: 1.5mm; }
   .rodape { text-align: center; margin-top: 4mm; padding-top: 3mm; border-top: 2px solid #000; }
   .rodape .obrigado { font-size: 11px; font-weight: 900; letter-spacing: 0.5px; text-transform: uppercase; color: #000; }
   .rodape .sub { font-size: 8px; margin-top: 1mm; color: #000; }
