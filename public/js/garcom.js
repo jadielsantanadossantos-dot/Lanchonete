@@ -29,6 +29,14 @@ function formatarQtdItem(item){
   return `${Number.isInteger(q) ? q : q.toFixed(2).replace('.', ',')}x`;
 }
 
+// Item vendido por peso: unidade 'kg' OU categoria Açaí (vendido a R$/kg, digita-se o valor)
+function isPorPeso(p){
+  if (!p) return false;
+  if (p.unidade === 'kg') return true;
+  const cat = (p.categoria_nome || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  return cat.includes('acai');
+}
+
 document.addEventListener('DOMContentLoaded', () => init());
 
 async function carregarLogoGarcom() {
@@ -651,7 +659,7 @@ async function abrirModalQuant(produtoId, contexto = 'mesa') {
   produtoSelecionado = produtos.find(p => p.id === produtoId);
   if (!produtoSelecionado) return;
 
-  const porKg = produtoSelecionado.unidade === 'kg';
+  const porKg = isPorPeso(produtoSelecionado);
   quantAtual = 1;
   adicionaisSelecionados = [];
 
@@ -822,7 +830,7 @@ function alterarQuant(delta) {
 }
 
 function atualizarTotalQuant() {
-  const porKg = produtoSelecionado.unidade === 'kg';
+  const porKg = isPorPeso(produtoSelecionado);
   let total = 0;
   let kg = 1;
 
@@ -852,7 +860,7 @@ async function confirmarAdicionarItem() {
 
   const observacao = document.getElementById('g-quant-obs').value.trim();
 
-  const porKg = produtoSelecionado.unidade === 'kg';
+  const porKg = isPorPeso(produtoSelecionado);
   let quantidade;
   if (porKg) {
     const valor = parseFloat(document.getElementById('g-quant-kg-valor').value);
