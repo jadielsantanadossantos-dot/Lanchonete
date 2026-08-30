@@ -15,6 +15,22 @@ let usuarioLogado = null;
 
 function escapeHtml(s){ if(s==null) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
+function showToast(msg, type='info', icon='') {
+  const existing = document.querySelectorAll('.toast-admin');
+  if (existing.length >= 3) existing[0].remove();
+  const toast = document.createElement('div');
+  const bgMap = { success: 'var(--color-success, #10b981)', warning: 'var(--color-warning, #f59e0b)', info: 'var(--color-primary, #3b82f6)', error: 'var(--color-danger, #ef4444)' };
+  const bg = bgMap[type] || bgMap.info;
+  toast.className = 'toast-admin toast-'+type;
+  toast.style.cssText = `position:fixed;top:20px;right:20px;background:${bg};color:white;padding:14px 18px;border-radius:12px;z-index:9999;animation:toastSlideIn 0.35s cubic-bezier(0.16,1,0.3,1);box-shadow:0 8px 24px rgba(0,0,0,0.18);display:flex;align-items:center;gap:10px;min-width:280px;max-width:420px;font-size:0.9rem;font-weight:600;line-height:1.3;`;
+  toast.innerHTML = `${icon ? `<span style="font-size:1.3rem">${icon}</span>` : ''}<span style="flex:1">${escapeHtml(msg)}</span><button onclick="this.parentElement.remove()" style="background:rgba(255,255,255,0.2);border:none;color:white;width:28px;height:28px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;line-height:1">×</button><div style="position:absolute;bottom:0;left:0;height:3px;background:rgba(255,255,255,0.5);border-radius:0 0 12px 12px;animation:toastProgress 3.5s linear forwards;right:0"></div>`;
+  const offset = document.querySelectorAll('.toast-admin').length * 76;
+  toast.style.top = (20 + offset) + 'px';
+  document.body.appendChild(toast);
+  setTimeout(() => { toast.style.animation='toastSlideOut 0.3s forwards'; setTimeout(()=>toast.remove(),300); }, 3500);
+}
+function mostrarToast(msg){ return showToast(msg); }
+
 function formatarPesoGarcom(kg){
   const v = typeof kg === 'number' ? kg : parseFloat(kg) || 0;
   return `${v.toFixed(2).replace('.', ',')} kg`;
