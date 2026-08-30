@@ -111,14 +111,14 @@ body { font-family: var(--font-sans); background: var(--color-bg); color: var(--
 /* MESAS GRID - DESKTOP BASE (auto-fill) */
 .g-mesas-grid { 
   display: grid; 
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); 
-  gap: var(--space-4); 
+  grid-template-columns: repeat(auto-fill, minmax(135px, 1fr)); 
+  gap: var(--space-3); 
 }
 .g-mesa-card { 
   background: var(--color-surface); 
   border: 2px solid var(--color-border); 
   border-radius: var(--radius-lg); 
-  padding: var(--space-5) var(--space-4); 
+  padding: var(--space-4) var(--space-3); 
   text-align: center; 
   box-shadow: var(--shadow-sm); 
   cursor: pointer; 
@@ -128,15 +128,15 @@ body { font-family: var(--font-sans); background: var(--color-bg); color: var(--
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  min-height: 160px;
+  min-height: 135px;
 }
 .g-mesa-card:active { transform: scale(0.97); }
 @media (min-width: 768px) { .g-mesa-card:hover { box-shadow: var(--shadow); transform: translateY(-2px); } }
 .g-mesa-card.g-mesa-livre { border-color: var(--color-success); background: var(--color-success-soft); }
 .g-mesa-card.g-mesa-ocupada { border-color: var(--color-primary); background: var(--color-primary-soft); }
 .g-mesa-card.g-mesa-reservada { border-color: var(--color-warning); background: var(--color-warning-soft); }
-.g-mesa-icon { font-size: 2.8rem; margin-bottom: var(--space-2); line-height: 1; }
-.g-mesa-numero { font-size: var(--text-xl); font-weight: var(--font-extrabold); color: var(--color-text); margin-bottom: var(--space-1); }
+.g-mesa-icon { font-size: 2.3rem; margin-bottom: var(--space-1); line-height: 1; }
+.g-mesa-numero { font-size: var(--text-lg); font-weight: var(--font-extrabold); color: var(--color-text); margin-bottom: var(--space-1); }
 .g-mesa-nome { font-size: var(--text-sm); color: var(--color-text-muted); margin-bottom: var(--space-2); min-height: 1.2em; word-break: break-word; }
 .g-mesa-status { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-1); font-size: var(--text-sm); font-weight: var(--font-bold); padding: var(--space-1) var(--space-3); border-radius: var(--radius-full); text-transform: uppercase; width: fit-content; margin: 0 auto; }
 .g-mesa-card.g-mesa-livre .g-mesa-status { background: var(--color-success-soft); color: var(--color-success-dark); }
@@ -411,9 +411,9 @@ body { font-family: var(--font-sans); background: var(--color-bg); color: var(--
   .g-header-title { font-size: var(--text-xl); }
   .g-header-btn { width: 48px; height: 48px; font-size: var(--text-2xl); }
   .g-section-title { font-size: var(--text-lg); }
-  .g-mesas-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--space-4); }
-  .g-mesa-card { padding: var(--space-5) var(--space-4); min-height: 160px; }
-  .g-mesa-icon { font-size: 2.8rem; }
+  .g-mesas-grid { grid-template-columns: repeat(auto-fill, minmax(135px, 1fr)); gap: var(--space-3); }
+  .g-mesa-card { padding: var(--space-4) var(--space-3); min-height: 135px; }
+  .g-mesa-icon { font-size: 2.3rem; }
   .g-mesa-numero { font-size: var(--text-xl); }
   .g-mesa-nome { font-size: var(--text-sm); }
   .g-mesa-status { font-size: var(--text-sm); padding: var(--space-1) var(--space-3); }
@@ -447,9 +447,9 @@ body { font-family: var(--font-sans); background: var(--color-bg); color: var(--
   .g-header-title { font-size: var(--text-base); }
   .g-header-btn { width: 44px; height: 44px; font-size: var(--text-lg); }
   .g-section-title { font-size: var(--text-sm); margin: var(--space-3) 0 var(--space-2); }
-  .g-mesas-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--space-2); }
-  .g-mesa-card { padding: var(--space-3) var(--space-2); min-height: 130px; }
-  .g-mesa-icon { font-size: 2rem; }
+  .g-mesas-grid { grid-template-columns: repeat(2, 1fr); gap: var(--space-2); }
+  .g-mesa-card { padding: var(--space-3) var(--space-2); min-height: 115px; }
+  .g-mesa-icon { font-size: 1.7rem; }
   .g-mesa-numero { font-size: var(--text-lg); }
   .g-mesa-nome { font-size: var(--text-xs); }
   .g-mesa-status { font-size: var(--text-xs); padding: var(--space-1) var(--space-2); }
@@ -537,7 +537,7 @@ body { font-family: var(--font-sans); background: var(--color-bg); color: var(--
   .g-container { max-width: 1000px; padding: var(--space-6); }
   .g-header { height: 72px; padding: var(--space-4) var(--space-8); }
   .g-header-title { font-size: var(--text-2xl); }
-  .g-mesas-grid { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: var(--space-5); }
+  .g-mesas-grid { grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); gap: var(--space-4); }
 }
 
 /* Landscape Mobile */

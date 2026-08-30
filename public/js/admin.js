@@ -232,7 +232,7 @@ function renderPedidos(pedidos) {
   const container = document.getElementById('pedidos-list');
   if (!pedidos.length) { container.innerHTML = '<p style="text-align:center;color:var(--gray);padding:40px">Nenhum pedido encontrado</p>'; return; }
 
-  // Separar pedidos avulsos (sem mesa_id) de pedidos de mesa
+  // Separar pedidos viagem (sem mesa_id) de pedidos de mesa
   const avulsos = pedidos.filter(p => !p.mesa_id);
   const deMesa = pedidos.filter(p => p.mesa_id);
 
@@ -244,7 +244,7 @@ function renderPedidos(pedidos) {
     gruposComanda[chave].push(p);
   });
 
-  // Renderizar avulsos como cards simples
+  // Renderizar viagens como cards simples
   let html = '';
   avulsos.forEach(p => { html += renderPedidoCard(p); });
 
@@ -354,8 +354,8 @@ function renderPedidoCard(p) {
   }
   actionsHtml.push(`<button class="btn btn-primary btn-xs" onclick="imprimirComanda(${p.id})">Imprimir</button>`);
 
-  // Selecao de motoboy para pedidos de entrega (oculta para mesa, avulso e retirada)
-  const ehAvulsoGarcom = p.bairro_entrega === 'Avulso' || (p.observacoes && p.observacoes.includes('AVULSO'));
+  // Selecao de motoboy para pedidos de entrega (oculta para mesa, viagem e retirada)
+  const ehAvulsoGarcom = p.bairro_entrega === 'Avulso' || p.bairro_entrega === 'Viagem' || (p.observacoes && (p.observacoes.includes('AVULSO') || p.observacoes.includes('VIAGEM')));
   const motoboySelect = !isRetirada && !p.mesa_id && !ehAvulsoGarcom && p.status !== 'cancelado' ? `
     <div style="margin-top: 8px;">
       <select class="filter-select" style="width:100%; font-size: 0.78rem; padding: 6px 8px;" onchange="atribuirMotoboy(${p.id}, this.value)">
@@ -368,7 +368,7 @@ function renderPedidoCard(p) {
 
   const novoBadge = isNovo ? `<span class="badge-novo">🆕 NOVO • clique para marcar lido</span>` : '';
   const cardExtraClass = isNovo ? ' pedido-card--novo' : '';
-  const mesaBadge = p.mesa_id ? `<span class="badge-mesa">Mesa ${p.mesa_id}</span>` : (p.bairro_entrega === 'Avulso' ? `<span class="badge-avulso">Avulso</span>` : '');
+  const mesaBadge = p.mesa_id ? `<span class="badge-mesa">Mesa ${p.mesa_id}</span>` : (p.bairro_entrega === 'Avulso' || p.bairro_entrega === 'Viagem' ? `<span class="badge-avulso">Viagem</span>` : '');
 
   const solicitouTag = p.observacoes && p.observacoes.includes('SOLICITOU ENTREGA') ? `<div style="background:#FFF3E0;border:1px solid #FFB74D;border-radius:6px;padding:6px 8px;margin-top:6px;font-size:0.82rem;color:#E65100">⚠️ Cliente solicitou entrega via WhatsApp</div>` : '';
   const enderecoHtml = isRetirada

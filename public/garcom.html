@@ -41,9 +41,6 @@
   <!-- ============= TELA: LISTA DE MESAS ============= -->
   <div id="g-page-mesas" class="g-page active">
     <div class="g-container">
-      <button class="btn btn-primary btn-block" onclick="abrirPedidoAvulso()">
-        + Pedido Avulso (sem mesa)
-      </button>
       <h3 class="g-section-title">Mesas</h3>
       <div id="g-mesas-grid" class="g-mesas-grid"></div>
     </div>
@@ -214,69 +211,6 @@
       </button>
     </div>
   </div>
-
-  <!-- ============= TELA: PEDIDO AVULSO ============= -->
-  <div id="g-page-avulso" class="g-page">
-    <div class="g-container">
-      <h3 class="g-section-title">Pedido Avulso (sem mesa)</h3>
-
-      <div class="g-filtros-sticky">
-        <input type="text" id="g-busca-produto-avulso" class="form-control g-busca-produto" placeholder="&#128269; Buscar produto por nome..." oninput="buscarProdutoAvulso()" autocomplete="off">
-        <div class="g-categorias" id="g-categorias-avulso"></div>
-      </div>
-      <div id="g-produtos-avulso" class="g-produtos-lista"></div>
-
-      <div class="g-comanda-header" style="margin-top:20px">
-        <h3>Carrinho do avulso</h3>
-      </div>
-
-      <div id="g-avulso-carrinho"></div>
-      <div id="g-avulso-empty" class="g-empty" style="display:none">
-        <div class="g-empty-icon">&#128722;</div>
-        <p>Carrinho vazio</p>
-      </div>
-
-      <div id="g-avulso-total" class="g-total-box" style="display:none">
-        <div class="g-total-row">
-          <span>Total</span>
-          <span id="g-avulso-valor">R$ 0,00</span>
-        </div>
-      </div>
-
-      <div class="g-comanda-header" style="margin-top:20px">
-        <h3>Dados do cliente e pagamento</h3>
-      </div>
-
-      <div class="g-form-group">
-        <label>Nome do cliente (só para a comanda)</label>
-        <input type="text" id="g-avulso-nome" placeholder="Ex: João Silva">
-      </div>
-
-      <div class="g-form-group">
-        <label>Telefone do cliente</label>
-        <input type="tel" id="g-avulso-telefone" placeholder="(00) 00000-0000" oninput="formatarTel(this)">
-      </div>
-
-      <div class="g-form-group">
-        <label>Forma de pagamento</label>
-        <select id="g-avulso-forma" class="g-select">
-          <option value="pix">Pix</option>
-          <option value="dinheiro">Dinheiro</option>
-          <option value="cartao">Cartão</option>
-        </select>
-      </div>
-
-      <button id="g-btn-enviar-avulso" class="btn btn-success btn-block" style="display:none" onclick="enviarPedidoAvulso()">
-        Enviar Pedido para Cozinha
-      </button>
-    </div>
-  </div>
-
-  <!-- CART FAB AVULSO (flutuante) -->
-  <button class="g-cart-fab hidden" id="g-cart-fab-avulso" onclick="scrollParaCarrinhoAvulso()" aria-label="Carrinho avulso">
-    🛒
-    <span class="g-cart-badge" id="g-cart-badge-avulso">0</span>
-  </button>
 
   <!-- MODAL: TROCA DE SENHA OBRIGATÓRIA -->
   <div class="g-modal-overlay" id="g-modal-troca-senha" style="display:none">
