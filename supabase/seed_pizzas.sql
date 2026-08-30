@@ -1,8 +1,8 @@
--- Inserir categorias de pizzas
+-- Inserir categorias de pizzas (ordem: Tradicional -> Especial -> Tradicional Doce -> Especial Doce)
 INSERT INTO categorias (nome, ordem) VALUES
 ('Pizza Tradicional', 10),
-('Pizza Tradicional Doce', 11),
-('Pizza Especial', 12),
+('Pizza Especial', 11),
+('Pizza Tradicional Doce', 12),
 ('Pizza Especial Doce', 13)
 ON CONFLICT (nome) DO NOTHING;
 

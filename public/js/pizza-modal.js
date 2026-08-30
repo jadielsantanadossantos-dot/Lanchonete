@@ -149,13 +149,24 @@
     GRUPOS_SABOR.forEach(g => { map[g.key] = []; });
     (cfg.produtos || []).forEach(p => {
       if (!isPizza(p)) return;
-      const g = classificarGrupoSabor(p.categoria_nome);
       (p.adicionais || []).forEach(a => {
         if (a.tipo === 'sabor' && a.ativo !== false && !visto.has(a.id)) {
           visto.add(a.id);
+          // Classifica pelo categoria do SABOR (a.categoria_nome / a.categoria_id), não pela do produto
+          // fallback para p.categoria_nome quando categoria do adicional não estiver disponível
+          const nomeCatSabor = a.categoria_nome || a.categoria || '';
+          const g = nomeCatSabor ? classificarGrupoSabor(nomeCatSabor) : classificarGrupoSabor(p.categoria_nome);
           map[g].push(a);
           saborGrupoPorId.set(a.id, g);
         }
+      });
+    });
+    // Dentro de cada grupo, ordenar por categoria_ordem e nome para garantir ordem local Trad -> Especial -> Doce
+    GRUPOS_SABOR.forEach(g => {
+      map[g.key].sort((x, y) => {
+        const ox = x.categoria_ordem ?? 999, oy = y.categoria_ordem ?? 999;
+        if (ox !== oy) return ox - oy;
+        return (x.nome || '').localeCompare(y.nome || '');
       });
     });
     return GRUPOS_SABOR.map(g => ({ key: g.key, titulo: g.titulo, itens: map[g.key] }))

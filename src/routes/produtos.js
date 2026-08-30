@@ -90,7 +90,12 @@ router.get('/', wrapAsync(async (req, res) => {
     ORDER BY p.preco ASC, p.nome
   `);
 
-  const adicionais = await db.all('SELECT * FROM adicionais WHERE ativo = true');
+  const adicionais = await db.all(`
+    SELECT a.*, c.nome as categoria_nome, c.ordem as categoria_ordem FROM adicionais a
+    LEFT JOIN categorias c ON a.categoria_id = c.id
+    WHERE a.ativo = true
+    ORDER BY c.ordem ASC NULLS LAST, a.nome ASC, a.id ASC
+  `);
 
   const produtos = rows.map(p => ({
     ...p,
@@ -110,7 +115,12 @@ router.get('/ativos', wrapAsync(async (req, res) => {
     ORDER BY c.ordem ASC NULLS LAST, p.preco ASC, p.nome
   `, incluirGarcom);
 
-  const adicionais = await db.all('SELECT * FROM adicionais WHERE ativo = true');
+  const adicionais = await db.all(`
+    SELECT a.*, c.nome as categoria_nome, c.ordem as categoria_ordem FROM adicionais a
+    LEFT JOIN categorias c ON a.categoria_id = c.id
+    WHERE a.ativo = true
+    ORDER BY c.ordem ASC NULLS LAST, a.nome ASC, a.id ASC
+  `);
   let pizzaCatIds = new Set();
   try {
     const pizzaCats = await db.all("SELECT id FROM categorias WHERE nome ILIKE '%pizza%'");
@@ -176,7 +186,12 @@ router.get('/:id', wrapAsync(async (req, res) => {
   `, req.params.id);
   if (!row) return res.status(404).json({ error: 'Produto não encontrado' });
 
-  const adicionais = await db.all('SELECT * FROM adicionais WHERE ativo = true AND (categoria_id IS NULL OR categoria_id = $1)', row.categoria_id);
+  const adicionais = await db.all(`
+    SELECT a.*, c.nome as categoria_nome, c.ordem as categoria_ordem FROM adicionais a
+    LEFT JOIN categorias c ON a.categoria_id = c.id
+    WHERE a.ativo = true AND (a.categoria_id IS NULL OR a.categoria_id = $1)
+    ORDER BY c.ordem ASC NULLS LAST, a.nome ASC, a.id ASC
+  `, row.categoria_id);
 
   res.json({ ...row, adicionais });
 }));
