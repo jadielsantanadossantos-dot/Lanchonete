@@ -49,7 +49,7 @@ function buildApp() {
     script-src-attr 'unsafe-inline';
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
     font-src 'self' https://fonts.gstatic.com;
-    img-src 'self' data: blob: ${supabaseOrigin || 'https:'};
+    img-src 'self' data: blob: ${supabaseOrigin || 'https:'} https://images.unsplash.com https://*.unsplash.com https://via.placeholder.com https://picsum.photos;
     connect-src 'self' ${supabaseOrigin} ${supabaseWss};
     object-src 'none';
     frame-ancestors 'none';
