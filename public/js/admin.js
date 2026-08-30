@@ -677,7 +677,7 @@ async function imprimirComanda(pedidoId) {
   .adic-linha:last-child { border-bottom: none; }
   .adic-nome { color: #000; }
   .adic-val { font-weight: 900; white-space: nowrap; margin-left: 2mm; color: #000; }
-  .item-obs { margin: 2mm 0 0 0; border: 2px solid #000; padding: 2mm; font-size: 10px; font-weight: 800; font-style: normal; background: #fff; text-transform: uppercase; color: #000; }
+  .item-obs { margin: 2.5mm 0 0 0; border: 2px solid #000; padding: 2.5mm; font-size: 13px; font-weight: 900; font-style: normal; background: #fff; text-transform: uppercase; color: #000; line-height: 1.4; }
   .item-obs::before { content: 'OBS: '; font-weight: 900; }
   .item-sep { display: none; }
   .totals { border: 1px solid #000; padding: 2.5mm; margin: 3mm 0; }
@@ -690,7 +690,7 @@ async function imprimirComanda(pedidoId) {
   .pay-card { border: 1px solid #000; padding: 2mm; text-align: center; background: #fff; }
   .pay-card .label { font-size: 7px; font-weight: 800; letter-spacing: 0.8px; text-transform: uppercase; color: #000; }
   .pay-card .value { font-size: 10px; font-weight: 900; margin-top: 1mm; color: #000; }
-  .obs-box { border: 2px solid #000; padding: 3mm; margin: 3mm 0; font-size: 11px; font-weight: 900; text-align: center; text-transform: uppercase; color: #000; }
+  .obs-box { border: 2.5px solid #000; padding: 3.5mm; margin: 3.5mm 0; font-size: 14px; font-weight: 900; text-align: center; text-transform: uppercase; color: #000; line-height: 1.4; }
   .troco-box { border: 2px solid #000; padding: 3mm; margin: 3mm 0; background: #fff; }
   .troco-box .linha { display:flex; justify-content:space-between; font-size: 13px; font-weight: 900; line-height: 1.4; color: #000; }
   .troco-box .linha.destaque { font-size: 15px; border-top: 1.5px solid #000; margin-top: 1.5mm; padding-top: 1.5mm; }
