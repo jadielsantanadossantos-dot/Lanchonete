@@ -1156,15 +1156,21 @@ async function gerarPixQR(valor) {
     if (data.qrcode) {
       pixPayloadAtual = data.payload || '';
       document.getElementById('pix-qr').innerHTML = `<img src="${data.qrcode}" alt="QR Code Pix">`;
-      document.getElementById('pix-key').textContent = data.chave;
+      const keyEl = document.getElementById('pix-key');
+      keyEl.textContent = data.chave;
+      keyEl.style.display = 'none';
     } else {
       pixPayloadAtual = '';
       document.getElementById('pix-qr').innerHTML = '<p>Chave Pix não configurada</p>';
-      document.getElementById('pix-key').textContent = 'Configure a chave Pix no painel admin';
+      const keyEl = document.getElementById('pix-key');
+      keyEl.textContent = 'Configure a chave Pix no painel admin';
+      keyEl.style.display = 'none';
     }
   } catch (e) {
     pixPayloadAtual = '';
     document.getElementById('pix-qr').innerHTML = '<p>Erro ao gerar QR Code</p>';
+    const keyEl2 = document.getElementById('pix-key');
+    if (keyEl2) keyEl2.style.display = 'none';
   }
 }
 
