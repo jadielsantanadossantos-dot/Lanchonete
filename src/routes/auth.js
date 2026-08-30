@@ -232,13 +232,13 @@ router.put('/usuarios/:id', middlewareAdmin, validarAtualizarUsuario, wrapAsync(
   res.json({ success: true });
 }));
 
-// Redefinir senha do garçom (gera senha forte + flag trocar_senha)
+// Redefinir senha do garçom (define 1234 + flag trocar_senha para usuario escolher outra senha)
 router.post('/usuarios/:id/redefinir-senha', middlewareAdmin, wrapAsync(async (req, res) => {
   const user = await db.get('SELECT * FROM usuarios WHERE id = $1', req.params.id);
   if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
   if (user.id === req.usuario.id) return res.status(400).json({ error: 'Use a página de alterar senha para sua própria conta' });
 
-  const novaSenha = gerarSenhaAleatoria(8);
+  const novaSenha = '1234';
   const hash = gerarHash(novaSenha);
   await db.run('UPDATE usuarios SET senha_hash = $1, trocar_senha = true WHERE id = $2', hash, req.params.id);
 
