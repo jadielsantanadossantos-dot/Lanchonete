@@ -190,24 +190,31 @@
     return n;
   }
 
-  const ORDEM_TIER = ['tradicional', 'especial', 'doce_trad', 'doce_esp'];
+  // Ordem por preço: tradicional/doce_trad R$22 < especial/doce_esp R$25
+  // Mantém compatibilidade com regra: tradicional + especial = cobra especial
+  const ORDEM_TIER = ['tradicional', 'doce_trad', 'especial', 'doce_esp'];
 
-  // Preço final considera o maior tier entre os sabores selecionados:
+  // Preço final considera o maior tier (maior preço) entre os sabores selecionados:
   // se houver 1 tradicional + 1 especial, cobra o preço da especial (mesmo tamanho).
+  // Usa preço real do produto para ser à prova de futuras mudanças de preço.
   function precoFinal() {
     const prod = produtoTamanho();
     if (!prod) return { nome: '', preco: 0 };
-    let tier = 'tradicional';
+    const letra = rotuloTamanho(prod.nome, prod.categoria_nome);
+    let melhor = prod;
+    let maxPreco = parseFloat(prod.preco) || 0;
     saboresSel.forEach(id => {
       const t = saborGrupoPorId.get(id) || 'tradicional';
-      if (ORDEM_TIER.indexOf(t) > ORDEM_TIER.indexOf(tier)) tier = t;
+      const alvo = (cfg.produtos || []).find(p =>
+        isPizza(p) && classificarGrupoSabor(p.categoria_nome) === t && rotuloTamanho(p.nome, p.categoria_nome) === letra
+      );
+      const preco = alvo ? parseFloat(alvo.preco) : maxPreco;
+      if (preco > maxPreco || (preco === maxPreco && ORDEM_TIER.indexOf(t) > ORDEM_TIER.indexOf(classificarGrupoSabor(melhor.categoria_nome)))) {
+        maxPreco = preco;
+        melhor = alvo || melhor;
+      }
     });
-    const letra = rotuloTamanho(prod.nome, prod.categoria_nome);
-    const alvo = (cfg.produtos || []).find(p =>
-      isPizza(p) && classificarGrupoSabor(p.categoria_nome) === tier && rotuloTamanho(p.nome, p.categoria_nome) === letra
-    );
-    const base = alvo || prod;
-    return { id: base.id, nome: base.nome, preco: base.preco };
+    return { id: melhor.id, nome: melhor.nome, preco: melhor.preco };
   }
 
   function totalAtual() {
