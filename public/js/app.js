@@ -648,9 +648,11 @@ function abrirProduto(id) {
       }, 10);
     } else {
       adcSection.style.display = 'none';
+      adcList.innerHTML = '';
     }
   } else {
     adcSection.style.display = 'none';
+    adcList.innerHTML = '';
   }
 
   atualizarBtnAdd();

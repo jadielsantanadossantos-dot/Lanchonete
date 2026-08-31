@@ -788,6 +788,7 @@ async function abrirModalQuant(produtoId, contexto = 'mesa') {
     }, 10);
   } else {
     adcSection.style.display = 'none';
+    adcList.innerHTML = '';
   }
 
   atualizarTotalQuant();
