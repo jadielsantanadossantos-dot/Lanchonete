@@ -137,12 +137,20 @@ router.post('/mesa/:mesaId/item', wrapAsync(async (req, res) => {
   const comanda = await getOrCreateComanda(mesaId, cliente_nome);
 
   const unidadeItem = (unidade === 'kg' || produto.unidade === 'kg') ? 'kg' : 'un';
+  let qtd = parseFloat(quantidade);
+  if (isNaN(qtd) || qtd <= 0) qtd = 1;
+  if (unidadeItem === 'un') {
+    if (!Number.isInteger(qtd) || qtd < 1 || qtd > 99) return res.status(400).json({ error: 'Quantidade inválida para produto por unidade (1 a 99)' });
+  } else {
+    if (qtd < 0.05 || qtd > 10) return res.status(400).json({ error: 'Quantidade inválida para produto por peso (0.05kg a 10kg)' });
+    qtd = Math.round(qtd * 1000) / 1000;
+  }
   const adicJson = adicionais && adicionais.length ? JSON.stringify(adicionais) : null;
   const itemStmt = db.prepare(`
     INSERT INTO comanda_itens (comanda_id, produto_id, produto_nome, quantidade, preco_unitario, observacao, adicionais_json, unidade)
     VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id
   `);
-  await itemStmt.run(comanda.id, produto_id, produto.nome, quantidade || 1, produto.preco, observacao || '', adicJson, unidadeItem);
+  await itemStmt.run(comanda.id, produto_id, produto.nome, qtd, produto.preco, observacao || '', adicJson, unidadeItem);
 
   if (req.emitToMesa) {
     await req.emitToMesa(mesaId, 'comanda-atualizada', { mesaId: parseInt(mesaId) });

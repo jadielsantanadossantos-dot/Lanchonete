@@ -136,7 +136,7 @@ router.post('/', validarPedido, wrapAsync(async (req, res) => {
       pizzaCatIds = new Set(pizzaCats.map(r => r.id));
     } catch (e) { pizzaCatIds = new Set([7,26,27,28]); }
     if (produtoIds.length) {
-      const prods = await db.all('SELECT p.id, p.categoria_id, c.nome as categoria_nome FROM produtos p JOIN categorias c ON c.id=p.categoria_id WHERE p.id = ANY($1)', [produtoIds]);
+      const prods = await db.all('SELECT p.id, p.categoria_id, p.unidade, c.nome as categoria_nome FROM produtos p JOIN categorias c ON c.id=p.categoria_id WHERE p.id = ANY($1)', [produtoIds]);
       prods.forEach(p => produtosMap.set(p.id, p));
       const vinc = await db.all('SELECT adicional_id, produto_id FROM adicional_produtos');
       vinc.forEach(v => {
@@ -181,6 +181,21 @@ router.post('/', validarPedido, wrapAsync(async (req, res) => {
           return res.status(400).json({ error: `Adicional "${reg.id} - ${a.nome||reg.tipo}" não pertence ao produto "${item.produto_nome}"` });
         }
       }
+    }
+  }
+
+  // Valida quantidade vs unidade do produto (evita hamburger 0.33x etc)
+  for (const item of itens) {
+    const prod = produtosMap.get(parseInt(item.produto_id));
+    const prodUnidade = prod ? prod.unidade : (item.unidade === 'kg' ? 'kg' : 'un');
+    const unidadeItem = item.unidade === 'kg' ? 'kg' : 'un';
+    if (prodUnidade === 'kg' && unidadeItem !== 'kg') return res.status(400).json({ error: `Produto "${item.produto_nome}" é vendido por kg` });
+    if (prodUnidade === 'un' && unidadeItem === 'kg') return res.status(400).json({ error: `Produto "${item.produto_nome}" é vendido por unidade` });
+    const qtd = parseFloat(item.quantidade);
+    if (unidadeItem === 'kg') {
+      if (isNaN(qtd) || qtd < 0.05 || qtd > 10) return res.status(400).json({ error: `Quantidade inválida para "${item.produto_nome}" (0.05kg a 10kg)` });
+    } else {
+      if (!Number.isInteger(qtd) || qtd < 1 || qtd > 99) return res.status(400).json({ error: `Quantidade inválida para "${item.produto_nome}" (1 a 99 unidades)` });
     }
   }
 
