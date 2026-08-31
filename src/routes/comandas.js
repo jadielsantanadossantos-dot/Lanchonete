@@ -199,7 +199,7 @@ router.post('/mesa/:mesaId/item', wrapAsync(async (req, res) => {
       if (reg.tipo==='sabor' && reg.categoria_id===2 && !isPizza) permitido=false;
       if (!permitido) return res.status(400).json({ error: `Adicional "${reg.nome}" não pertence ao produto "${produto.nome}"` });
     }
-    adicionaisNorm = adicionais.map(a => { const r = porId.get(parseInt(a.id)); return { id: r.id, nome: r.nome, preco: parseFloat(r.preco)||0 }; });
+    adicionaisNorm = adicionais.map(a => { const r = porId.get(parseInt(a.id)); return { id: r.id, nome: /borda/i.test(r.tipo||'')?`Borda ${r.nome}`:r.nome, preco: parseFloat(r.preco)||0 }; });
   }
   const adicJson = adicionaisNorm.length ? JSON.stringify(adicionaisNorm) : null;
   const obsSanitizada = sanitizarString(observacao || '');

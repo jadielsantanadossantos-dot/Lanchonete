@@ -202,11 +202,12 @@ router.post('/', validarPedido, wrapAsync(async (req, res) => {
 
   const adicionalPrecoMap = new Map();
   const adicionalNomeMap = new Map();
+  const adicionalTipoMap = new Map();
   {
     const allIds = [...new Set(itens.flatMap(i => (i.adicionais||[]).map(a=>parseInt(a.id)).filter(Boolean)))];
     if (allIds.length) {
-      const regs = await db.all('SELECT id, nome, preco FROM adicionais WHERE id = ANY($1)', [allIds]);
-      regs.forEach(r => { adicionalPrecoMap.set(r.id, parseFloat(r.preco)||0); adicionalNomeMap.set(r.id, r.nome); });
+      const regs = await db.all('SELECT id, nome, preco, tipo FROM adicionais WHERE id = ANY($1)', [allIds]);
+      regs.forEach(r => { adicionalPrecoMap.set(r.id, parseFloat(r.preco)||0); adicionalNomeMap.set(r.id, /borda/i.test(r.tipo||'') ? `Borda ${r.nome}` : r.nome); adicionalTipoMap.set(r.id, r.tipo); });
     }
   }
   itens.forEach(item => {

@@ -257,6 +257,40 @@ function renderPedidos(pedidos) {
 function isRetiradaPedido(p) {
   return p.bairro_entrega === 'Retirada no local' || (p.endereco_entrega && String(p.endereco_entrega).startsWith('Retirada'));
 }
+const _BORDA_NOMES_SET=new Set(['CHOCOLATE','CHOCOLATE BRANCO','NUTELLA','GOIABADA','CATUPIRY','CHEDDAR','CREAM CHEESE']);
+function isBordaAdicional(a){
+  const raw=String(a.adicional_nome||a.nome||'').trim();
+  if(/borda/i.test(raw)) return true;
+  const up=raw.toUpperCase();
+  if(_BORDA_NOMES_SET.has(up) && (parseFloat(a.preco)||0) > 0) return true;
+  if(_BORDA_NOMES_SET.has(up.replace(/^BORDA\s+/i,'')) && (parseFloat(a.preco)||0)>0) return true;
+  return false;
+}
+function _displayBordaNome(a){ return String(a.adicional_nome||a.nome||'').replace(/^borda\s+/i,'').trim(); }
+function isPizzaItemNome(n){ return /pizza/i.test(String(n||'')); }
+function itemTemBorda(it){ return (it.adicionais||[]).some(isBordaAdicional); }
+function isPizzaComBordaItem(it){ return isPizzaItemNome(it.produto_nome) && itemTemBorda(it); }
+function pedidoTemPizzaComBorda(p){ return (p.itens||[]).some(isPizzaComBordaItem); }
+function testarDestaquePizzaBordaLocal(){
+  const mock={
+    id:9999, status:'recebido', cliente_nome:'TESTE LOCAL', cliente_telefone:'(11) 99999-9999',
+    criado_em:new Date().toISOString(), total:89.90, taxa_entrega:5, forma_pagamento:'pix', pix_confirmado:false,
+    bairro_entrega:'Centro', endereco_entrega:'Rua Teste, 123', observacoes:'TESTE LOCAL - PIZZA C/ BORDA',
+    itens:[
+      {id:9001, produto_nome:'Pizza Grande - Calabresa', quantidade:1, preco_unitario:59.90, criado_em:new Date().toISOString(), adicionais:[{adicional_nome:'Borda Catupiry', preco:15},{adicional_nome:'Extra Bacon', preco:10}], observacao:''},
+      {id:9002, produto_nome:'Coca-Cola 2L', quantidade:1, preco_unitario:10, criado_em:new Date().toISOString(), adicionais:[], observacao:''}
+    ]
+  };
+  const mock2={
+    id:9998, status:'recebido', cliente_nome:'TESTE SEM BORDA', cliente_telefone:'(11) 98888-8888',
+    criado_em:new Date().toISOString(), total:45, taxa_entrega:0, forma_pagamento:'dinheiro',
+    bairro_entrega:'Retirada no local', endereco_entrega:'Retirada no local', observacoes:'',
+    itens:[{id:9003, produto_nome:'Pizza Média - Mussarela', quantidade:1, preco_unitario:45, criado_em:new Date().toISOString(), adicionais:[{adicional_nome:'Bacon', preco:0}], observacao:''}]
+  };
+  todosPedidos=[mock,mock2,...todosPedidos]; pedidosNovos.add(9999); setTimeout(()=>pedidosNovos.delete(9999),60000); filtrarPedidosPorTab(); showToast('Mocks de teste injetados: #9999 com BORDA destacado, #9998 sem','success','🧪'); setTimeout(()=>{ if(confirm('Testar impressão da comanda #9999 com destaque?')) imprimirComanda(9999); },400);
+  return 'OK - cards #9999 e #9998 injetados';
+}
+window.testarDestaquePizzaBordaLocal=testarDestaquePizzaBordaLocal;
 function renderPedidoCard(p) {
   const isNovo = pedidosNovos.has(p.id);
   const isRetirada = isRetiradaPedido(p);
@@ -272,6 +306,7 @@ function renderPedidoCard(p) {
       isNewPedido = Math.abs(maxItemTime - pedidoCriado) < 8000;
     } catch(e) {}
   }
+  const hasPizzaBorda = pedidoTemPizzaComBorda(p);
   const itensHtml = p.itens.map(i => {
     const isItemNovo = isNovo && (() => {
       try {
@@ -280,11 +315,20 @@ function renderPedidoCard(p) {
         return (maxItemTime - it) < 5000;
       } catch(e){ return false; }
     })();
-    const lineClass = isItemNovo ? 'pedido-item-line pedido-item-line--novo' : 'pedido-item-line';
+    const isPizzaBorda = isPizzaComBordaItem(i);
+    let lineClass = isItemNovo ? 'pedido-item-line pedido-item-line--novo' : 'pedido-item-line';
+    if (isPizzaBorda) lineClass += ' pedido-item--pizza-borda';
     const badgeItemNovo = isItemNovo ? `<span class="badge-item-novo">NOVO</span>` : '';
-    let line = `<div class="${lineClass}" ${isItemNovo ? `data-item-id="${i.id}" onclick="marcarItemLido(event, ${p.id}, ${i.id})" style="cursor:pointer" title="Clique para marcar item como lido"` : ''}><span>${i.quantidade}x ${escapeHtml(i.produto_nome)} ${badgeItemNovo}</span><span>R$ ${(i.preco_unitario * i.quantidade).toFixed(2)}</span></div>`;
+    const badgePizzaBorda = isPizzaBorda ? `<span class="badge-borda">🧀 BORDA</span>` : '';
+    let line = `<div class="${lineClass}" ${isItemNovo ? `data-item-id="${i.id}" onclick="marcarItemLido(event, ${p.id}, ${i.id})" style="cursor:pointer" title="Clique para marcar item como lido"` : ''}><span>${i.quantidade}x ${escapeHtml(i.produto_nome)} ${badgeItemNovo}${badgePizzaBorda}</span><span>R$ ${(i.preco_unitario * i.quantidade).toFixed(2)}</span></div>`;
     if (i.adicionais && i.adicionais.length) {
-      line += i.adicionais.map(a => `<div class="pedido-item-adicional">+ ${escapeHtml(a.adicional_nome)} (R$ ${a.preco.toFixed(2)})</div>`).join('');
+      line += i.adicionais.map(a => {
+        const borda = isBordaAdicional(a);
+        const cls = borda ? 'pedido-item-adicional--borda' : 'pedido-item-adicional';
+        const prefix = borda ? '🧀 BORDA: ' : '+ ';
+        const nomeExib = borda ? _displayBordaNome(a) : a.adicional_nome;
+        return `<div class="${cls}"><span>${prefix}${escapeHtml(nomeExib)}</span><span>${a.preco>0?'R$ '+(a.preco * i.quantidade).toFixed(2):'Incluído'}</span></div>`;
+      }).join('');
     }
     if (i.observacao) line += `<div class="pedido-item-adicional">Obs: ${escapeHtml(i.observacao)}</div>`;
     return line;
@@ -342,7 +386,8 @@ function renderPedidoCard(p) {
   ` : '';
 
   const novoBadge = isNovo ? `<span class="badge-novo">🆕 NOVO • clique para marcar lido</span>` : '';
-  const cardExtraClass = isNovo ? ' pedido-card--novo' : '';
+  const bordaBadge = hasPizzaBorda ? `<span class="badge-borda">🧀 BORDA</span>` : '';
+  const cardExtraClass = (isNovo ? ' pedido-card--novo' : '') + (hasPizzaBorda ? ' pedido-card--pizza-borda' : '');
   const mesaBadge = p.mesa_id ? `<span class="badge-mesa">Mesa ${p.mesa_id}</span>` : (p.bairro_entrega === 'Avulso' || p.bairro_entrega === 'Viagem' ? `<span class="badge-avulso">Viagem</span>` : '');
 
   const solicitouTag = p.observacoes && p.observacoes.includes('SOLICITOU ENTREGA') ? `<div style="background:#FFF3E0;border:1px solid #FFB74D;border-radius:6px;padding:6px 8px;margin-top:6px;font-size:0.82rem;color:#E65100">⚠️ Cliente solicitou entrega via WhatsApp</div>` : '';
@@ -352,7 +397,7 @@ function renderPedidoCard(p) {
   return `
     <div class="pedido-card status-${p.status}${cardExtraClass}" data-pedido-id="${p.id}" onclick="marcarPedidoLido(${p.id})" style="${isNovo ? 'cursor:pointer' : ''}" title="${isNovo ? 'Clique para marcar como lido' : ''}">
       <div class="pedido-header">
-        <span class="pedido-id">#${p.id} ${mesaBadge} ${novoBadge}</span>
+        <span class="pedido-id">#${p.id} ${mesaBadge} ${novoBadge}${bordaBadge}</span>
         <span class="status-badge status-${p.status}">${statusLabels[p.status]}</span>
       </div>
       <div class="pedido-time">${new Date(p.criado_em).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</div>
@@ -563,16 +608,25 @@ async function confirmarPix(id) {
   carregarPedidos();
 }
 
+function imprimirComandaObj(p){ return _imprimirComandaObj(p); }
 async function imprimirComanda(pedidoId) {
   try {
+    const localMock = (typeof todosPedidos!=='undefined'?todosPedidos.find(x=>String(x.id)===String(pedidoId)):null);
+    if(localMock && String(localMock.id).startsWith('999')) return _imprimirComandaObj(localMock);
     const res = await authFetch(`/api/pedidos/${pedidoId}`);
     if (!res.ok) throw new Error('Pedido não encontrado');
     const p = await res.json();
+    return _imprimirComandaObj(p);
+  } catch(e){ showToast('Erro ao gerar comanda: '+e.message); }
+}
+function _imprimirComandaObj(p){
+  try {
 
     const dataHora = new Date(p.criado_em).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
     const payLabel = payLabels[p.forma_pagamento] || p.forma_pagamento;
     const statusLabel = statusLabels[p.status] || p.status;
 
+    const _isPizzaPrint = n => /pizza/i.test(String(n||''));
     let itensHtml = '';
     let subtotalItens = 0;
     let totalAdicionais = 0;
@@ -581,17 +635,25 @@ async function imprimirComanda(pedidoId) {
       subtotalItens += itemTotal;
       const adicionaisTotal = (item.adicionais || []).reduce((s,a)=>s + a.preco * item.quantidade, 0);
       totalAdicionais += adicionaisTotal;
-      const totalComAdic = itemTotal + adicionaisTotal;
+      const isPizzaBordaPrint = _isPizzaPrint(item.produto_nome) && (item.adicionais||[]).some(a=> isBordaAdicional(a));
+      const blocoCls = isPizzaBordaPrint ? 'item-bloco item-bloco--pizza-borda' : 'item-bloco';
+      const bordaBadgePrint = isPizzaBordaPrint ? ' <span class="badge-borda-print">🧀 BORDA RECHEADA</span>' : '';
       itensHtml += `
-        <div class="item-bloco">
+        <div class="${blocoCls}">
           <div class="item-header">
             <span class="item-qty">${item.quantidade}x</span>
-            <span class="item-nome">${escapeHtml(item.produto_nome)}</span>
+            <span class="item-nome">${escapeHtml(item.produto_nome)}${bordaBadgePrint}</span>
             <span class="item-val">R$ ${itemTotal.toFixed(2)}</span>
           </div>
           ${(item.adicionais && item.adicionais.length) ? `
             <div class="item-adics">
-              ${item.adicionais.map(a=>`<div class="adic-linha"><span class="adic-nome">↳ ${escapeHtml(a.adicional_nome)}</span><span class="adic-val">${a.preco > 0 ? 'R$ ' + (a.preco * item.quantidade).toFixed(2) : 'Incluído'}</span></div>`).join('')}
+              ${item.adicionais.map(a=>{
+                const borda = isBordaAdicional(a);
+                const cls = borda ? 'adic-linha adic-linha--borda' : 'adic-linha';
+                const pref = borda ? '🧀 BORDA RECHEADA: ' : '↳ ';
+                const nEx=borda?_displayBordaNome(a):a.adicional_nome;
+                return `<div class="${cls}"><span class="adic-nome">${pref}${escapeHtml(nEx)}</span><span class="adic-val">${a.preco > 0 ? 'R$ ' + (a.preco * item.quantidade).toFixed(2) : 'Incluído'}</span></div>`;
+              }).join('')}
             </div>
           ` : ''}
           ${item.observacao ? `<div class="item-obs">💬 OBS: ${escapeHtml(item.observacao)}</div>` : ''}
@@ -647,6 +709,9 @@ async function imprimirComanda(pedidoId) {
   .sep-strong { border-top: 2px solid #000; margin: 3mm 0; }
   .itens-lista { border: 2px solid #000; padding: 2.5mm; margin: 3mm 0; }
   .itens-titulo { font-size: 9px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; text-align: center; border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 1.5mm 0; margin-bottom: 2mm; }
+  .item-bloco--pizza-borda { border: 2.5px solid #000 !important; background: #FFF7ED !important; padding: 2mm !important; }
+  .badge-borda-print { display: inline-block; border: 1.5px solid #000; padding: 0.5mm 2mm; font-size: 9px; font-weight: 900; background: #000; color: #fff; margin-left: 1.5mm; vertical-align: middle; }
+  .adic-linha--borda { background: #FFF7ED !important; border: 1.5px solid #000 !important; padding: 1.5mm 2mm !important; margin: 1mm 0; font-size: 12px !important; }
   .item-bloco { border-bottom: 1px dashed #000; padding: 0 0 2mm 0; margin: 0 0 2mm 0; }
   .item-bloco:last-child { border-bottom: none; padding-bottom: 0; margin-bottom: 0; }
   .item-header { display: flex; align-items: center; gap: 2mm; font-size: 12px; border-bottom: 1px solid #000; padding-bottom: 1.5mm; margin-bottom: 1.5mm; }
