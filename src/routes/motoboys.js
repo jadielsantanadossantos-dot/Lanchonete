@@ -16,9 +16,20 @@ router.get('/', middlewareAdmin, wrapAsync(async (req, res) => {
 
 // Resumo de entregas e taxas por motoboy (periodo: hoje | semana | mes)
 router.get('/resumo', middlewareAdmin, wrapAsync(async (req, res) => {
-  const { periodo } = req.query;
+  const { periodo, data_inicio, data_fim } = req.query;
   let dateFilter = '';
-  if (periodo === 'hoje') {
+  const params = [];
+  let pIdx = 1;
+  if (data_inicio && data_fim) {
+    dateFilter = `AND p.criado_em::date BETWEEN $${pIdx++} AND $${pIdx++}`;
+    params.push(data_inicio, data_fim);
+  } else if (data_inicio) {
+    dateFilter = `AND p.criado_em::date >= $${pIdx++}`;
+    params.push(data_inicio);
+  } else if (data_fim) {
+    dateFilter = `AND p.criado_em::date <= $${pIdx++}`;
+    params.push(data_fim);
+  } else if (periodo === 'hoje') {
     dateFilter = 'AND p.criado_em::date = CURRENT_DATE';
   } else if (periodo === 'semana') {
     dateFilter = 'AND p.criado_em >= NOW() - INTERVAL \'7 days\'';
@@ -35,7 +46,7 @@ router.get('/resumo', middlewareAdmin, wrapAsync(async (req, res) => {
     WHERE p.status = 'entregue' AND p.motoboy_id IS NOT NULL ${dateFilter}
     GROUP BY m.id, m.nome
     ORDER BY total_taxas DESC
-  `);
+  `, ...params);
   res.json(rows);
 }));
 

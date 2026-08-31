@@ -532,7 +532,14 @@ async function converterParaEntrega(pedidoId) {
 
 async function carregarRelatorioMotoboys() {
   const periodo = document.getElementById('periodo-motoboys').value;
-  const res = await authFetch(`/api/motoboys/resumo?periodo=${periodo}`);
+  const di = document.getElementById('motoboy-data-inicio')?.value || '';
+  const df = document.getElementById('motoboy-data-fim')?.value || '';
+  let qs = '';
+  if (di && df) qs = `data_inicio=${di}&data_fim=${df}`;
+  else if (di) qs = `data_inicio=${di}`;
+  else if (df) qs = `data_fim=${df}`;
+  else qs = `periodo=${periodo}`;
+  const res = await authFetch(`/api/motoboys/resumo?${qs}`);
   const resumo = await res.json();
 
   const totalEntregas = resumo.reduce((s, m) => s + Number(m.entregas), 0);
@@ -1557,6 +1564,7 @@ async function carregarRelatorios() {
   </table>` : '<p style="color:var(--gray)">Sem dados</p>';
 }
 function limparFiltroDataRelatorio(){ const a=document.getElementById('rel-data-inicio'); const b=document.getElementById('rel-data-fim'); if(a) a.value=''; if(b) b.value=''; carregarRelatorios(); }
+function limparFiltroDataMotoboy(){ const a=document.getElementById('motoboy-data-inicio'); const b=document.getElementById('motoboy-data-fim'); if(a) a.value=''; if(b) b.value=''; carregarRelatorioMotoboys(); }
 
 // CONFIGURAÇÕES
 async function carregarConfigAdmin() {
