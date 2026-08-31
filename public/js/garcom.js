@@ -11,8 +11,6 @@ let adicionaisSelecionados = [];
 let categoriaFiltro = '';
 let formaPagamentoFechamento = 'pix';
 let tipoFechamento = 'com_pagamento';
-let garcomPixPayload = '';
-let garcomPixValor = 0;
 let usuarioLogado = null;
 
 function escapeHtml(s){ if(s==null) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
@@ -909,6 +907,7 @@ async function abrirFecharComanda() {
   document.getElementById('g-troco-section').style.display = 'none';
   document.getElementById('g-troco-valor').value = '';
 
+  // Pré-preencher com nome já salvo na comanda (se houver)
   const nomeMesa = document.getElementById('g-cliente-nome-mesa')?.value || '';
   document.getElementById('g-fechar-cliente-nome').value = nomeMesa;
 
@@ -926,11 +925,9 @@ async function abrirFecharComanda() {
     }
   });
 
-  const pixArea = document.getElementById('g-pix-area');
-  const btnConfirmar = document.getElementById('g-btn-confirmar-fechamento');
-  if (pixArea) pixArea.style.display = 'block';
-  if (btnConfirmar) btnConfirmar.style.display = 'none';
-  await gerarPixGarcom(comandaTotal);
+  document.querySelectorAll('.g-opcao-fechar').forEach((o, i) => {
+    o.classList.toggle('selected', i === 0);
+  });
 
   document.getElementById('g-modal-fechar').classList.add('active');
 }
@@ -939,7 +936,14 @@ function fecharModalFechar() {
   document.getElementById('g-modal-fechar').classList.remove('active');
 }
 
-function selecionarTipoFechamento(_el, _tipo) {}
+function selecionarTipoFechamento(el, tipo) {
+  tipoFechamento = tipo;
+  document.querySelectorAll('.g-opcao-fechar').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+
+  const dadosPagamento = document.getElementById('g-fechar-dados-pagamento');
+  dadosPagamento.style.display = tipo === 'com_pagamento' ? 'block' : 'none';
+}
 
 function selecionarPagamento(el, tipo) {
   formaPagamentoFechamento = tipo;
@@ -955,62 +959,23 @@ function selecionarPagamento(el, tipo) {
   el.appendChild(span);
 
   document.getElementById('g-troco-section').style.display = tipo === 'dinheiro' ? 'block' : 'none';
-  const pixArea = document.getElementById('g-pix-area');
-  const btnConfirmar = document.getElementById('g-btn-confirmar-fechamento');
-  if (tipo === 'pix') {
-    if (pixArea) pixArea.style.display = 'block';
-    if (btnConfirmar) btnConfirmar.style.display = 'none';
-    gerarPixGarcom(comandaTotal);
-  } else {
-    if (pixArea) pixArea.style.display = 'none';
-    if (btnConfirmar) btnConfirmar.style.display = 'block';
-  }
-}
-
-async function gerarPixGarcom(valor) {
-  const qrEl = document.getElementById('g-pix-qr');
-  const payloadEl = document.getElementById('g-pix-payload');
-  const chaveEl = document.getElementById('g-pix-chave');
-  garcomPixValor = valor;
-  if (qrEl) qrEl.innerHTML = 'Carregando QR...';
-  try {
-    const res = await fetch(`/api/config/pix/qrcode?valor=${valor}`);
-    const data = await res.json();
-    garcomPixPayload = data.payload || '';
-    if (data.qrcode && qrEl) {
-      qrEl.innerHTML = `<img src="${data.qrcode}" alt="QR Code Pix" style="max-width:220px; border-radius:8px">`;
-      if (payloadEl) { payloadEl.textContent = garcomPixPayload; payloadEl.style.display = 'block'; }
-      if (chaveEl) chaveEl.textContent = `Chave: ${data.chave || ''} | Valor: R$ ${Number(valor).toFixed(2)}`;
-    } else {
-      if (qrEl) qrEl.innerHTML = '<p>Chave Pix não configurada</p>';
-      garcomPixPayload = '';
-    }
-  } catch (e) {
-    if (qrEl) qrEl.innerHTML = '<p>Erro ao gerar QR</p>';
-    garcomPixPayload = '';
-  }
-}
-function copiarPixGarcom() {
-  const codigo = garcomPixPayload || document.getElementById('g-pix-chave')?.textContent || '';
-  if (!codigo) { showToast('Nenhum código Pix'); return; }
-  navigator.clipboard.writeText(codigo).then(() => showToast('Código Pix copiado!')).catch(() => showToast(codigo));
-}
-async function finalizarPixMesa() {
-  if (!formaPagamentoFechamento) formaPagamentoFechamento = 'pix';
-  await confirmarFechamento();
 }
 
 let fechandoComanda = false;
 async function confirmarFechamento() {
   if (fechandoComanda || !mesaAtual || !comandaItens.length) return;
 
-  const body = { registrar_apenas: false };
-  const nomeClienteInformado = document.getElementById('g-fechar-cliente-nome').value.trim();
-  body.forma_pagamento = formaPagamentoFechamento;
-  body.cliente_nome_informado = nomeClienteInformado;
-  if (formaPagamentoFechamento === 'dinheiro') {
-    const troco = document.getElementById('g-troco-valor').value;
-    if (troco) body.troco_para = parseFloat(troco);
+  const body = { registrar_apenas: tipoFechamento === 'sem_pagamento' };
+
+  if (tipoFechamento === 'com_pagamento') {
+    const nomeClienteInformado = document.getElementById('g-fechar-cliente-nome').value.trim();
+
+    body.forma_pagamento = formaPagamentoFechamento;
+    body.cliente_nome_informado = nomeClienteInformado;
+    if (formaPagamentoFechamento === 'dinheiro') {
+      const troco = document.getElementById('g-troco-valor').value;
+      if (troco) body.troco_para = parseFloat(troco);
+    }
   }
 
   fechandoComanda = true;
@@ -1030,7 +995,7 @@ async function confirmarFechamento() {
     }
 
     fecharModalFechar();
-    showToast('Comanda fechada! Pedido finalizado.');
+    showToast(tipoFechamento === 'com_pagamento' ? 'Comanda fechada! Pedido finalizado.' : 'Comanda registrada!');
 
     mesaAtual = null;
     comandaAtual = null;
