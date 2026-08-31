@@ -1840,13 +1840,39 @@ async function abrirModalPedidoWhatsApp() {
   document.getElementById('whatsapp-troco-box').style.display = 'none';
   document.getElementById('whatsapp-observacoes').value = '';
   document.getElementById('whatsapp-busca-produto').value = '';
+  const radioEntrega=document.querySelector('input[name="whatsapp-tipo"][value="entrega"]');
+  if(radioEntrega) radioEntrega.checked=true;
   document.getElementById('modal-pedido-whatsapp').classList.add('active');
   await carregarDadosWhatsApp();
+  alternarTipoWhatsApp();
   renderCarrinhoWhatsApp();
 }
 
 function fecharModalPedidoWhatsApp() {
   document.getElementById('modal-pedido-whatsapp').classList.remove('active');
+}
+
+function getTipoWhatsApp(){ const el=document.querySelector('input[name="whatsapp-tipo"]:checked'); return el?el.value:'entrega'; }
+function alternarTipoWhatsApp(){
+  const tipo=getTipoWhatsApp();
+  const campos=document.getElementById('whatsapp-endereco-campos');
+  const info=document.getElementById('whatsapp-retirada-info');
+  const titulo=document.getElementById('whatsapp-modal-titulo');
+  if(tipo==='retirada'){
+    if(campos) campos.style.display='none';
+    if(info){
+      info.style.display='block';
+      const endereco=(typeof config!=='undefined'&&config.loja_endereco)?config.loja_endereco:'';
+      const mapsUrl=endereco?`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(endereco)}`:'#';
+      info.innerHTML=endereco?`<div style="font-weight:700;margin-bottom:4px">🏠 Retirada no local</div><div>${escapeHtml(endereco)}</div><a href="${mapsUrl}" target="_blank" class="btn btn-outline btn-sm" style="margin-top:8px;display:inline-flex;align-items:center;gap:6px">📍 Abrir no Google Maps</a>`:`<div>🏠 Retirada no local</div><small style="color:var(--color-text-muted)">Endereço da loja não configurado — configure em Configurações.</small>`;
+    }
+    if(titulo) titulo.textContent='📱 Novo Pedido - WhatsApp (Retirada)';
+  } else {
+    if(campos) campos.style.display='grid';
+    if(info) info.style.display='none';
+    if(titulo) titulo.textContent='📱 Novo Pedido - WhatsApp (Entrega)';
+  }
+  renderCarrinhoWhatsApp();
 }
 
 function isPizzaWhatsApp(p){ return !!(p && p.categoria_nome && p.categoria_nome.toLowerCase().includes('pizza')); }
@@ -2174,7 +2200,9 @@ function renderCarrinhoWhatsApp(){
   const totalEl=document.getElementById('whatsapp-total');
   const bairroSel=document.getElementById('whatsapp-cliente-bairro');
   let taxa=0;
-  if(bairroSel && bairroSel.selectedIndex>0){
+  if(getTipoWhatsApp()==='retirada'){
+    taxa=0;
+  } else if(bairroSel && bairroSel.selectedIndex>0){
     const opt=bairroSel.options[bairroSel.selectedIndex];
     taxa=parseFloat(opt.dataset.taxa)||0;
   }
@@ -2243,38 +2271,70 @@ document.getElementById('whatsapp-forma-pagamento')?.addEventListener('change', 
 });
 async function enviarPedidoWhatsApp(){
   if(!whatsappCarrinho.length){ showToast('Carrinho vazio'); return; }
+  const tipoEntrega=getTipoWhatsApp();
+  const isRetirada=tipoEntrega==='retirada';
   const nome=document.getElementById('whatsapp-cliente-nome').value.trim();
   const telefone=document.getElementById('whatsapp-cliente-telefone').value.trim();
-  const bairro=document.getElementById('whatsapp-cliente-bairro').value;
   const rua=document.getElementById('whatsapp-cliente-rua').value.trim();
   const numero=document.getElementById('whatsapp-cliente-numero').value.trim();
   const complemento=document.getElementById('whatsapp-cliente-complemento').value.trim();
   const referencia=document.getElementById('whatsapp-cliente-referencia').value.trim();
   const forma=document.getElementById('whatsapp-forma-pagamento').value;
   const observacoes=document.getElementById('whatsapp-observacoes').value.trim();
+  let bairro=isRetirada?'Retirada no local':document.getElementById('whatsapp-cliente-bairro').value;
   if(!nome || !telefone){ showToast('Informe nome e telefone'); return; }
-  if(!bairro){ showToast('Selecione o bairro'); return; }
+  if(!isRetirada && !bairro){ showToast('Selecione o bairro'); return; }
   if(telefone.replace(/\D/g,'').length<10){ showToast('Telefone inválido'); return; }
   const btn=document.getElementById('whatsapp-btn-enviar');
   btn.disabled=true; btn.textContent='Enviando...';
   try{
     let clienteId;
+    let clientePrevio=null;
     const cliRes=await authFetch(`/api/clientes/telefone/${encodeURIComponent(telefone)}`);
     if(cliRes.ok){
-      const cli=await cliRes.json();
-      clienteId=cli.id;
-      // atualizar dados do cliente se necessário
-      await authFetch(`/api/clientes/${clienteId}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({nome, telefone, bairro, rua, numero, complemento, ponto_referencia: referencia})}).catch(()=>{});
+      clientePrevio=await cliRes.json();
+      clienteId=clientePrevio.id;
+      if(isRetirada){
+        const keepBairro=clientePrevio.bairro && clientePrevio.bairro!=='Retirada no local' ? clientePrevio.bairro : undefined;
+        const keepRua=clientePrevio.rua || undefined;
+        const keepNum=clientePrevio.numero || undefined;
+        const keepComp=clientePrevio.complemento || undefined;
+        const keepRef=clientePrevio.ponto_referencia || undefined;
+        const payload={nome, telefone};
+        if(keepBairro) payload.bairro=keepBairro;
+        if(keepRua) payload.rua=keepRua;
+        if(keepNum) payload.numero=keepNum;
+        if(keepComp) payload.complemento=keepComp;
+        if(keepRef) payload.ponto_referencia=keepRef;
+        await authFetch(`/api/clientes/${clienteId}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)}).catch(()=>{});
+      } else {
+        await authFetch(`/api/clientes/${clienteId}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({nome, telefone, bairro, rua, numero, complemento, ponto_referencia: referencia})}).catch(()=>{});
+      }
     } else {
-      const novoRes=await authFetch('/api/clientes', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({nome, telefone, bairro, rua, numero, complemento, ponto_referencia: referencia})});
-      if(!novoRes.ok){ const err=await novoRes.json(); throw new Error(err.error||'Erro ao cadastrar cliente'); }
-      const novo=await novoRes.json();
-      clienteId=novo.id;
+      if(isRetirada){
+        const novoRes=await authFetch('/api/clientes', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({nome, telefone})});
+        if(!novoRes.ok){ const err=await novoRes.json(); throw new Error(err.error||'Erro ao cadastrar cliente'); }
+        const novo=await novoRes.json();
+        clienteId=novo.id;
+      } else {
+        const novoRes=await authFetch('/api/clientes', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({nome, telefone, bairro, rua, numero, complemento, ponto_referencia: referencia})});
+        if(!novoRes.ok){ const err=await novoRes.json(); throw new Error(err.error||'Erro ao cadastrar cliente'); }
+        const novo=await novoRes.json();
+        clienteId=novo.id;
+      }
     }
-    const bairroSel=document.getElementById('whatsapp-cliente-bairro');
-    const taxa=parseFloat(bairroSel.options[bairroSel.selectedIndex]?.dataset.taxa||0);
-    let endereco=`${rua||''}${numero?`, ${numero}`:''}${complemento?` - ${complemento}`:''}${referencia?` (Ref: ${referencia})`:''}`.trim();
-    if(!endereco) endereco=bairro;
+    let taxa=0;
+    let endereco='';
+    if(isRetirada){
+      taxa=0;
+      const lojaEnd=(typeof config!=='undefined'&&config.loja_endereco)?config.loja_endereco:'';
+      endereco=lojaEnd?`Retirada no local - ${lojaEnd}`:'Retirada no local';
+    } else {
+      const bairroSel=document.getElementById('whatsapp-cliente-bairro');
+      taxa=parseFloat(bairroSel.options[bairroSel.selectedIndex]?.dataset.taxa||0);
+      endereco=`${rua||''}${numero?`, ${numero}`:''}${complemento?` - ${complemento}`:''}${referencia?` (Ref: ${referencia})`:''}`.trim();
+      if(!endereco) endereco=bairro;
+    }
     let obsFinal=observacoes;
     if(forma==='dinheiro'){
       const troco=document.getElementById('whatsapp-troco-valor').value;
