@@ -40,7 +40,7 @@ router.get('/', middlewareAdmin, wrapAsync(async (req, res) => {
   if (data_inicio) { conditions.push(`p.criado_em >= $${paramIndex++}`); params.push(data_inicio); }
   if (data_fim) { conditions.push(`p.criado_em <= $${paramIndex++}`); params.push(data_fim + ' 23:59:59'); }
   if (conditions.length) sql += ' WHERE ' + conditions.join(' AND ');
-  sql += ' ORDER BY p.mesa_id IS NULL DESC, p.mesa_id ASC, p.comanda_id ASC, p.criado_em DESC';
+  sql += ' ORDER BY p.id DESC';
   if (limite) { sql += ` LIMIT $${paramIndex}`; params.push(parseInt(limite)); }
 
   const pedidos = await db.all(sql, ...params);

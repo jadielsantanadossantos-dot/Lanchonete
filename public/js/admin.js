@@ -193,6 +193,7 @@ function filtrarPedidosPorTab() {
   } else {
     filtrados = todosPedidos.filter(p => ['entregue', 'cancelado'].includes(p.status));
   }
+  filtrados.sort((a,b)=>b.id-a.id);
   renderPedidos(filtrados);
 }
 
@@ -231,52 +232,26 @@ async function abrirWhatsAppCliente(id) {
 function renderPedidos(pedidos) {
   const container = document.getElementById('pedidos-list');
   if (!pedidos.length) { container.innerHTML = '<p style="text-align:center;color:var(--gray);padding:40px">Nenhum pedido encontrado</p>'; return; }
-
-  // Separar pedidos viagem (sem mesa_id) de pedidos de mesa
-  const avulsos = pedidos.filter(p => !p.mesa_id);
-  const deMesa = pedidos.filter(p => p.mesa_id);
-
-  // Agrupar pedidos de mesa por comanda_id
-  const gruposComanda = {};
-  deMesa.forEach(p => {
-    const chave = p.comanda_id || `mesa-${p.mesa_id}`;
-    if (!gruposComanda[chave]) gruposComanda[chave] = [];
-    gruposComanda[chave].push(p);
-  });
-
-  // Renderizar viagens como cards simples
-  let html = '';
-  avulsos.forEach(p => { html += renderPedidoCard(p); });
-
-  // Renderizar grupos de mesa
-  Object.keys(gruposComanda).forEach(chave => {
-    const grupo = gruposComanda[chave];
-    if (grupo.length === 1) {
-      // 1 pedido: card simples
-      html += renderPedidoCard(grupo[0]);
-    } else {
-      // 2+ pedidos: agrupar em wrapper
-      const mesaId = grupo[0].mesa_id;
-      const comandaId = grupo[0].comanda_id;
-      let totalGrupo = 0;
-      grupo.forEach(p => { totalGrupo += p.total; });
-
-      html += `
-        <div class="pedido-grupo">
-          <div class="pedido-grupo-header">Mesa ${mesaId} — Comanda #${comandaId}</div>
-          <div class="pedido-grupo-body">
-            ${grupo.map(p => renderPedidoCard(p)).join('')}
-          </div>
-          <div class="pedido-grupo-footer">
-            <span>Total a cobrar (Mesa ${mesaId}):</span>
-            <span>R$ ${totalGrupo.toFixed(2)}</span>
-          </div>
-        </div>
-      `;
+  const ordenados = [...pedidos].sort((a,b)=>b.id-a.id);
+  const gruposMap = {};
+  ordenados.forEach(p=>{ if(p.mesa_id){ const k=p.comanda_id||`mesa-${p.mesa_id}`; (gruposMap[k]=gruposMap[k]||[]).push(p); }});
+  const visitado = new Set();
+  let html='';
+  ordenados.forEach(p=>{
+    if(!p.mesa_id){ html+=renderPedidoCard(p); return; }
+    const k=p.comanda_id||`mesa-${p.mesa_id}`;
+    if(visitado.has(k)) return;
+    visitado.add(k);
+    const grupo=gruposMap[k];
+    if(grupo.length===1){ html+=renderPedidoCard(grupo[0]); }
+    else {
+      const mesaId=grupo[0].mesa_id;
+      const comandaId=grupo[0].comanda_id;
+      let totalGrupo=0; grupo.forEach(x=>totalGrupo+=x.total);
+      html+=`<div class="pedido-grupo"><div class="pedido-grupo-header">Mesa ${mesaId} — Comanda #${comandaId}</div><div class="pedido-grupo-body">${grupo.map(x=>renderPedidoCard(x)).join('')}</div><div class="pedido-grupo-footer"><span>Total a cobrar (Mesa ${mesaId}):</span><span>R$ ${totalGrupo.toFixed(2)}</span></div></div>`;
     }
   });
-
-  container.innerHTML = html;
+  container.innerHTML=html;
 }
 
 function isRetiradaPedido(p) {
