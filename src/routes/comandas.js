@@ -67,7 +67,7 @@ async function atualizarPedidoComItens(pedidoId, itensComAdicionais, formaPagame
   });
 
   await db.transaction(async (client) => {
-    const rc = await client.query('SELECT subtotal, status, observacoes, forma_pagamento FROM pedidos WHERE id=$1 FOR UPDATE', [pedidoId]);
+    const rc = await client.query('SELECT subtotal, status, observacoes, forma_pagamento, pix_confirmado FROM pedidos WHERE id=$1 FOR UPDATE', [pedidoId]);
     const pedidoAtual = rc.rows[0];
     const subtotalAtual = pedidoAtual ? parseFloat(pedidoAtual.subtotal) || 0 : 0;
     const subtotal = subtotalAtual + subtotalNovos;
@@ -86,7 +86,8 @@ async function atualizarPedidoComItens(pedidoId, itensComAdicionais, formaPagame
     }
     const novoStatus = (formaPagamento && formaPagamento !== 'mesa') ? 'entregue' : (pedidoAtual ? pedidoAtual.status : 'recebido');
     const formaFinal = formaPagamento || (pedidoAtual ? pedidoAtual.forma_pagamento : 'mesa');
-    await client.query('UPDATE pedidos SET subtotal=$1, total=$2, forma_pagamento=$3, observacoes=$4, status=$5, atualizado_em=NOW() WHERE id=$6', [subtotal, total, formaFinal, obsFinal, novoStatus, pedidoId]);
+    const pixConfirmado = formaFinal === 'pix' ? true : (pedidoAtual ? pedidoAtual.pix_confirmado : false);
+    await client.query('UPDATE pedidos SET subtotal=$1, total=$2, forma_pagamento=$3, observacoes=$4, status=$5, pix_confirmado=$6, atualizado_em=NOW() WHERE id=$7', [subtotal, total, formaFinal, obsFinal, novoStatus, pixConfirmado, pedidoId]);
   });
 
   return db.get(`SELECT p.*, c.nome as cliente_nome, c.telefone as cliente_telefone FROM pedidos p JOIN clientes c ON p.cliente_id = c.id WHERE p.id=$1`, pedidoId);
@@ -483,8 +484,9 @@ router.post('/mesa/:mesaId/fechar', wrapAsync(async (req, res) => {
       if (forma_pagamento === 'dinheiro' && troco_para) {
         obsFinal += ` | Troco para R$ ${parseFloat(troco_para).toFixed(2)}`;
       }
-      await db.run('UPDATE pedidos SET forma_pagamento = $1, observacoes = $2, status = $3, atualizado_em = NOW() WHERE id = $4',
-        forma_pagamento || 'mesa', obsFinal, 'entregue', pedidoExistente.id);
+      const pixConfirmadoF = (forma_pagamento || 'mesa') === 'pix' ? true : false;
+      await db.run('UPDATE pedidos SET forma_pagamento = $1, observacoes = $2, status = $3, pix_confirmado = $4, atualizado_em = NOW() WHERE id = $5',
+        forma_pagamento || 'mesa', obsFinal, 'entregue', pixConfirmadoF, pedidoExistente.id);
       pedido = await db.get(`
         SELECT p.*, c.nome as cliente_nome, c.telefone as cliente_telefone FROM pedidos p
         JOIN clientes c ON p.cliente_id = c.id WHERE p.id = $1
@@ -518,8 +520,9 @@ router.post('/mesa/:mesaId/fechar', wrapAsync(async (req, res) => {
       obsFinal += ` | Troco para R$ ${parseFloat(troco_para).toFixed(2)}`;
     }
 
+    const pixConfirmadoF2 = (forma_pagamento || 'mesa') === 'pix';
     const pedidoId = await db.transaction(async (client) => {
-      const r = await client.query(`INSERT INTO pedidos (cliente_id, subtotal, taxa_entrega, total, forma_pagamento, observacoes, endereco_entrega, bairro_entrega, mesa_id, status, comanda_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id`, [cliente.id, subtotal, taxaEntrega, total, forma_pagamento || 'mesa', obsFinal, `Mesa ${mesaId}${nomeClienteComanda ? ' - ' + nomeClienteComanda : ''}`, 'Mesa', mesaId, 'entregue', comanda.id]);
+      const r = await client.query(`INSERT INTO pedidos (cliente_id, subtotal, taxa_entrega, total, forma_pagamento, observacoes, endereco_entrega, bairro_entrega, mesa_id, status, comanda_id, pix_confirmado) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING id`, [cliente.id, subtotal, taxaEntrega, total, forma_pagamento || 'mesa', obsFinal, `Mesa ${mesaId}${nomeClienteComanda ? ' - ' + nomeClienteComanda : ''}`, 'Mesa', mesaId, 'entregue', comanda.id, pixConfirmadoF2]);
       const pid = r.rows[0].id;
       for (const item of itensComAdicionais) {
         const ri = await client.query('INSERT INTO pedido_itens (pedido_id, produto_id, produto_nome, quantidade, preco_unitario, observacao) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id', [pid, item.produto_id, item.produto_nome, item.quantidade, item.preco_unitario, item.observacao || '']);

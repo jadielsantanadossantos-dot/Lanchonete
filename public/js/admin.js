@@ -290,7 +290,7 @@ function renderPedidoCard(p) {
     return line;
   }).join('');
 
-  const pixHtml = p.forma_pagamento === 'pix'
+  const pixHtml = p.forma_pagamento === 'pix' && !p.mesa_id
     ? `<span class="pix-badge ${p.pix_confirmado ? 'pix-confirmado' : 'pix-pendente'}">${p.pix_confirmado ? 'Pix confirmado' : 'Pix pendente'}</span>`
     : '';
 
@@ -324,7 +324,7 @@ function renderPedidoCard(p) {
   if (solicitouEntrega && !['entregue','cancelado'].includes(p.status)) {
     actionsHtml.push(`<button class="btn btn-warning btn-xs" onclick="converterParaEntrega(${p.id})" style="white-space:normal;line-height:1.2;text-align:center;min-width:140px">🚚 Mudar para entrega</button>`);
   }
-  if (p.forma_pagamento === 'pix' && !p.pix_confirmado) {
+  if (p.forma_pagamento === 'pix' && !p.pix_confirmado && !p.mesa_id) {
     actionsHtml.push(`<button class="btn btn-warning btn-xs" onclick="confirmarPix(${p.id})">Confirmar Pix</button>`);
   }
   actionsHtml.push(`<button class="btn btn-primary btn-xs" onclick="imprimirComanda(${p.id})">Imprimir</button>`);

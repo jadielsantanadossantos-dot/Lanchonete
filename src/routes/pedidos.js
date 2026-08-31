@@ -244,11 +244,12 @@ router.post('/', validarPedido, wrapAsync(async (req, res) => {
   const total = Math.round((subtotal + taxaEntrega) * 100) / 100;
   subtotal = Math.round(subtotal * 100) / 100;
 
+  const pixConfMesa = mesa_id && forma_pagamento === 'pix' ? true : false;
   // Transação atômica: pedido + itens + adicionais
   const pedidoId = await db.transaction(async (client) => {
     const r1 = await client.query(
-      'INSERT INTO pedidos (cliente_id, subtotal, taxa_entrega, total, forma_pagamento, observacoes, endereco_entrega, bairro_entrega, mesa_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id',
-      [cliente_id, subtotal, taxaEntrega, total, forma_pagamento, observacoes || '', endereco_entrega || '', bairro_entrega || '', mesa_id || null]
+      'INSERT INTO pedidos (cliente_id, subtotal, taxa_entrega, total, forma_pagamento, observacoes, endereco_entrega, bairro_entrega, mesa_id, pix_confirmado) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id',
+      [cliente_id, subtotal, taxaEntrega, total, forma_pagamento, observacoes || '', endereco_entrega || '', bairro_entrega || '', mesa_id || null, pixConfMesa]
     );
     const pid = r1.rows[0].id;
     for (const item of itens) {
