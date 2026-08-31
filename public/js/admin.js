@@ -1526,30 +1526,37 @@ async function excluirBairro(id) {
 // RELATÓRIOS
 async function carregarRelatorios() {
   const periodo = document.getElementById('periodo-relatorio').value;
-  const res = await authFetch(`/api/config/relatorios/vendas?periodo=${periodo}`);
+  const di = document.getElementById('rel-data-inicio')?.value || '';
+  const df = document.getElementById('rel-data-fim')?.value || '';
+  let qs = '';
+  if (di && df) qs = `data_inicio=${di}&data_fim=${df}`;
+  else if (di) qs = `data_inicio=${di}`;
+  else if (df) qs = `data_fim=${df}`;
+  else qs = `periodo=${periodo}`;
+  const res = await authFetch(`/api/config/relatorios/vendas?${qs}`);
   const data = await res.json();
-
+  const fmt = v => `R$ ${Number(v||0).toFixed(2)}`;
   document.getElementById('stats-grid').innerHTML = `
     <div class="stat-card"><div class="stat-value">${data.resumo.total_pedidos}</div><div class="stat-label">Pedidos</div></div>
-    <div class="stat-card"><div class="stat-value">R$ ${data.resumo.faturamento.toFixed(2)}</div><div class="stat-label">Faturamento</div></div>
-    <div class="stat-card"><div class="stat-value">R$ ${data.resumo.ticket_medio.toFixed(2)}</div><div class="stat-label">Ticket médio</div></div>
+    <div class="stat-card"><div class="stat-value">${fmt(data.resumo.faturamento_itens)}</div><div class="stat-label">Itens (sem taxa)</div></div>
+    <div class="stat-card"><div class="stat-value">${fmt(data.resumo.total_taxas)}</div><div class="stat-label">Taxas de entrega</div></div>
+    <div class="stat-card"><div class="stat-value">${fmt(data.resumo.faturamento)}</div><div class="stat-label">Faturamento total</div></div>
+    <div class="stat-card"><div class="stat-value">${fmt(data.resumo.ticket_medio)}</div><div class="stat-label">Ticket médio</div></div>
   `;
-
   document.getElementById('vendas-dia').innerHTML = data.porDia.length ? `<table>
-    <thead><tr><th>Data</th><th>Pedidos</th><th>Valor</th></tr></thead>
-    <tbody>${data.porDia.map(d => `<tr><td>${d.dia}</td><td>${d.qtd}</td><td>R$ ${d.valor.toFixed(2)}</td></tr>`).join('')}</tbody>
+    <thead><tr><th>Data</th><th>Pedidos</th><th>Itens</th><th>Taxas</th><th>Total</th></tr></thead>
+    <tbody>${data.porDia.map(d => `<tr><td>${d.dia ? String(d.dia).slice(0,10) : ''}</td><td>${d.qtd}</td><td>${fmt(d.subtotal)}</td><td>${fmt(d.taxas)}</td><td>${fmt(d.valor)}</td></tr>`).join('')}</tbody>
   </table>` : '<p style="color:var(--gray)">Sem dados</p>';
-
   document.getElementById('produtos-top').innerHTML = data.produtosMaisVendidos.length ? `<table>
     <thead><tr><th>Produto</th><th>Qtd</th><th>Valor</th></tr></thead>
-    <tbody>${data.produtosMaisVendidos.map(p => `<tr><td>${escapeHtml(p.produto_nome)}</td><td>${p.qtd}</td><td>R$ ${p.valor.toFixed(2)}</td></tr>`).join('')}</tbody>
+    <tbody>${data.produtosMaisVendidos.map(p => `<tr><td>${escapeHtml(p.produto_nome)}</td><td>${p.qtd}</td><td>${fmt(p.valor)}</td></tr>`).join('')}</tbody>
   </table>` : '<p style="color:var(--gray)">Sem dados</p>';
-
   document.getElementById('vendas-pagamento').innerHTML = data.porFormaPagamento.length ? `<table>
-    <thead><tr><th>Forma</th><th>Qtd</th><th>Valor</th></tr></thead>
-    <tbody>${data.porFormaPagamento.map(p => `<tr><td>${payLabels[p.forma_pagamento] || p.forma_pagamento}</td><td>${p.qtd}</td><td>R$ ${p.valor.toFixed(2)}</td></tr>`).join('')}</tbody>
+    <thead><tr><th>Forma</th><th>Qtd</th><th>Itens</th><th>Taxas</th><th>Total</th></tr></thead>
+    <tbody>${data.porFormaPagamento.map(p => `<tr><td>${payLabels[p.forma_pagamento] || p.forma_pagamento}</td><td>${p.qtd}</td><td>${fmt(Number(p.valor||0)-Number(p.taxas||0))}</td><td>${fmt(p.taxas)}</td><td>${fmt(p.valor)}</td></tr>`).join('')}</tbody>
   </table>` : '<p style="color:var(--gray)">Sem dados</p>';
 }
+function limparFiltroDataRelatorio(){ const a=document.getElementById('rel-data-inicio'); const b=document.getElementById('rel-data-fim'); if(a) a.value=''; if(b) b.value=''; carregarRelatorios(); }
 
 // CONFIGURAÇÕES
 async function carregarConfigAdmin() {

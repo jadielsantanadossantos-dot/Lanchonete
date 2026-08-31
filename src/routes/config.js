@@ -152,12 +152,21 @@ router.get('/pix/qrcode', wrapAsync(async (req, res) => {
 }));
 
 router.get('/relatorios/vendas', middlewareAdmin, wrapAsync(async (req, res) => {
-  const { periodo } = req.query;
+  const { periodo, data_inicio, data_fim } = req.query;
   let dateFilter = '';
   const params = [];
   let paramIndex = 1;
 
-  if (periodo === 'hoje') {
+  if (data_inicio && data_fim) {
+    dateFilter = `AND p.criado_em::date BETWEEN $${paramIndex++} AND $${paramIndex++}`;
+    params.push(data_inicio, data_fim);
+  } else if (data_inicio) {
+    dateFilter = `AND p.criado_em::date >= $${paramIndex++}`;
+    params.push(data_inicio);
+  } else if (data_fim) {
+    dateFilter = `AND p.criado_em::date <= $${paramIndex++}`;
+    params.push(data_fim);
+  } else if (periodo === 'hoje') {
     dateFilter = 'AND p.criado_em::date = CURRENT_DATE';
   } else if (periodo === 'semana') {
     dateFilter = 'AND p.criado_em >= NOW() - INTERVAL \'7 days\'';
@@ -165,24 +174,24 @@ router.get('/relatorios/vendas', middlewareAdmin, wrapAsync(async (req, res) => 
     dateFilter = 'AND p.criado_em >= NOW() - INTERVAL \'30 days\'';
   }
 
-
-
   const resumo = await db.get(`
     SELECT
       COUNT(*) as total_pedidos,
       COALESCE(SUM(total), 0) as faturamento,
+      COALESCE(SUM(subtotal), 0) as faturamento_itens,
+      COALESCE(SUM(taxa_entrega), 0) as total_taxas,
       COALESCE(AVG(total), 0) as ticket_medio
     FROM pedidos p WHERE p.status != 'cancelado' ${dateFilter}
   `, ...params);
 
   const porFormaPagamento = await db.all(`
-    SELECT forma_pagamento, COUNT(*) as qtd, SUM(total) as valor
+    SELECT forma_pagamento, COUNT(*) as qtd, SUM(total) as valor, SUM(taxa_entrega) as taxas
     FROM pedidos p WHERE p.status != 'cancelado' ${dateFilter}
     GROUP BY forma_pagamento
   `, ...params);
 
   const porDia = await db.all(`
-    SELECT p.criado_em::date as dia, COUNT(*) as qtd, SUM(total) as valor
+    SELECT p.criado_em::date as dia, COUNT(*) as qtd, SUM(total) as valor, SUM(subtotal) as subtotal, SUM(taxa_entrega) as taxas
     FROM pedidos p WHERE p.status != 'cancelado' ${dateFilter}
     GROUP BY p.criado_em::date ORDER BY dia DESC LIMIT 30
   `, ...params);

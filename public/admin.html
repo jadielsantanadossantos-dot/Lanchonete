@@ -479,12 +479,16 @@
 
       <!-- RELATÓRIOS -->
       <section id="sec-relatorios" class="section">
-        <div class="filters">
+        <div class="filters" style="flex-wrap:wrap;gap:8px;align-items:center">
           <select class="filter-select" id="periodo-relatorio" onchange="carregarRelatorios()">
             <option value="hoje">Hoje</option>
             <option value="semana">Última semana</option>
             <option value="mes" selected>Último mês</option>
           </select>
+          <input type="date" class="form-control" id="rel-data-inicio" style="width:auto" onchange="carregarRelatorios()" title="Data início">
+          <span style="color:var(--color-text-muted)">até</span>
+          <input type="date" class="form-control" id="rel-data-fim" style="width:auto" onchange="carregarRelatorios()" title="Data fim">
+          <button class="btn btn-outline btn-sm" onclick="limparFiltroDataRelatorio()">Limpar datas</button>
         </div>
         <div class="stats-grid" id="stats-grid"></div>
         <div class="report-section">
@@ -706,7 +710,7 @@
   <script src="/js/realtime.js?v=20260829d"></script>
   <script src="/js/auth.js?v=20260829d"></script>
   <script src="/js/pizza-modal.js?v=20260831b"></script>
-  <script src="/js/admin.js?v=20260831g"></script>
+  <script src="/js/admin.js?v=20260831h"></script>
   <script>
     // Demo: esconde logo original
     (function(){
