@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db/database');
 const { middlewareGarcom } = require('../auth/auth');
+const { sanitizarString } = require('../utils/validation');
 
 router.use(middlewareGarcom);
 
@@ -145,12 +146,67 @@ router.post('/mesa/:mesaId/item', wrapAsync(async (req, res) => {
     if (qtd < 0.05 || qtd > 10) return res.status(400).json({ error: 'Quantidade inválida para produto por peso (0.05kg a 10kg)' });
     qtd = Math.round(qtd * 1000) / 1000;
   }
-  const adicJson = adicionais && adicionais.length ? JSON.stringify(adicionais) : null;
+  let adicionaisNorm = [];
+  if (adicionais && adicionais.length) {
+    if (adicionais.length > 20) return res.status(400).json({ error: 'Muitos adicionais' });
+    const ids = [...new Set(adicionais.map(a => parseInt(a.id)).filter(Boolean))];
+    if (ids.length !== adicionais.length) return res.status(400).json({ error: 'Adicionais inválidos' });
+    const regs = await db.all('SELECT id, nome, categoria_id, produto_id, tipo, limite, preco FROM adicionais WHERE id = ANY($1)', [ids]);
+    const porId = new Map(regs.map(r => [r.id, r]));
+    if (regs.length !== ids.length) return res.status(400).json({ error: 'Adicional não encontrado' });
+    for (const a of adicionais) {
+      const r = porId.get(parseInt(a.id));
+      if (!r || r.preco == null) return res.status(400).json({ error: `Adicional inválido #${a.id}` });
+    }
+    const contagemPorTipo = {};
+    const limitePorTipo = {};
+    for (const a of adicionais) {
+      const r = porId.get(parseInt(a.id));
+      const tipo = r.tipo || 'adicional';
+      if (!(tipo in limitePorTipo)) limitePorTipo[tipo] = parseInt(r.limite) || 0;
+      contagemPorTipo[tipo] = (contagemPorTipo[tipo] || 0) + 1;
+    }
+    for (const [tipo, qtdC] of Object.entries(contagemPorTipo)) {
+      const lim = limitePorTipo[tipo] || 0;
+      if (lim > 0 && qtdC > lim) return res.status(400).json({ error: `Máximo ${lim} ${tipo}(s) permitido(s)` });
+    }
+    let pizzaCatIds = new Set();
+    try { const pcs = await db.all("SELECT id FROM categorias WHERE nome ILIKE '%pizza%'"); pizzaCatIds = new Set(pcs.map(r => r.id)); } catch(e) { pizzaCatIds = new Set([7,26,27,28]); }
+    const vinc = await db.all('SELECT adicional_id, produto_id FROM adicional_produtos');
+    const vinculosMap = new Map();
+    vinc.forEach(v => { if (!vinculosMap.has(v.adicional_id)) vinculosMap.set(v.adicional_id, new Set()); vinculosMap.get(v.adicional_id).add(v.produto_id); });
+    const isPizzaProd = produto.categoria_nome || (await db.get('SELECT c.nome as n FROM categorias c WHERE c.id=$1', produto.categoria_id).then(r=>r&&r.n||'').catch(()=>''));
+    const catNome = produto.categoria_nome || (await db.get('SELECT nome FROM categorias WHERE id=$1', produto.categoria_id).then(r=>r&&r.nome||'').catch(()=>''));
+    const isPizza = catNome && ['pizza','suco','bebida'].some(k=>catNome.toLowerCase().includes(k));
+    const prodIsPizzaCat = pizzaCatIds.has(produto.categoria_id);
+    for (const a of adicionais) {
+      const reg = porId.get(parseInt(a.id));
+      const idsVinc = vinculosMap.has(reg.id) ? Array.from(vinculosMap.get(reg.id)) : (reg.produto_id ? [reg.produto_id] : null);
+      const mesmaCategoria = !reg.categoria_id || reg.categoria_id === produto.categoria_id;
+      const prodEsp = idsVinc ? idsVinc.includes(produto.id) : false;
+      const global = (!idsVinc || idsVinc.length===0) && mesmaCategoria;
+      const isSaborPizzaCat = reg.tipo === 'sabor' && reg.categoria_id && pizzaCatIds.has(reg.categoria_id);
+      let permitido = false;
+      if (isPizza) {
+        if (reg.tipo==='sabor' && (prodEsp||global)) permitido=true;
+        if (reg.tipo==='sabor' && prodIsPizzaCat && isSaborPizzaCat && (!idsVinc || idsVinc.length===0)) permitido=true;
+        else if ((prodEsp||global) && ['adicional','borda'].includes(reg.tipo) && reg.preco!==null) permitido=true;
+        if (reg.tipo==='sabor' && catNome.toLowerCase().includes('bebida') && (prodEsp||global)) permitido=true;
+      } else {
+        permitido = (prodEsp||global) && (!reg.tipo || ['adicional','sabor','base','cobertura','acompanhamento','borda'].includes(reg.tipo));
+      }
+      if (reg.tipo==='sabor' && reg.categoria_id===2 && !isPizza) permitido=false;
+      if (!permitido) return res.status(400).json({ error: `Adicional "${reg.nome}" não pertence ao produto "${produto.nome}"` });
+    }
+    adicionaisNorm = adicionais.map(a => { const r = porId.get(parseInt(a.id)); return { id: r.id, nome: r.nome, preco: parseFloat(r.preco)||0 }; });
+  }
+  const adicJson = adicionaisNorm.length ? JSON.stringify(adicionaisNorm) : null;
+  const obsSanitizada = sanitizarString(observacao || '');
   const itemStmt = db.prepare(`
     INSERT INTO comanda_itens (comanda_id, produto_id, produto_nome, quantidade, preco_unitario, observacao, adicionais_json, unidade)
     VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id
   `);
-  await itemStmt.run(comanda.id, produto_id, produto.nome, qtd, produto.preco, observacao || '', adicJson, unidadeItem);
+  await itemStmt.run(comanda.id, produto_id, produto.nome, qtd, produto.preco, obsSanitizada, adicJson, unidadeItem);
 
   if (req.emitToMesa) {
     await req.emitToMesa(mesaId, 'comanda-atualizada', { mesaId: parseInt(mesaId) });

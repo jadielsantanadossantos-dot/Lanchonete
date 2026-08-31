@@ -136,7 +136,7 @@ router.post('/', validarPedido, wrapAsync(async (req, res) => {
       pizzaCatIds = new Set(pizzaCats.map(r => r.id));
     } catch (e) { pizzaCatIds = new Set([7,26,27,28]); }
     if (produtoIds.length) {
-      const prods = await db.all('SELECT p.id, p.categoria_id, p.unidade, c.nome as categoria_nome FROM produtos p JOIN categorias c ON c.id=p.categoria_id WHERE p.id = ANY($1)', [produtoIds]);
+      const prods = await db.all('SELECT p.id, p.nome, p.categoria_id, p.unidade, p.preco, p.ativo, c.nome as categoria_nome FROM produtos p JOIN categorias c ON c.id=p.categoria_id WHERE p.id = ANY($1)', [produtoIds]);
       prods.forEach(p => produtosMap.set(p.id, p));
       const vinc = await db.all('SELECT adicional_id, produto_id FROM adicional_produtos');
       vinc.forEach(v => {
@@ -145,7 +145,7 @@ router.post('/', validarPedido, wrapAsync(async (req, res) => {
       });
       const idsAdic = [...new Set(itens.flatMap(i => (i.adicionais||[]).map(a=>parseInt(a.id)).filter(Boolean)))];
       if (idsAdic.length) {
-        todosAdicionais = await db.all('SELECT id, categoria_id, produto_id, tipo FROM adicionais WHERE id = ANY($1)', [idsAdic]);
+        todosAdicionais = await db.all('SELECT id, categoria_id, produto_id, tipo, preco, limite FROM adicionais WHERE id = ANY($1)', [idsAdic]);
       }
     }
     const porAdic = new Map(todosAdicionais.map(a=>[a.id, a]));
@@ -184,10 +184,11 @@ router.post('/', validarPedido, wrapAsync(async (req, res) => {
     }
   }
 
-  // Valida quantidade vs unidade do produto (evita hamburger 0.33x etc)
   for (const item of itens) {
     const prod = produtosMap.get(parseInt(item.produto_id));
-    const prodUnidade = prod ? prod.unidade : (item.unidade === 'kg' ? 'kg' : 'un');
+    if (!prod) return res.status(400).json({ error: `Produto não encontrado #${item.produto_id}` });
+    if (prod.ativo === false) return res.status(400).json({ error: `Produto "${prod.categoria_nome || item.produto_nome}" indisponível` });
+    const prodUnidade = prod.unidade || 'un';
     const unidadeItem = item.unidade === 'kg' ? 'kg' : 'un';
     if (prodUnidade === 'kg' && unidadeItem !== 'kg') return res.status(400).json({ error: `Produto "${item.produto_nome}" é vendido por kg` });
     if (prodUnidade === 'un' && unidadeItem === 'kg') return res.status(400).json({ error: `Produto "${item.produto_nome}" é vendido por unidade` });
@@ -199,16 +200,49 @@ router.post('/', validarPedido, wrapAsync(async (req, res) => {
     }
   }
 
+  const adicionalPrecoMap = new Map();
+  const adicionalNomeMap = new Map();
+  {
+    const allIds = [...new Set(itens.flatMap(i => (i.adicionais||[]).map(a=>parseInt(a.id)).filter(Boolean)))];
+    if (allIds.length) {
+      const regs = await db.all('SELECT id, nome, preco FROM adicionais WHERE id = ANY($1)', [allIds]);
+      regs.forEach(r => { adicionalPrecoMap.set(r.id, parseFloat(r.preco)||0); adicionalNomeMap.set(r.id, r.nome); });
+    }
+  }
   itens.forEach(item => {
-    let itemTotal = item.preco_unitario * item.quantidade;
+    const prod = produtosMap.get(parseInt(item.produto_id));
+    const precoUnit = parseFloat(prod.preco) || 0;
+    item.preco_unitario = precoUnit;
+    item.produto_nome = prod.nome || item.produto_nome;
+    let itemTotal = precoUnit * item.quantidade;
     if (item.adicionais) {
-      item.adicionais.forEach(a => { itemTotal += a.preco * item.quantidade; });
+      item.adicionais.forEach(a => {
+        const precoReal = adicionalPrecoMap.has(parseInt(a.id)) ? adicionalPrecoMap.get(parseInt(a.id)) : (parseFloat(a.preco)||0);
+        a.preco = precoReal;
+        a.nome = adicionalNomeMap.get(parseInt(a.id)) || a.nome;
+        itemTotal += precoReal * item.quantidade;
+      });
     }
     subtotal += itemTotal;
   });
 
-  const taxaEntrega = parseFloat(taxa_entrega) || 0;
-  const total = subtotal + taxaEntrega;
+  let taxaEntrega = 0;
+  if (bairro_entrega === 'Retirada no local' || (endereco_entrega && String(endereco_entrega).startsWith('Retirada'))) {
+    taxaEntrega = 0;
+  } else if (bairro_entrega) {
+    const brow = await db.get('SELECT taxa_entrega FROM bairros WHERE nome = $1', bairro_entrega);
+    if (brow) taxaEntrega = parseFloat(brow.taxa_entrega) || 0;
+    else {
+      const t = parseFloat(taxa_entrega);
+      taxaEntrega = isNaN(t) || t < 0 ? 0 : Math.min(t, 100);
+    }
+  } else {
+    const t = parseFloat(taxa_entrega);
+    taxaEntrega = isNaN(t) || t < 0 ? 0 : Math.min(t, 100);
+  }
+  if (taxaEntrega < 0) taxaEntrega = 0;
+  const total = Math.round((subtotal + taxaEntrega) * 100) / 100;
+  subtotal = Math.round(subtotal * 100) / 100;
 
   // Transação atômica: pedido + itens + adicionais
   const pedidoId = await db.transaction(async (client) => {

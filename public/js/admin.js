@@ -2024,7 +2024,7 @@ function renderProdutosWhatsApp() {
       } else {
         html += `<div class="category-section"><div class="category-heading">${whatsappCategoriaFiltro || 'Produtos'}</div><div class="category-items">${lista.map(p=>whatsappProdutoCardHtml(p)).join('')}</div></div>`;
       }
-    } else if(whatsappCategoriaFiltro==='__pizzas__' && buscaPizza){
+    } else if(whatsappCategoriaFiltro==='__pizzas__' && !busca){
       // Busca vazia + filtro Pizzas sem itens (caso pizza sem produtos, mostrar só card)
       if(window.PizzaModal){
         window.__pizzaCfgWhatsApp={ produtos: whatsappProdutos.filter(p=>isPizzaWhatsApp(p)), toast: showToast, onAdd:item=>adicionarItemWhatsApp(item) };
