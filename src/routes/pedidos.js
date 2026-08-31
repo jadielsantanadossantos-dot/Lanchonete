@@ -124,10 +124,10 @@ router.post('/', validarPedido, wrapAsync(async (req, res) => {
     }
   }
 
+  let produtosMap = new Map();
   // Valida que o adicional pertence ao produto (evita sabor de bebida cair em cachorro etc) — mesma regra de /api/produtos/ativos
   {
     const produtoIds = [...new Set(itens.map(i => parseInt(i.produto_id)).filter(Boolean))];
-    let produtosMap = new Map();
     let vinculosMap = new Map();
     let todosAdicionais = [];
     let pizzaCatIds = new Set();
