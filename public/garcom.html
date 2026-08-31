@@ -155,26 +155,6 @@
         </div>
       </div>
 
-      <h4 class="g-modal-subtitle">Como registrar?</h4>
-      <div class="g-opcoes-fechar">
-        <label class="g-opcao-fechar" onclick="selecionarTipoFechamento(this, 'com_pagamento')">
-          <input type="radio" name="tipo-fechamento" value="com_pagamento" checked>
-          <span class="g-opcao-icon">&#128179;</span>
-          <div>
-            <div class="g-opcao-titulo">Gerar Pedido com Pagamento</div>
-            <div class="g-opcao-desc">Envia para a cozinha e registra pagamento</div>
-          </div>
-        </label>
-        <label class="g-opcao-fechar" onclick="selecionarTipoFechamento(this, 'sem_pagamento')">
-          <input type="radio" name="tipo-fechamento" value="sem_pagamento">
-          <span class="g-opcao-icon">&#128203;</span>
-          <div>
-            <div class="g-opcao-titulo">Apenas Registrar Consumo</div>
-            <div class="g-opcao-desc">Libera a mesa sem gerar pedido</div>
-          </div>
-        </label>
-      </div>
-
       <div id="g-fechar-dados-pagamento">
         <h4 class="g-modal-subtitle">Dados do cliente</h4>
         <div class="g-form-group">
@@ -206,7 +186,18 @@
         </div>
       </div>
 
-      <button class="btn btn-success btn-block" onclick="confirmarFechamento()">
+      <div id="g-pix-area" style="display:none; text-align:center; margin-top:16px; border-top:1px solid var(--light, #eee); padding-top:16px">
+        <h4 class="g-modal-subtitle">Pix - QR Code</h4>
+        <div id="g-pix-qr" style="display:flex; justify-content:center; min-height:120px; align-items:center; color:var(--gray)">Carregando QR...</div>
+        <div id="g-pix-payload" style="word-break:break-all; font-size:0.7rem; margin-top:8px; background:#f3f4f6; padding:8px; border-radius:8px; display:none"></div>
+        <div id="g-pix-chave" style="font-size:0.8rem; margin-top:8px; color:var(--gray)"></div>
+        <div style="display:flex; gap:8px; margin-top:12px">
+          <button class="btn btn-outline" style="flex:1" onclick="copiarPixGarcom()">📋 Copiar código</button>
+          <button class="btn btn-primary" style="flex:1" onclick="finalizarPixMesa()">✅ Liberar mesa</button>
+        </div>
+      </div>
+
+      <button id="g-btn-confirmar-fechamento" class="btn btn-success btn-block" onclick="confirmarFechamento()">
         Confirmar Fechamento
       </button>
     </div>
