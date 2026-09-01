@@ -610,30 +610,39 @@ async function confirmarPix(id) {
 
 function imprimirComandaObj(p){ return _imprimirComandaObj(p); }
 async function imprimirComanda(pedidoId) {
+  const win = window.open('', '_blank', 'width=420,height=650');
+  if (!win) { showToast('Pop-up bloqueado: habilite pop-ups para impressão'); return; }
+  win.document.write('<html><body style="font-family:monospace;padding:20px">Carregando comanda...</body></html>');
   try {
-    const localMock = (typeof todosPedidos!=='undefined'?todosPedidos.find(x=>String(x.id)===String(pedidoId)):null);
-    if(localMock && String(localMock.id).startsWith('999')) return _imprimirComandaObj(localMock);
-    const res = await authFetch(`/api/pedidos/${pedidoId}`);
-    if (!res.ok) throw new Error('Pedido não encontrado');
-    const p = await res.json();
-    return _imprimirComandaObj(p);
-  } catch(e){ showToast('Erro ao gerar comanda: '+e.message); }
+    let p = (typeof todosPedidos!=='undefined'?todosPedidos.find(x=>String(x.id)===String(pedidoId)):null);
+    const precisaFetch = !p || !p.itens || String(p.id).startsWith('999')===false && p.itens.length===0;
+    if (!p || precisaFetch) {
+      const res = await authFetch(`/api/pedidos/${pedidoId}`);
+      if (!res.ok) throw new Error('Pedido não encontrado');
+      p = await res.json();
+    }
+    if(String(p.id).startsWith('999') && p.id===9999) {}
+    win.document.open();
+    win.document.write(_gerarHtmlComanda(p));
+    win.document.close();
+    win.focus();
+    CarregarNomeLojaComanda(win).then(() => {
+      setTimeout(() => { try{ win.print(); }catch(e){} setTimeout(() => { try{ win.close(); }catch(e){} }, 300); }, 250);
+    });
+  } catch(e){ try{ win.close(); }catch(_){} showToast('Erro ao gerar comanda: '+e.message); }
 }
-function _imprimirComandaObj(p){
-  try {
-
+function _gerarHtmlComanda(p){
     const dataHora = new Date(p.criado_em).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
     const payLabel = payLabels[p.forma_pagamento] || p.forma_pagamento;
     const statusLabel = statusLabels[p.status] || p.status;
-
     const _isPizzaPrint = n => /pizza/i.test(String(n||''));
     let itensHtml = '';
     let subtotalItens = 0;
     let totalAdicionais = 0;
-    p.itens.forEach((item, idx) => {
-      const itemTotal = item.preco_unitario * item.quantidade;
+    (p.itens||[]).forEach((item, idx) => {
+      const itemTotal = (parseFloat(item.preco_unitario)||0) * (parseFloat(item.quantidade)||0);
       subtotalItens += itemTotal;
-      const adicionaisTotal = (item.adicionais || []).reduce((s,a)=>s + a.preco * item.quantidade, 0);
+      const adicionaisTotal = (item.adicionais || []).reduce((s,a)=>s + (parseFloat(a.preco)||0) * (parseFloat(item.quantidade)||0), 0);
       totalAdicionais += adicionaisTotal;
       const isPizzaBordaPrint = _isPizzaPrint(item.produto_nome) && (item.adicionais||[]).some(a=> isBordaAdicional(a));
       const blocoCls = isPizzaBordaPrint ? 'item-bloco item-bloco--pizza-borda' : 'item-bloco';
@@ -652,7 +661,7 @@ function _imprimirComandaObj(p){
                 const cls = borda ? 'adic-linha adic-linha--borda' : 'adic-linha';
                 const pref = borda ? '🧀 BORDA RECHEADA: ' : '↳ ';
                 const nEx=borda?_displayBordaNome(a):a.adicional_nome;
-                return `<div class="${cls}"><span class="adic-nome">${pref}${escapeHtml(nEx)}</span><span class="adic-val">${a.preco > 0 ? 'R$ ' + (a.preco * item.quantidade).toFixed(2) : 'Incluído'}</span></div>`;
+                return `<div class="${cls}"><span class="adic-nome">${pref}${escapeHtml(nEx)}</span><span class="adic-val">${a.preco > 0 ? 'R$ ' + ((parseFloat(a.preco)||0) * (parseFloat(item.quantidade)||0)).toFixed(2) : 'Incluído'}</span></div>`;
               }).join('')}
             </div>
           ` : ''}
@@ -661,10 +670,6 @@ function _imprimirComandaObj(p){
         ${idx < p.itens.length - 1 ? '<div class="item-sep"></div>' : ''}
       `;
     });
-    // Totais detalhados
-    const totalAdicFmt = `R$ ${totalAdicionais.toFixed(2)}`;
-    const subtotalFmt = `R$ ${subtotalItens.toFixed(2)}`;
-
     let trocoHtml = '';
     if (p.forma_pagamento === 'dinheiro') {
       const match = p.observacoes?.match(/Troco para R\$ ([\d.,]+)/);
@@ -675,19 +680,12 @@ function _imprimirComandaObj(p){
                      <div class="linha destaque"><span>Troco:</span><span>R$ ${troco.toFixed(2)}</span></div>`;
       }
     }
-
     let obsPedido = p.observacoes || '';
-    if (p.forma_pagamento === 'dinheiro') {
-      obsPedido = obsPedido.replace(/\s*\|\s*Troco para R\$ [\d.,]+/, '').trim();
-    }
-    // Tag interna do sistema não deve aparecer na comanda impressa
+    if (p.forma_pagamento === 'dinheiro') obsPedido = obsPedido.replace(/\s*\|\s*Troco para R\$ [\d.,]+/, '').trim();
     obsPedido = obsPedido.replace(/\s*\|\s*Pedido WhatsApp \(admin\)/gi, '').replace(/Pedido WhatsApp \(admin\)/gi, '').trim();
     obsPedido = obsPedido.replace(/^\|\s*/, '').replace(/\s*\|\s*$/, '').trim();
     if (obsPedido === '|') obsPedido = '';
-
-    const win = window.open('', '_blank', 'width=420,height=650');
-    if (!win) { showToast('Pop-up bloqueado: habilite pop-ups para impressão automática'); return; }
-    win.document.write(`<!DOCTYPE html>
+    return `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -701,7 +699,7 @@ function _imprimirComandaObj(p){
   .header h1 { font-size: 16px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; }
   .header .sub { font-size: 9px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-top: 1mm; }
   .badge-pedido { display: inline-block; border: 2px solid #000; padding: 1.5mm 4mm; font-size: 11px; font-weight: 900; margin-top: 3mm; text-transform: uppercase; }
-.info-card { border: 1px solid #000; padding: 2.5mm; margin: 3mm 0; }
+ .info-card { border: 1px solid #000; padding: 2.5mm; margin: 3mm 0; }
   .info-row { display: flex; gap: 2mm; margin: 1.5mm 0; font-size: 13px; line-height: 1.35; }
   .info-label { font-weight: 800; min-width: 18mm; flex-shrink: 0; color: #000; }
   .info-value { flex: 1; font-weight: 800; word-break: break-word; color: #000; }
@@ -773,10 +771,10 @@ function _imprimirComandaObj(p){
     <div class="linha"><span>Subtotal itens</span><span>R$ ${subtotalItens.toFixed(2)}</span></div>
     ${totalAdicionais > 0 ? `<div class="linha"><span>Adicionais</span><span>R$ ${totalAdicionais.toFixed(2)}</span></div>` : ''}
     <div class="linha" style="border-top:1px solid #000; padding-top:1mm; margin-top:1mm; font-weight:800"><span>Subtotal geral</span><span>R$ ${(subtotalItens + totalAdicionais).toFixed(2)}</span></div>
-    ${p.taxa_entrega > 0 ? `<div class="linha"><span>Taxa de entrega</span><span>R$ ${p.taxa_entrega.toFixed(2)}</span></div>` : `<div class="linha"><span>Taxa de entrega</span><span>Grátis</span></div>`}
+    ${p.taxa_entrega > 0 ? `<div class="linha"><span>Taxa de entrega</span><span>R$ ${Number(p.taxa_entrega).toFixed(2)}</span></div>` : `<div class="linha"><span>Taxa de entrega</span><span>Grátis</span></div>`}
   </div>
   <div class="total-box">
-    <span>TOTAL A PAGAR</span><span>R$ ${p.total.toFixed(2)}</span>
+    <span>TOTAL A PAGAR</span><span>R$ ${Number(p.total).toFixed(2)}</span>
   </div>
   <div class="pay-status">
     <div class="pay-card ${p.forma_pagamento==='pix'?'pix':''}"><div class="label">Pagamento</div><div class="value">${payLabel}</div></div>
@@ -791,19 +789,20 @@ function _imprimirComandaObj(p){
   </div>
   </div>
 </body>
-</html>`);
+</html>`;
+}
+function _imprimirComandaObj(p){
+  try {
+    const win = window.open('', '_blank', 'width=420,height=650');
+    if (!win) { showToast('Pop-up bloqueado: habilite pop-ups para impressão'); return; }
+    win.document.open();
+    win.document.write(_gerarHtmlComanda(p));
     win.document.close();
     win.focus();
-
     CarregarNomeLojaComanda(win).then(() => {
-      setTimeout(() => {
-        win.print();
-        setTimeout(() => win.close(), 300);
-      }, 250);
+      setTimeout(() => { try{ win.print(); }catch(e){} setTimeout(() => { try{ win.close(); }catch(e){} }, 300); }, 250);
     });
-  } catch (e) {
-    showToast('Erro ao gerar comanda: ' + e.message);
-  }
+  } catch (e) { showToast('Erro ao gerar comanda: ' + e.message); }
 }
 
 async function CarregarNomeLojaComanda(win) {
