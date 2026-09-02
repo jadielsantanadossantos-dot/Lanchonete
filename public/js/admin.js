@@ -700,7 +700,7 @@ function _gerarHtmlComanda(p){
   .header .sub { font-size: 9px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-top: 1mm; }
   .badge-pedido { display: inline-block; border: 2px solid #000; padding: 1.5mm 4mm; font-size: 11px; font-weight: 900; margin-top: 3mm; text-transform: uppercase; }
  .info-card { border: 1px solid #000; padding: 2.5mm; margin: 3mm 0; }
-  .info-row { display: flex; gap: 2mm; margin: 1.5mm 0; font-size: 13px; line-height: 1.35; }
+  .info-row { display: flex; gap: 2mm; margin: 1.5mm 0; font-size: 14.5px; line-height: 1.35; }
   .info-label { font-weight: 800; min-width: 18mm; flex-shrink: 0; color: #000; }
   .info-value { flex: 1; font-weight: 800; word-break: break-word; color: #000; }
   .sep { border: none; border-top: 1px dashed #000; margin: 3mm 0; }
