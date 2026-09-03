@@ -375,12 +375,14 @@ function renderPedidoCard(p) {
 
   // Selecao de motoboy para pedidos de entrega (oculta para mesa, viagem e retirada)
   const ehAvulsoGarcom = p.bairro_entrega === 'Avulso' || p.bairro_entrega === 'Viagem' || (p.observacoes && (p.observacoes.includes('AVULSO') || p.observacoes.includes('VIAGEM')));
+  const motoboysAtivos = motoboysLista.filter(m => m.ativo);
   const motoboySelect = !isRetirada && !p.mesa_id && !ehAvulsoGarcom && p.status !== 'cancelado' ? `
-    <div style="margin-top: 8px;">
-      <select class="filter-select" style="width:100%; font-size: 0.78rem; padding: 6px 8px;" onchange="atribuirMotoboy(${p.id}, this.value)">
+    <div style="margin-top: 8px;" onclick="event.stopPropagation()">
+      <select class="filter-select" style="width:100%; font-size: 0.78rem; padding: 6px 8px;" onclick="event.stopPropagation()" onchange="atribuirMotoboy(event, ${p.id}, this.value)">
         <option value="">🏍️ Motoboy não definido</option>
-        ${motoboysLista.filter(m => m.ativo).map(m => `<option value="${m.id}" ${p.motoboy_id == m.id ? 'selected' : ''}>${escapeHtml(m.nome)}</option>`).join('')}
+        ${motoboysAtivos.map(m => `<option value="${m.id}" ${p.motoboy_id == m.id ? 'selected' : ''}>${escapeHtml(m.nome)}</option>`).join('')}
       </select>
+      ${!motoboysAtivos.length ? `<small style="color:#E65100">Nenhum motoboy ativo — cadastre em Motoboys</small>` : ''}
       ${p.motoboy_nome && !motoboysLista.some(m => m.id == p.motoboy_id && m.ativo) ? `<small style="color:var(--gray)">Entregou: ${escapeHtml(p.motoboy_nome)}</small>` : ''}
     </div>
   ` : '';
@@ -494,11 +496,20 @@ async function excluirMotoboy(id) {
   carregarMotoboys();
 }
 
-async function atribuirMotoboy(pedidoId, motoboyId) {
+async function atribuirMotoboy(a, b, c) {
+  let pedidoId, motoboyId;
+  if (a && typeof a === 'object' && a.stopPropagation) { try { a.stopPropagation(); } catch(e){} pedidoId = b; motoboyId = c; } else { pedidoId = a; motoboyId = b; }
   try {
     const res = await authFetch(`/api/pedidos/${pedidoId}/motoboy`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ motoboy_id: motoboyId || null }) });
     await verificarResposta(res);
-    showToast('Motoboy atualizado!');
+    const p = todosPedidos.find(x => String(x.id) === String(pedidoId));
+    if (p) {
+      p.motoboy_id = motoboyId ? parseInt(motoboyId) : null;
+      const m = motoboysLista.find(x => String(x.id) === String(motoboyId));
+      p.motoboy_nome = m ? m.nome : (motoboyId ? p.motoboy_nome : null);
+    }
+    showToast(motoboyId ? 'Motoboy atribuído!' : 'Motoboy removido!');
+    filtrarPedidosPorTab();
   } catch (e) {
     showToast(e.message);
   }
