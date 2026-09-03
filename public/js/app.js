@@ -375,7 +375,7 @@ function abrirProduto(id) {
 
   const porKg = produtoAtual.unidade === 'kg';
   const isPizza = produtoAtual.categoria_nome && ['Pizza', 'Tradicional', 'Especial', 'Doce'].some(cat => produtoAtual.categoria_nome.toLowerCase().includes(cat.toLowerCase()));
-  const isSuco = produtoAtual.categoria_nome && ['suco', 'suco', 'bebida'].some(cat => produtoAtual.categoria_nome.toLowerCase().includes(cat.toLowerCase()));
+  const isSuco = produtoAtual.categoria_nome && ['suco', 'bebida', 'milk', 'shake'].some(cat => produtoAtual.categoria_nome.toLowerCase().includes(cat.toLowerCase()));
   const isProdutoComSabores = isPizza || isSuco;
   // Limite de sabores: configuracao do produto tem prioridade; senao, automatico por tamanho da pizza
   let maxSabores = 1;

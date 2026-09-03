@@ -152,8 +152,8 @@ router.post('/', validarPedido, wrapAsync(async (req, res) => {
     for (const item of itens) {
       const prod = produtosMap.get(parseInt(item.produto_id));
       if (!prod) continue;
-      const isPizzaProd = prod.categoria_nome && ['pizza','suco','bebida'].some(cat=> prod.categoria_nome.toLowerCase().includes(cat.toLowerCase()));
-      const prodIsPizzaCat = pizzaCatIds.has(prod.categoria_id);
+      const isPizzaProd = prod.categoria_nome && ['pizza','suco','bebida','milk','shake'].some(cat=> prod.categoria_nome.toLowerCase().includes(cat.toLowerCase()));
+       const prodIsPizzaCat = pizzaCatIds.has(prod.categoria_id);
       for (const a of (item.adicionais||[])) {
         const reg = porAdic.get(parseInt(a.id));
         if (!reg) return res.status(400).json({ error: `Adicional inválido #${a.id} para ${item.produto_nome}` });

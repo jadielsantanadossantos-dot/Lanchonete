@@ -137,9 +137,9 @@ router.get('/ativos', wrapAsync(async (req, res) => {
 
   const produtos = rows.map(p => {
     // Verificar se é pizza ou suco (produtos que recebem sabores)
-    const isPizza = p.categoria_nome && ['pizza', 'suco', 'bebida'].some(
-      cat => p.categoria_nome.toLowerCase().includes(cat.toLowerCase())
-    );
+     const isPizza = p.categoria_nome && ['pizza', 'suco', 'bebida', 'milk', 'shake'].some(
+       cat => p.categoria_nome.toLowerCase().includes(cat.toLowerCase())
+     );
     const isProdutoPizzaCat = pizzaCatIds.has(p.categoria_id);
 
     // Para pizzas/sucos: retornar sabores + adicionais. Para outros: apenas adicionais
