@@ -26,6 +26,8 @@ function verificarAuth(perfilEsperado) {
   const token = getToken();
   const perfil = getPerfil();
   if (!token || !perfil) return false;
+  if (!perfilEsperado) return true;
+  if (Array.isArray(perfilEsperado)) return perfilEsperado.includes(perfil);
   if (perfilEsperado && perfil !== perfilEsperado) return false;
   return true;
 }
