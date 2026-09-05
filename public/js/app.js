@@ -1153,7 +1153,7 @@ async function concluirPedido() {
 
 async function gerarPixQR(valor) {
   try {
-    const res = await fetch(`/api/config/pix/qrcode?valor=${valor}`);
+    const res = await fetch(`/api/config/pix/qrcode?valor=${valor}&_t=${Date.now()}`, { cache: 'no-store' });
     const data = await res.json();
     if (data.qrcode) {
       pixPayloadAtual = data.payload || '';

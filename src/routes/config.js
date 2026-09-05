@@ -141,7 +141,11 @@ router.get('/pix/qrcode', wrapAsync(async (req, res) => {
 
   try {
     const qrDataUrl = await QRCode.toDataURL(payload, { width: 300, margin: 2 });
-    res.json({ qrcode: qrDataUrl, payload, chave: config.pix_chave });
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+    res.set('Surrogate-Control', 'no-store');
+    res.json({ qrcode: qrDataUrl, payload, chave: String(config.pix_chave).trim() });
   } catch (e) {
     res.status(500).json({ error: 'Erro ao gerar QR Code' });
   }
@@ -213,21 +217,20 @@ function gerarPayloadPix(chave, nome, valor) {
     const len = value.length.toString().padStart(2, '0');
     return id + len + value;
   }
-
+  const chaveSan = String(chave || '').trim();
+  const nomeSan = String(nome || 'Lanchonete').trim().substring(0, 25) || 'Lanchonete';
   const gui = tlv('00', 'br.gov.bcb.pix');
-  const chavePix = tlv('01', chave);
+  const chavePix = tlv('01', chaveSan);
   const merchantAccount = tlv('26', gui + chavePix);
   const merchantCategory = tlv('52', '0000');
   const currency = tlv('53', '986');
-  const valorStr = valor > 0 ? tlv('54', valor.toFixed(2)) : '';
+  const valorStr = valor > 0 ? tlv('54', Number(valor).toFixed(2)) : '';
   const country = tlv('58', 'BR');
-  const merchantName = tlv('59', nome.substring(0, 25));
-  const city = tlv('60', '');
-  const txid = tlv('05', Date.now().toString(36) + Math.random().toString(36).substring(2, 7));
+  const merchantName = tlv('59', nomeSan);
+  const city = tlv('60', 'BRASILIA');
+  const txid = tlv('05', '***');
   const addData = tlv('62', txid);
-
   const payloadSemCRC = '000201' + merchantAccount + merchantCategory + currency + valorStr + country + merchantName + city + addData + '6304';
-
   const crc = crc16ccitt(payloadSemCRC);
   return payloadSemCRC + crc;
 }
