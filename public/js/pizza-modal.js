@@ -393,15 +393,17 @@
     abrir,
     fechar,
     cardHtml(contexto) {
-      // Preco minimo entre as pizzas para exibir como os outros cards
       const pizzas = ((window.__pizzaCfg && window.__pizzaCfg.produtos) || []).filter(p => this.isPizza(p));
       const minPreco = pizzas.length ? Math.min(...pizzas.map(p => parseFloat(p.preco) || 0)) : null;
       const precoTxt = minPreco ? `A partir de R$ ${minPreco.toFixed(2)}` : '';
+      const fotoPizza = (pizzas.find(p => p.foto) || {}).foto || null;
+      const mediaPizza = fotoPizza ? `<img class="product-img" src="${fotoPizza}" alt="Pizza" loading="lazy" style="width:100%;height:100%;object-fit:cover">` : `<div class="product-img-placeholder">&#127829;</div>`;
+      const mediaPizzaGarcom = fotoPizza ? `<img src="${fotoPizza}" alt="Pizza" loading="lazy" style="width:100%;height:100%;object-fit:cover;border-radius:10px">` : `&#127829;`;
 
       if (contexto === 'garcom') {
         return `
           <div class="g-produto-card" onclick="PizzaModal.abrir(window.__pizzaCfg)">
-            <div class="g-produto-placeholder">&#127829;</div>
+            <div class="g-produto-placeholder" style="${fotoPizza ? 'padding:0;overflow:hidden' : ''}">${mediaPizzaGarcom}</div>
             <div class="g-produto-info">
               <div class="g-produto-text">
                 <div class="g-produto-nome">Montar sua Pizza</div>
@@ -414,8 +416,8 @@
       }
       return `
         <div class="product-card" onclick="PizzaModal.abrir(window.__pizzaCfg)">
-          <div class="product-media">
-            <div class="product-img-placeholder">&#127829;</div>
+          <div class="product-media" style="${fotoPizza ? 'padding:0;overflow:hidden' : ''}">
+            ${mediaPizza}
           </div>
           <div class="product-info">
             <div>
