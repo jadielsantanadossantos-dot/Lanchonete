@@ -259,6 +259,7 @@ function isRetiradaPedido(p) {
 }
 const _BORDA_NOMES_SET=new Set(['CHOCOLATE','CHOCOLATE BRANCO','NUTELLA','GOIABADA','CATUPIRY','CHEDDAR','CREAM CHEESE']);
 function isBordaAdicional(a){
+  if(a && a.tipo) return String(a.tipo).toLowerCase()==='borda';
   const raw=String(a.adicional_nome||a.nome||'').trim();
   if(/borda/i.test(raw)) return true;
   const up=raw.toUpperCase();

@@ -80,7 +80,7 @@ async function atualizarPedidoComItens(pedidoId, itensComAdicionais, formaPagame
       const newId = r.rows[0].id;
       if (item.adicionais && item.adicionais.length) {
         for (const a of item.adicionais) {
-          await client.query('INSERT INTO pedido_item_adicionais (pedido_item_id, adicional_nome, preco) VALUES ($1,$2,$3)', [newId, a.nome, a.preco]);
+          await client.query('INSERT INTO pedido_item_adicionais (pedido_item_id, adicional_nome, preco, tipo) VALUES ($1,$2,$3,$4)', [newId, a.nome, a.preco, a.tipo || 'adicional']);
         }
       }
     }
@@ -199,7 +199,7 @@ router.post('/mesa/:mesaId/item', wrapAsync(async (req, res) => {
       if (reg.tipo==='sabor' && reg.categoria_id===2 && !isPizza) permitido=false;
       if (!permitido) return res.status(400).json({ error: `Adicional "${reg.nome}" não pertence ao produto "${produto.nome}"` });
     }
-    adicionaisNorm = adicionais.map(a => { const r = porId.get(parseInt(a.id)); return { id: r.id, nome: /borda/i.test(r.tipo||'')?`Borda ${r.nome}`:r.nome, preco: parseFloat(r.preco)||0 }; });
+    adicionaisNorm = adicionais.map(a => { const r = porId.get(parseInt(a.id)); return { id: r.id, nome: /borda/i.test(r.tipo||'')?`Borda ${r.nome}`:r.nome, preco: parseFloat(r.preco)||0, tipo: r.tipo || 'adicional' }; });
   }
   const adicJson = adicionaisNorm.length ? JSON.stringify(adicionaisNorm) : null;
   const obsSanitizada = sanitizarString(observacao || '');
@@ -383,7 +383,7 @@ router.post('/mesa/:mesaId/enviar-cozinha', wrapAsync(async (req, res) => {
         await client.query('UPDATE comanda_itens SET enviado_cozinha = true, pedido_item_id = $1 WHERE id = $2', [newItemId, item.id]);
         if (item.adicionais && item.adicionais.length) {
           for (const a of item.adicionais) {
-            await client.query('INSERT INTO pedido_item_adicionais (pedido_item_id, adicional_nome, preco) VALUES ($1,$2,$3)', [newItemId, a.nome, a.preco]);
+            await client.query('INSERT INTO pedido_item_adicionais (pedido_item_id, adicional_nome, preco, tipo) VALUES ($1,$2,$3,$4)', [newItemId, a.nome, a.preco, a.tipo || 'adicional']);
           }
         }
       }
@@ -528,7 +528,7 @@ router.post('/mesa/:mesaId/fechar', wrapAsync(async (req, res) => {
         const ri = await client.query('INSERT INTO pedido_itens (pedido_id, produto_id, produto_nome, quantidade, preco_unitario, observacao) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id', [pid, item.produto_id, item.produto_nome, item.quantidade, item.preco_unitario, item.observacao || '']);
         const nid = ri.rows[0].id;
         if (item.adicionais && item.adicionais.length) {
-          for (const a of item.adicionais) await client.query('INSERT INTO pedido_item_adicionais (pedido_item_id, adicional_nome, preco) VALUES ($1,$2,$3)', [nid, a.nome, a.preco]);
+          for (const a of item.adicionais) await client.query('INSERT INTO pedido_item_adicionais (pedido_item_id, adicional_nome, preco, tipo) VALUES ($1,$2,$3,$4)', [nid, a.nome, a.preco, a.tipo || 'adicional']);
         }
       }
       await client.query('UPDATE comandas SET status=$1, fechada_em=$2 WHERE id=$3', ['fechada', agora, comanda.id]);

@@ -262,7 +262,7 @@ router.post('/', validarPedido, wrapAsync(async (req, res) => {
       const itemId = r2.rows[0].id;
       if (item.adicionais && item.adicionais.length) {
         for (const a of item.adicionais) {
-          await client.query('INSERT INTO pedido_item_adicionais (pedido_item_id, adicional_nome, preco) VALUES ($1,$2,$3)', [itemId, a.nome, a.preco]);
+          await client.query('INSERT INTO pedido_item_adicionais (pedido_item_id, adicional_nome, preco, tipo) VALUES ($1,$2,$3,$4)', [itemId, a.nome, a.preco, a.tipo || 'adicional']);
         }
       }
     }
