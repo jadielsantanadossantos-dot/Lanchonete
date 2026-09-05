@@ -140,7 +140,7 @@ router.post('/mesa/:mesaId/item', wrapAsync(async (req, res) => {
 
   const unidadeItem = (unidade === 'kg' || produto.unidade === 'kg') ? 'kg' : 'un';
   let qtd = parseFloat(quantidade);
-  if (isNaN(qtd) || qtd <= 0) qtd = 1;
+  if (isNaN(qtd) || qtd <= 0) return res.status(400).json({ error: 'Quantidade inválida' });
   if (unidadeItem === 'un') {
     if (!Number.isInteger(qtd) || qtd < 1 || qtd > 99) return res.status(400).json({ error: 'Quantidade inválida para produto por unidade (1 a 99)' });
   } else {

@@ -115,13 +115,7 @@ function buildApp() {
     next();
   });
 
-  // Demo observador: somente leitura
-  app.use('/api', (req, res, next) => {
-    if (req.usuario && req.usuario.perfil === 'observador' && req.method !== 'GET') {
-      return res.status(403).json({ error: 'Acesso de demonstração: apenas visualização. Solicite acesso completo para editar.' });
-    }
-    next();
-  });
+
 
   app.use('/api/categorias', require('./routes/categorias'));
   app.use('/api/produtos', require('./routes/produtos'));

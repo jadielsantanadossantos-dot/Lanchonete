@@ -103,13 +103,19 @@ async function middleware(req, res, next) {
   if (!usuario) {
     return res.status(401).json({ error: 'Token inválido ou expirado' });
   }
+  try {
+    const row = await db.get('SELECT id, ativo FROM usuarios WHERE id = $1', usuario.id);
+    if (!row || !row.ativo) {
+      return res.status(401).json({ error: 'Usuário não encontrado ou inativo' });
+    }
+  } catch (e) {}
   req.usuario = usuario;
   next();
 }
 
 async function middlewareAdmin(req, res, next) {
   await middleware(req, res, () => {
-    if (!['admin', 'observador'].includes(req.usuario.perfil)) {
+    if (req.usuario.perfil !== 'admin') {
       return res.status(403).json({ error: 'Acesso restrito a administradores' });
     }
     next();
@@ -118,7 +124,7 @@ async function middlewareAdmin(req, res, next) {
 
 async function middlewareGarcom(req, res, next) {
   await middleware(req, res, () => {
-    if (!['garcom', 'admin', 'observador'].includes(req.usuario.perfil)) {
+    if (!['garcom', 'admin'].includes(req.usuario.perfil)) {
       return res.status(403).json({ error: 'Acesso restrito a garçons e administradores' });
     }
     next();

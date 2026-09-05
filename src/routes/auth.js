@@ -21,7 +21,7 @@ const loginLimiter = isDev
 const validarLogin = criarValidador({
   usuario: { obrigatorio: true, tipo: 'string', tamanho: { min: 3, max: 50 } },
   senha: { obrigatorio: true, tipo: 'string', tamanho: { min: 1, max: 100 } },
-  perfil_esperado: { tipo: 'string', enum: ['admin', 'garcom', 'observador'] }
+  perfil_esperado: { tipo: 'string', enum: ['admin', 'garcom'] }
 });
 
 const validarAlterarSenha = criarValidador({
@@ -33,13 +33,13 @@ const validarCriarUsuario = criarValidador({
   nome: { obrigatorio: true, tipo: 'string', tamanho: { min: 2, max: 100 }, sanitizar: true },
   usuario: { obrigatorio: true, tipo: 'string', tamanho: { min: 3, max: 50 } },
   senha: { tipo: 'string', tamanho: { min: 8, max: 100 } },
-  perfil: { obrigatorio: true, tipo: 'string', enum: ['admin', 'garcom', 'observador'] }
+  perfil: { obrigatorio: true, tipo: 'string', enum: ['admin', 'garcom'] }
 });
 
 const validarAtualizarUsuario = criarValidador({
   nome: { tipo: 'string', tamanho: { min: 2, max: 100 }, sanitizar: true },
   usuario: { tipo: 'string', tamanho: { min: 3, max: 50 } },
-  perfil: { tipo: 'string', enum: ['admin', 'garcom', 'observador'] },
+  perfil: { tipo: 'string', enum: ['admin', 'garcom'] },
   ativo: { tipo: 'boolean' }
 });
 
@@ -79,8 +79,8 @@ router.post('/login', loginLimiter, validarLogin, wrapAsync(async (req, res) => 
 
   if (perfil_esperado) {
     const permissaoValida = perfil_esperado === 'garcom'
-      ? (['garcom', 'admin', 'observador'].includes(user.perfil))
-      : (perfil_esperado === 'admin' ? ['admin', 'observador'].includes(user.perfil) : user.perfil === perfil_esperado);
+      ? (['garcom', 'admin'].includes(user.perfil))
+      : (perfil_esperado === 'admin' ? user.perfil === 'admin' : user.perfil === perfil_esperado);
 
     if (!permissaoValida) {
       registrarAuditoria({ usuarioId: user.id, usuarioNome: user.usuario, acao: AUDIT_ACTIONS.LOGIN_FAILED, detalhes: { motivo: 'perfil_incompativel' }, req });

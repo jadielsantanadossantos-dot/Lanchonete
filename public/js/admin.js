@@ -14,7 +14,7 @@ let produtosAdicionaisSelecionadas = [];
 function escapeHtml(s){ if(s==null) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
 document.addEventListener('DOMContentLoaded', async () => {
-  if (!verificarAuth(['admin', 'observador'])) {
+  if (!verificarAuth(['admin'])) {
     redirecionarSemAuth('/login-admin');
     return;
   }

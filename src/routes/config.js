@@ -19,7 +19,7 @@ router.get('/', wrapAsync(async (req, res) => {
   const rows = await db.all('SELECT * FROM configuracoes');
   const config = {};
   const sensitiveKeys = ['jwt_secret', 'auth_secret', 'webpush_private_key', 'webpush_public_key', 'psp_client_secret', 'psp_webhook_secret'];
-  const isAdmin = req.usuario && ['admin', 'observador'].includes(req.usuario.perfil);
+  const isAdmin = req.usuario && req.usuario.perfil === 'admin';
   rows.forEach(r => {
     if (isAdmin || !sensitiveKeys.includes(r.chave)) {
       config[r.chave] = r.valor;
@@ -106,10 +106,7 @@ function fileFilterLogo(req, file, cb) {
 }
 const uploadLogoMulter = multer({ storage: multer.memoryStorage(), limits: { fileSize: 2 * 1024 * 1024 }, fileFilter: fileFilterLogo });
 
-router.put('/logo', middlewareAdmin, (req, res, next) => {
-  if (req.usuario && req.usuario.perfil === 'observador') return res.status(403).json({ error: 'Acesso de demonstração: apenas visualização.' });
-  next();
-}, uploadLogoMulter.single('logo'), wrapAsync(async (req, res) => {
+router.put('/logo', middlewareAdmin, uploadLogoMulter.single('logo'), wrapAsync(async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'Arquivo de logo obrigatório' });
   const url = await uploadLogo(req.file);
   await db.run('INSERT INTO configuracoes (chave, valor) VALUES ($1,$2) ON CONFLICT (chave) DO UPDATE SET valor=$2, atualizado_em=NOW()', 'logo_url', url);
@@ -117,7 +114,6 @@ router.put('/logo', middlewareAdmin, (req, res, next) => {
 }));
 
 router.delete('/logo', middlewareAdmin, wrapAsync(async (req, res) => {
-  if (req.usuario && req.usuario.perfil === 'observador') return res.status(403).json({ error: 'Acesso de demonstração: apenas visualização.' });
   const row = await db.get("SELECT valor FROM configuracoes WHERE chave='logo_url'");
   const url = row ? row.valor : '';
   if (url) {

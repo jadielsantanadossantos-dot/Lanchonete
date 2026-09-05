@@ -60,13 +60,15 @@ async function salvarVinculosProdutos(adicionalId, produtoIds) {
 
 router.post('/', middlewareAdmin, wrapAsync(async (req, res) => {
   const { nome, preco, categoria_id, tipo, descricao, produto_ids, limite } = req.body;
+  if (!nome || String(nome).trim().length < 2) return res.status(400).json({ error: 'Nome deve ter no mínimo 2 caracteres' });
+  const precoNum = parseFloat(preco);
+  if (isNaN(precoNum) || precoNum < 0) return res.status(400).json({ error: 'Preço inválido (deve ser >= 0)' });
   const catId = categoria_id ? parseInt(categoria_id) : null;
   const prodIds = Array.isArray(produto_ids) ? produto_ids.map(x => parseInt(x)).filter(Boolean) : [];
   const tipoAd = tipo && TIPOS_VALIDOS.includes(tipo) ? tipo : 'adicional';
   const limiteVal = limite !== undefined ? parseInt(limite) : 0;
-  // Coluna legado produto_id mantida com o primeiro vinculo para compatibilidade
   const info = await db.run('INSERT INTO adicionais (nome, preco, categoria_id, tipo, descricao, produto_id, limite) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
-    nome, parseFloat(preco), catId, tipoAd, descricao || null, prodIds[0] || null, limiteVal);
+    String(nome).trim().replace(/[<>]/g, ''), precoNum, catId, tipoAd, descricao || null, prodIds[0] || null, limiteVal);
   const novoId = info.lastInsertRowid;
   await salvarVinculosProdutos(novoId, prodIds);
   res.json({ id: novoId, nome, preco: parseFloat(preco), categoria_id: catId, tipo: tipoAd, descricao: descricao || null, produto_ids: prodIds, limite: limiteVal });
@@ -74,6 +76,11 @@ router.post('/', middlewareAdmin, wrapAsync(async (req, res) => {
 
 router.put('/:id', middlewareAdmin, wrapAsync(async (req, res) => {
   const { nome, preco, ativo, categoria_id, tipo, descricao, produto_ids, limite } = req.body;
+  if (nome !== undefined && String(nome).trim().length < 2) return res.status(400).json({ error: 'Nome deve ter no mínimo 2 caracteres' });
+  if (preco !== undefined) {
+    const pn = parseFloat(preco);
+    if (isNaN(pn) || pn < 0) return res.status(400).json({ error: 'Preço inválido (deve ser >= 0)' });
+  }
   const atual = await db.get('SELECT categoria_id, produto_id, limite FROM adicionais WHERE id = $1', req.params.id);
   const catId = categoria_id !== undefined ? (categoria_id ? parseInt(categoria_id) : null) : (atual ? atual.categoria_id : null);
   const tipoAd = tipo && TIPOS_VALIDOS.includes(tipo) ? tipo : 'adicional';

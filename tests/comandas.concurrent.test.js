@@ -66,17 +66,34 @@ describe('auditoria - ordenação e await', () => {
   });
 });
 
-describe('observador - CHECK constraint', () => {
-  it('migration 20260826000008 permite observador', () => {
-    const sql = fs.readFileSync(path.join('supabase/migrations/20260826000008_allow_observador.sql'), 'utf8');
-    expect(sql).toContain('observador');
-    expect(sql).toContain('usuarios_perfil_check');
-    expect(sql).toContain('demo1234');
+describe('auth - perfil removido e validação', () => {
+  it('nova migration remove observador do CHECK', () => {
+    const sql = fs.readFileSync(path.join('supabase/migrations/20260905000001_remove_observador.sql'), 'utf8');
+    expect(sql).toContain("CHECK (perfil IN ('admin','garcom'))");
+    const checkLine = sql.split('\n').find(l => l.includes('CHECK (perfil IN'));
+    expect(checkLine).not.toContain('observador');
   });
 
-  it('app bloqueia observador em métodos não-GET', () => {
-    const code = fs.readFileSync(path.join('src/app.js'), 'utf8');
-    expect(code).toContain("perfil === 'observador'");
-    expect(code).toContain("req.method !== 'GET'");
+  it('middleware verifica usuário ativo no DB (token fantasma bloqueado)', () => {
+    const code = fs.readFileSync(path.join('src/auth/auth.js'), 'utf8');
+    expect(code).toContain('SELECT id, ativo FROM usuarios WHERE id');
+    expect(code).toContain('ativo');
+  });
+
+  it('categorias tem validação e sanitização', () => {
+    const code = fs.readFileSync(path.join('src/routes/categorias.js'), 'utf8');
+    expect(code).toContain('validarCategoria');
+    expect(code).toContain('sanitizarString');
+  });
+
+  it('adicionais validam preço >= 0', () => {
+    const code = fs.readFileSync(path.join('src/routes/adicionais.js'), 'utf8');
+    expect(code).toContain('Preço inválido');
+  });
+
+  it('comandas validam quantidade 0 como erro', () => {
+    const code = fs.readFileSync(path.join('src/routes/comandas.js'), 'utf8');
+    expect(code).toContain("Quantidade inválida'");
+    expect(code).not.toContain('if (isNaN(qtd) || qtd <= 0) qtd = 1');
   });
 });
