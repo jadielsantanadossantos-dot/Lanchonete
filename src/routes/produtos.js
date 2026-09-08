@@ -160,7 +160,10 @@ router.get('/ativos', wrapAsync(async (req, res) => {
         if (a.tipo === 'sabor' && isProdutoPizzaCat && pizzaCatIds.has(a.categoria_id) && (!idsVinculados || idsVinculados.length===0)) {
           return true;
         }
-        if (isProdutoPizzaCat && ['adicional', 'borda'].includes(a.tipo) && a.categoria_id && pizzaCatIds.has(a.categoria_id) && a.preco > 0) {
+        if (isProdutoPizzaCat && a.tipo === 'borda') {
+          return produtoEspecifico;
+        }
+        if (isProdutoPizzaCat && a.tipo === 'adicional' && a.categoria_id && pizzaCatIds.has(a.categoria_id) && a.preco > 0) {
           return true;
         }
         return (produtoEspecifico || adicionalGlobal) && ['adicional', 'borda'].includes(a.tipo) && a.preco > 0;
