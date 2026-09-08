@@ -154,13 +154,13 @@ router.get('/ativos', wrapAsync(async (req, res) => {
       const adicionalGlobal = (!idsVinculados || idsVinculados.length === 0) && mesmaCategoria;
       
       if (isPizza) {
-        // Pizzas/sucos recebem sabores (tipo='sabor') E adicionais com preço
-        // Sabores vinculados a um produto específico nao vazam para outros produtos da mesma categoria
         if (a.tipo === 'sabor' && (produtoEspecifico || adicionalGlobal)) {
           return true;
         }
-        // sabores de qualquer categoria de pizza são compartilhados entre todas as pizzas (ex: CALABRESA da Tradicional na Especial)
         if (a.tipo === 'sabor' && isProdutoPizzaCat && pizzaCatIds.has(a.categoria_id) && (!idsVinculados || idsVinculados.length===0)) {
+          return true;
+        }
+        if (isProdutoPizzaCat && ['adicional', 'borda'].includes(a.tipo) && a.categoria_id && pizzaCatIds.has(a.categoria_id) && a.preco > 0) {
           return true;
         }
         return (produtoEspecifico || adicionalGlobal) && ['adicional', 'borda'].includes(a.tipo) && a.preco > 0;

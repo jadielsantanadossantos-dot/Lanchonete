@@ -165,10 +165,9 @@ router.post('/', validarPedido, wrapAsync(async (req, res) => {
         let permitido = false;
         if (isPizzaProd) {
           if (reg.tipo==='sabor' && (prodEsp||global)) permitido=true;
-          // sabores de qualquer categoria de pizza podem ser usados em qualquer pizza (ex: CALABRESA da Pizza Tradicional na Pizza Especial)
           if (reg.tipo==='sabor' && prodIsPizzaCat && isSaborPizzaCategoria && (!idsVinculados || idsVinculados.length===0)) permitido=true;
-          else if ((prodEsp||global) && ['adicional','borda'].includes(reg.tipo) && reg.preco!==null) permitido=true;
-          // bebidas: sabor incluso já tratado acima
+          if ((prodEsp||global) && ['adicional','borda'].includes(reg.tipo) && reg.preco!==null) permitido=true;
+          if (prodIsPizzaCat && ['adicional','borda'].includes(reg.tipo) && reg.categoria_id && pizzaCatIds.has(reg.categoria_id) && reg.preco!==null) permitido=true;
           if (reg.tipo==='sabor' && prod.categoria_nome.toLowerCase().includes('bebida') && (prodEsp||global)) permitido=true;
         } else {
           permitido = (prodEsp||global) && (!reg.tipo || ['adicional','sabor','base','cobertura','acompanhamento','borda'].includes(reg.tipo));
