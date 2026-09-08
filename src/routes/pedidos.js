@@ -12,6 +12,8 @@ const validarPedido = criarValidador({
   bairro_entrega: { tipo: 'string', tamanho: { min: 0, max: 100 }, sanitizar: true }
 });
 
+function tamanhoDoProduto(nome) { const m = (nome || '').trim().match(/\s([PMGF])$/i); return m ? m[1].toUpperCase() : ''; }
+function bordaPrecoCompativel(prodNome, precoBorda) { const tam = tamanhoDoProduto(prodNome); if (!tam) return true; const pv = parseFloat(precoBorda); if (pv === 6 && !['P', 'M'].includes(tam)) return false; if (pv === 10 && !['G', 'F'].includes(tam)) return false; return true; }
 const isDev = process.env.NODE_ENV !== 'production';
 const publicLimiter = isDev
   ? (req, res, next) => next()
@@ -75,6 +77,23 @@ router.get('/:id', middlewareAdmin, wrapAsync(async (req, res) => {
 }));
 
 router.post('/', validarPedido, wrapAsync(async (req, res) => {
+  const idempotencyKeyRaw = req.headers['idempotency-key'] || req.headers['x-idempotency-key'] || null;
+  const idempotencyKey = typeof idempotencyKeyRaw === 'string' ? idempotencyKeyRaw.trim().slice(0, 128) : null;
+  if (idempotencyKey) {
+    if (idempotencyKey.length < 8) return res.status(400).json({ error: 'Idempotency-Key muito curta (mín 8)' });
+    try {
+      const existing = await db.get('SELECT pedido_id FROM idempotency_keys WHERE key = $1', idempotencyKey);
+      if (existing && existing.pedido_id) {
+        const pedidoEx = await db.get('SELECT p.*, c.nome as cliente_nome, c.telefone as cliente_telefone FROM pedidos p JOIN clientes c ON p.cliente_id = c.id WHERE p.id = $1', existing.pedido_id);
+        if (pedidoEx) {
+          const pi = await db.all('SELECT * FROM pedido_itens WHERE pedido_id = $1', pedidoEx.id);
+          const ad = pi.length ? await db.all('SELECT * FROM pedido_item_adicionais WHERE pedido_item_id = ANY($1)', pi.map(i => i.id)) : [];
+          pedidoEx.itens = pi.map(i => ({ ...i, adicionais: ad.filter(a => a.pedido_item_id === i.id) }));
+          return res.json(pedidoEx);
+        }
+      }
+    } catch (e) {}
+  }
   // Cliente publico so pede com a loja aberta (considera horário automático); garcom/admin podem sempre
   const { isLojaAbertaEfetiva } = require('../utils/horario');
   const cfgRows = await db.all('SELECT chave, valor FROM configuracoes');
@@ -166,8 +185,13 @@ router.post('/', validarPedido, wrapAsync(async (req, res) => {
         if (isPizzaProd) {
           if (reg.tipo==='sabor' && (prodEsp||global)) permitido=true;
           if (reg.tipo==='sabor' && prodIsPizzaCat && isSaborPizzaCategoria && (!idsVinculados || idsVinculados.length===0)) permitido=true;
-          if ((prodEsp||global) && ['adicional','borda'].includes(reg.tipo) && reg.preco!==null) permitido=true;
-          if (prodIsPizzaCat && ['adicional','borda'].includes(reg.tipo) && reg.categoria_id && pizzaCatIds.has(reg.categoria_id) && reg.preco!==null) permitido=true;
+          if (reg.tipo==='borda') {
+            if (prodIsPizzaCat) { if (prodEsp && bordaPrecoCompativel(prod.nome, reg.preco)) permitido=true; }
+            else { if ((prodEsp||global) && bordaPrecoCompativel(prod.nome, reg.preco)) permitido=true; }
+          } else if (reg.tipo==='adicional' && reg.preco!==null) {
+            if ((prodEsp||global)) permitido=true;
+            if (prodIsPizzaCat && reg.categoria_id && pizzaCatIds.has(reg.categoria_id)) permitido=true;
+          }
           if (reg.tipo==='sabor' && prod.categoria_nome.toLowerCase().includes('bebida') && (prodEsp||global)) permitido=true;
         } else {
           permitido = (prodEsp||global) && (!reg.tipo || ['adicional','sabor','base','cobertura','acompanhamento','borda'].includes(reg.tipo));
@@ -245,6 +269,25 @@ router.post('/', validarPedido, wrapAsync(async (req, res) => {
   subtotal = Math.round(subtotal * 100) / 100;
 
   const pixConfMesa = mesa_id && forma_pagamento === 'pix' ? true : false;
+  if (idempotencyKey) {
+    try {
+      const resv = await db.run('INSERT INTO idempotency_keys (key) VALUES ($1) ON CONFLICT DO NOTHING', idempotencyKey);
+      if (resv.changes === 0) {
+        const dup = await db.get('SELECT pedido_id FROM idempotency_keys WHERE key = $1', idempotencyKey);
+        if (dup && dup.pedido_id) {
+          const pedidoEx2 = await db.get('SELECT p.*, c.nome as cliente_nome, c.telefone as cliente_telefone FROM pedidos p JOIN clientes c ON p.cliente_id = c.id WHERE p.id = $1', dup.pedido_id);
+          if (pedidoEx2) {
+            const pi2 = await db.all('SELECT * FROM pedido_itens WHERE pedido_id = $1', pedidoEx2.id);
+            const ad2 = pi2.length ? await db.all('SELECT * FROM pedido_item_adicionais WHERE pedido_item_id = ANY($1)', pi2.map(i => i.id)) : [];
+            pedidoEx2.itens = pi2.map(i => ({ ...i, adicionais: ad2.filter(a => a.pedido_item_id === i.id) }));
+            return res.json(pedidoEx2);
+          }
+        }
+        const pend = await db.get('SELECT 1 FROM idempotency_keys WHERE key = $1 AND pedido_id IS NULL', idempotencyKey);
+        if (pend) return res.status(409).json({ error: 'Pedido já em processamento, aguarde' });
+      }
+    } catch (e) {}
+  }
   // Transação atômica: pedido + itens + adicionais
   const pedidoId = await db.transaction(async (client) => {
     const r1 = await client.query(
@@ -264,6 +307,9 @@ router.post('/', validarPedido, wrapAsync(async (req, res) => {
           await client.query('INSERT INTO pedido_item_adicionais (pedido_item_id, adicional_nome, preco, tipo) VALUES ($1,$2,$3,$4)', [itemId, a.nome, a.preco, a.tipo || 'adicional']);
         }
       }
+    }
+    if (idempotencyKey) {
+      try { await client.query('UPDATE idempotency_keys SET pedido_id = $1 WHERE key = $2', [pid, idempotencyKey]); } catch (e) {}
     }
     return pid;
   });

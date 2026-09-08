@@ -98,6 +98,17 @@ document.addEventListener('DOMContentLoaded', async () => {
       realtimeUnsubscribes.forEach(unsub => unsub());
       realtimeUnsubscribes = [];
     });
+    setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
+      const secPedidos = document.getElementById('sec-pedidos');
+      if (secPedidos && secPedidos.classList.contains('active')) carregarPedidos().catch(()=>{});
+    }, 15000);
+  } else {
+    setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
+      const secPedidos = document.getElementById('sec-pedidos');
+      if (secPedidos && secPedidos.classList.contains('active')) carregarPedidos().catch(()=>{});
+    }, 15000);
   }
 
   const volSlider = document.getElementById('cfg-som-volume');

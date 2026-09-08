@@ -203,6 +203,21 @@ async function iniciarAppGarcom() {
       if (mesasUnsubscribe) mesasUnsubscribe();
       if (novoPedidoUnsubscribe) novoPedidoUnsubscribe();
     });
+    setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
+      const ativa = document.querySelector('.g-page.active');
+      if (!ativa) return;
+      if (ativa.id === 'g-page-mesas') carregarMesas().catch(()=>{});
+      if (ativa.id === 'g-page-comanda' && mesaAtual) carregarComanda().catch(()=>{});
+    }, 15000);
+  } else {
+    setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
+      const ativa = document.querySelector('.g-page.active');
+      if (!ativa) return;
+      if (ativa.id === 'g-page-mesas') carregarMesas().catch(()=>{});
+      if (ativa.id === 'g-page-comanda' && mesaAtual) carregarComanda().catch(()=>{});
+    }, 15000);
   }
 
   await Promise.all([carregarMesas(), carregarProdutosCategorias()]);

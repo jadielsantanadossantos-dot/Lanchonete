@@ -145,6 +145,13 @@ function buildApp() {
 
   app.get('/favicon.ico', (req, res) => res.status(204).end());
 
+  app.use((err, req, res, _next) => {
+    console.error('[app] erro não tratado:', err.message);
+    if (res.headersSent) return;
+    const status = err.status && Number.isInteger(err.status) ? err.status : 500;
+    res.status(status).json({ error: status === 500 ? 'Erro interno' : (err.message || 'Erro') });
+  });
+
   return app;
 }
 

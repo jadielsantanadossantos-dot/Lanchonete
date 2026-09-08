@@ -50,7 +50,11 @@ router.get('/public', wrapAsync(async (req, res) => {
   });
 }));
 
+const BLOCKED_CONFIG_KEYS = new Set(['jwt_secret', 'auth_secret']);
 router.put('/', middlewareAdmin, wrapAsync(async (req, res) => {
+  for (const k of Object.keys(req.body)) {
+    if (BLOCKED_CONFIG_KEYS.has(k)) return res.status(403).json({ error: `Chave protegida: ${k} não pode ser alterada por esta rota` });
+  }
   const stmt = db.prepare('INSERT INTO configuracoes (chave, valor) VALUES ($1, $2) ON CONFLICT (chave) DO UPDATE SET valor = $2, atualizado_em = NOW()');
   for (const [chave, valor] of Object.entries(req.body)) {
     await stmt.run(chave, valor);

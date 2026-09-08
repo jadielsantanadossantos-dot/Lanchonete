@@ -46,8 +46,27 @@ async function resetDemo() {
   `);
 }
 
+function exigirCronAuth(req, res) {
+  const cronSecret = process.env.CRON_SECRET;
+  const vercelCron = req.headers['x-vercel-cron'];
+  const auth = req.headers.authorization || '';
+  const bearer = auth.startsWith('Bearer ') ? auth.slice(7) : null;
+  if (cronSecret) {
+    if (vercelCron) return true;
+    if (bearer === cronSecret) return true;
+    res.status(401).json({ error: 'Não autorizado' });
+    return false;
+  }
+  if (!isDemoEnvironment() && process.env.NODE_ENV === 'production' && !vercelCron) {
+    res.status(401).json({ error: 'CRON_SECRET não configurado — configure no ambiente de produção' });
+    return false;
+  }
+  return true;
+}
+
 router.all('/reset-demo', async (req, res) => {
   try {
+    if (!exigirCronAuth(req, res)) return;
     // Proteção: só roda na demo
     if (!isDemoEnvironment()) {
       // Fallback: checa loja_nome via DB
@@ -58,25 +77,6 @@ router.all('/reset-demo', async (req, res) => {
         }
       } catch (e) {
         return res.status(403).json({ error: 'Ambiente não-demo' });
-      }
-    }
-
-    // Se CRON_SECRET configurado, exige Authorization Bearer
-    const cronSecret = process.env.CRON_SECRET;
-    if (cronSecret) {
-      const auth = req.headers.authorization || '';
-      const vercelCron = req.headers['x-vercel-cron'];
-      // Vercel Cron não envia Authorization por padrão; aceita se vier de Vercel Cron (header presente) OU Bearer correto
-      const bearer = auth.startsWith('Bearer ') ? auth.slice(7) : null;
-      if (!vercelCron && bearer !== cronSecret) {
-        // Para teste manual, exige secret
-        if (req.method === 'GET' && !bearer) {
-          // GET sem auth só permite se for Vercel Cron (vercelCron header) - já falhou acima
-          return res.status(401).json({ error: 'Não autorizado' });
-        }
-        if (bearer !== cronSecret) {
-          return res.status(401).json({ error: 'Não autorizado' });
-        }
       }
     }
 
@@ -92,6 +92,17 @@ router.all('/reset-demo', async (req, res) => {
     console.error('reset-demo error:', e);
     res.status(500).json({ error: e.message });
   }
+});
+
+router.all('/cleanup', async (req, res) => {
+  try {
+    if (!exigirCronAuth(req, res)) return;
+    const r1 = await db.run("DELETE FROM refresh_tokens_revogados WHERE expira_em IS NOT NULL AND expira_em < NOW() - INTERVAL '1 day'");
+    const r2 = await db.run("DELETE FROM refresh_tokens_revogados WHERE expira_em IS NULL AND revogado_em < NOW() - INTERVAL '30 days'");
+    let r3 = { changes: 0 };
+    try { r3 = await db.run("DELETE FROM idempotency_keys WHERE criado_em < NOW() - INTERVAL '7 days'"); } catch (e) {}
+    res.json({ ok: true, revogados_expirados: r1.changes || 0, revogados_antigos: r2.changes || 0, idempotency_limpos: r3.changes || 0 });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 router.get('/status', async (req, res) => {

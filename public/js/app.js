@@ -1078,9 +1078,10 @@ async function concluirPedido() {
       if (troco) observacoes += ` | Troco para R$ ${parseFloat(troco).toFixed(2)}`;
     }
 
+    const idempotencyKey = (crypto.randomUUID ? crypto.randomUUID() : Date.now() + '-' + Math.random().toString(36).slice(2));
     const pedidoRes = await fetch('/api/pedidos', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Idempotency-Key': idempotencyKey },
       body: JSON.stringify({
         cliente_id: cliente.id,
         itens: carrinho,
