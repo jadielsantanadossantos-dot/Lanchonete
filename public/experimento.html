@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="client">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Lanchonete — Experimento</title>
+<link rel="stylesheet" href="/css/v2.css?v=20260909a">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<header class="v2-header" id="v2-header">
+  <div class="v2-header-row">
+    <div class="v2-brand">
+      <img src="/logo.jpeg" id="v2-logo" alt="Logo" onerror="this.style.display='none'">
+      <div class="v2-brand-text">
+        <div class="v2-loja" id="v2-loja-nome">Lanchonete</div>
+        <div class="v2-sub">Faça seu pedido</div>
+      </div>
+    </div>
+    <label class="v2-search" aria-label="Buscar">
+      <span class="v2-search-icon">🔍</span>
+      <input id="v2-search" type="search" placeholder="Buscar produto..." autocomplete="off">
+    </label>
+    <div class="v2-header-actions">
+      <button class="v2-account-btn" onclick="V2.mostrarConta()" aria-label="Minha conta">
+        <span class="v2-icon-btn">👤</span>
+        <span class="v2-account-label">LOGIN<br>REGISTRAR</span>
+      </button>
+    </div>
+  </div>
+</header>
+<div class="v2-search-mobile">
+  <div class="v2-search-wrap">
+    <span class="v2-search-icon">🔍</span>
+    <input id="v2-search-m" type="search" placeholder="Buscar produto..." autocomplete="off">
+  </div>
+</div>
+<div id="v2-tempo" class="v2-tempo" style="display:none">⏱️ Tempo de espera: <strong id="v2-tempo-val">—</strong></div>
+<div id="v2-fechada" class="v2-fechada">Loja fechada no momento — não estamos aceitando pedidos agora.</div>
+
+<div class="v2-layout">
+  <main class="v2-main">
+    <div class="v2-cats" id="v2-cats"></div>
+    <div class="v2-grid" id="v2-grid"></div>
+  </main>
+  <aside class="v2-cart-side" id="v2-side">
+    <div class="v2-cart-side-head"><span>🛒 Carrinho</span><span id="v2-side-count" style="font-size:.82rem;color:var(--color-text-secondary)">0 itens</span></div>
+    <div class="v2-cart-side-body" id="v2-side-body"></div>
+    <div class="v2-cart-side-foot" id="v2-side-foot" style="display:none">
+      <div class="v2-summary" style="margin:0 0 10px">
+        <div class="v2-summary-row"><span>Subtotal</span><strong id="v2-side-sub">R$ 0,00</strong></div>
+        <div class="v2-summary-row"><span>Taxa de entrega</span><strong id="v2-side-taxa">R$ 0,00</strong></div>
+        <div class="v2-summary-row total"><span>Total</span><span id="v2-side-total">R$ 0,00</span></div>
+      </div>
+      <button class="v2-btn v2-btn-primary" onclick="V2.abrirCheckout()">Finalizar pedido →</button>
+    </div>
+  </aside>
+</div>
+
+<div class="v2-bottom-bar hidden" id="v2-bar">
+  <div class="v2-bar-info">
+    <div class="v2-bar-count" id="v2-bar-count">0 itens</div>
+    <div class="v2-bar-total" id="v2-bar-total">R$ 0,00</div>
+  </div>
+  <button class="v2-bar-btn" onclick="V2.abrirCarrinho()">Ver carrinho →</button>
+</div>
+
+<div class="v2-drawer-overlay" id="v2-overlay" onclick="V2.fecharDrawer()"></div>
+<div class="v2-drawer" id="v2-drawer" role="dialog" aria-modal="true">
+  <div class="v2-drawer-handle"></div>
+  <div class="v2-drawer-header">
+    <div class="v2-drawer-title" id="v2-drawer-title">Carrinho</div>
+    <button class="v2-drawer-close" onclick="V2.fecharDrawer()" aria-label="Fechar">✕</button>
+  </div>
+  <div class="v2-steps" id="v2-steps" style="display:none">
+    <span class="v2-step active" data-s="1">1</span><span class="v2-step-line" data-l="1"></span>
+    <span class="v2-step" data-s="2">2</span><span class="v2-step-line" data-l="2"></span>
+    <span class="v2-step" data-s="3">3</span>
+  </div>
+  <div class="v2-drawer-body" id="v2-drawer-body"></div>
+  <div class="v2-drawer-footer" id="v2-drawer-footer"></div>
+</div>
+
+  <div class="modal-overlay" id="modal-produto" role="dialog" aria-modal="true" aria-labelledby="modal-nome" style="position:fixed;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:16px;z-index:300">
+  <div class="modal" style="background:#fff;border-radius:24px;max-height:85vh;max-width:520px;width:100%;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 16px 48px rgba(0,0,0,.16)">
+    <div class="modal-header" style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #eee;background:#FAFAFA">
+      <h2 id="modal-nome" style="font-size:1rem;font-weight:700"></h2>
+      <button class="modal-close" onclick="fecharModal()" aria-label="Fechar" style="width:36px;height:36px;border-radius:9999px;background:#eee;display:flex;align-items:center;justify-content:center;font-size:1.2rem">×</button>
+    </div>
+    <div class="modal-body" style="padding:16px;overflow-y:auto;flex:1">
+      <img id="modal-img" style="display:none;width:100%;height:180px;object-fit:cover;border-radius:12px;margin-bottom:12px" alt="">
+      <p id="modal-desc" style="color:#525252;margin-bottom:8px;font-size:.85rem"></p>
+      <p id="modal-preco" style="font-size:1.2rem;font-weight:800;color:#FF6B35;margin-bottom:12px"></p>
+      <div id="modal-adicionais" style="display:none"><div id="adicionais-list"></div></div>
+      <div id="modal-kg-control" style="display:none;align-items:center;justify-content:center;gap:12px;margin:12px 0">
+        <span style="font-weight:700;color:var(--color-primary)">R$</span>
+        <input id="modal-kg-valor" type="number" min="1" step="0.5" value="15" style="width:120px;padding:10px;border:2px solid #E5E5E5;border-radius:10px;font-size:16px" inputmode="decimal" oninput="atualizarBtnAdd()">
+      </div>
+      <p id="modal-kg-dica" style="display:none;font-size:.78rem;color:#525252;margin-top:4px"></p>
+      <div id="modal-qtd-control" style="display:flex;align-items:center;justify-content:center;gap:16px;margin:12px 0">
+        <button class="qty-btn" onclick="alterarQtd(-1)" aria-label="Diminuir" style="width:44px;height:44px;border-radius:9999px;border:2px solid #FF6B35;background:#fff;color:#FF6B35;font-size:1.2rem">−</button>
+        <span id="modal-qty" style="font-size:1.3rem;font-weight:800;min-width:32px;text-align:center">1</span>
+        <button class="qty-btn" onclick="alterarQtd(1)" aria-label="Aumentar" style="width:44px;height:44px;border-radius:9999px;border:2px solid #FF6B35;background:#fff;color:#FF6B35;font-size:1.2rem">+</button>
+      </div>
+      <div style="margin-top:10px"><textarea id="modal-obs" placeholder="Observações (ex: sem cebola)" rows="2" style="width:100%;padding:10px;border:2px solid #E5E5E5;border-radius:10px;resize:none;font-size:16px"></textarea></div>
+    </div>
+    <div class="modal-footer" style="display:flex;gap:8px;padding:12px 16px;border-top:1px solid #eee;background:#FAFAFA">
+      <button id="btn-add-cart" onclick="adicionarAoCarrinho()" style="flex:1;background:#FF6B35;color:#fff;padding:12px;border-radius:12px;font-weight:700;min-height:48px">Adicionar ao carrinho</button>
+    </div>
+  </div>
+</div>
+
+<div style="display:none" aria-hidden="true">
+  <div id="categories"></div><div id="products-grid"></div>
+  <select id="cli-bairro"><option value="">Selecione</option></select>
+  <div id="tempo-espera-box"><span id="tempo-espera-valor"></span></div>
+  <div id="loja-fechada-banner"></div><div id="loja-nome"></div>
+  <button id="cart-fab"><span id="cart-badge">0</span></button>
+  <a id="whatsapp-fab" style="display:none"></a>
+  <div id="page-cardapio"></div><div id="page-carrinho"></div><div id="page-pix"></div><div id="page-sucesso"><span id="success-msg"></span></div>
+  <div id="page-acompanhar"><input id="acomp-telefone"><div id="meus-pedidos"></div></div>
+  <div id="page-cadastro"></div><div id="page-editar-cadastro"></div>
+  <div id="cad-tab-cadastrar"></div><div id="cad-tab-entrar"></div><div id="cadastro-logged-out"></div><div id="cadastro-logged-in"></div><div id="perfil-nome"></div><div id="perfil-tel"></div><div id="perfil-end"></div><div id="cad-error"></div>
+  <div id="cart-items"></div><div id="cart-empty"></div><div id="cart-summary"></div><button id="btn-checkout"></button>
+  <span id="cart-subtotal"></span><span id="cart-taxa"></span><span id="cart-total"></span><span id="pay-subtotal"></span><span id="pay-taxa"></span><span id="pay-total"></span><div id="pagamento-itens"></div>
+  <input id="cli-nome"><input id="cli-telefone"><input id="cli-rua"><input id="cli-numero"><input id="cli-complemento"><input id="cli-referencia">
+  <div id="entrega-campos"></div><div id="retirada-info"><span id="retirada-endereco"></span><a id="retirada-maps"></a></div>
+  <input id="pedido-obs"><input id="troco-valor">
+  <div id="pix-qr"></div><div id="pix-key"></div><button id="btn-enviar-comprovante"></button><button id="btn-falar-loja"></button><div id="pix-comprovante-dica"></div>
+  <div id="pix-aguardando"></div>
+</div>
+<div id="v2-toast" class="v2-toast"></div>
+
+<script src="/js/realtime.js?v=20260829b"></script>
+<script src="/js/pizza-modal.js?v=20260831b"></script>
+<script src="/js/app.js?v=20260831d"></script>
+<script src="/js/v2.js?v=20260909a"></script>
+</body>
+</html>

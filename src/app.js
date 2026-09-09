@@ -140,6 +140,7 @@ function buildApp() {
 
   app.get('/admin', (req, res) => res.sendFile(path.join(publicDir, 'admin.html')));
   app.get('/garcom', (req, res) => res.sendFile(path.join(publicDir, 'garcom.html')));
+  app.get('/experimento', (req, res) => res.sendFile(path.join(publicDir, 'experimento.html')));
 
   app.get('/', (req, res) => res.sendFile(path.join(publicDir, 'index.html')));
 
