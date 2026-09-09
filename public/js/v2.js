@@ -131,6 +131,12 @@ function syncCart(){
   const sSub=document.getElementById('v2-side-sub'), sTaxa=document.getElementById('v2-side-taxa'), sTot=document.getElementById('v2-side-total');
   if(sSub) sSub.textContent=`R$ ${sub.toFixed(2)}`; if(sTaxa) sTaxa.textContent=`R$ ${taxa.toFixed(2)}`; if(sTot) sTot.textContent=`R$ ${total.toFixed(2)}`;
   if(bar){ if(c.length) bar.classList.remove('hidden'); else bar.classList.add('hidden'); }
+  const layout=document.querySelector('.v2-layout');
+  const isDesktop=window.matchMedia('(min-width: 980px)').matches;
+  if(side){
+    if(isDesktop){ side.style.display=c.length?'flex':'none'; if(layout) layout.style.gridTemplateColumns=c.length?'':'1fr'; }
+    else { side.style.display='none'; if(layout) layout.style.gridTemplateColumns=''; }
+  }
   if(sideFoot) sideFoot.style.display=c.length?'block':'none';
   if(sideBody){
     if(!c.length){ sideBody.innerHTML='<div class="v2-empty">Carrinho vazio<br><span style="font-size:.82rem">Adicione itens do cardápio</span></div>'; }
@@ -462,6 +468,7 @@ async function waitInit(){
   tries=0; const iv=setInterval(async()=>{ syncHeaderConfig(); if(!getProdutos().length){ await ensureData(); renderCategorias(); renderGrid(); syncCart(); } if(++tries>20) clearInterval(iv); },2000);
   setTimeout(async()=>{ await ensureData(); renderCategorias(); renderGrid(); syncCart(); },900);
 }
+window.addEventListener('resize', ()=>{ try{ syncCart(); }catch(e){} });
 document.addEventListener('DOMContentLoaded', waitInit);
 window.addEventListener('load', async()=>{ await ensureData(); syncHeaderConfig(); renderCategorias(); renderGrid(); syncCart(); });
 })();
