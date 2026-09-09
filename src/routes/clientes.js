@@ -116,6 +116,24 @@ router.post('/', validarCliente, wrapAsync(async (req, res) => {
   }
 }));
 
+router.put('/by-telefone/:telefoneAtual', publicLimiter, validarCliente, wrapAsync(async (req, res) => {
+  const digitsAtual = onlyDigits(req.params.telefoneAtual);
+  let cliente = null;
+  if (digitsAtual.length >= 8) cliente = await db.get("SELECT * FROM clientes WHERE regexp_replace(telefone, '[^0-9]', '', 'g') = $1 LIMIT 1", digitsAtual);
+  if (!cliente) cliente = await db.get('SELECT * FROM clientes WHERE telefone = $1', req.params.telefoneAtual);
+  if (!cliente) return res.status(404).json({ error: 'Cliente não encontrado' });
+  let { nome, telefone, rua, numero, bairro, complemento, ponto_referencia } = req.body;
+  if (bairro === 'Retirada no local') bairro = '';
+  const digitsNovo = onlyDigits(telefone);
+  if (digitsNovo !== digitsAtual && digitsNovo.length >= 8) {
+    const outro = await db.get("SELECT id FROM clientes WHERE regexp_replace(telefone, '[^0-9]', '', 'g') = $1 AND id != $2 LIMIT 1", digitsNovo, cliente.id);
+    if (outro) return res.status(400).json({ error: 'Telefone já cadastrado para outro cliente' });
+  }
+  await db.run('UPDATE clientes SET nome=$1, telefone=$2, rua=$3, numero=$4, bairro=$5, complemento=$6, ponto_referencia=$7 WHERE id=$8', nome, telefone, rua || '', numero || '', bairro || '', complemento || '', ponto_referencia || '', cliente.id);
+  const atualizado = await db.get('SELECT * FROM clientes WHERE id = $1', cliente.id);
+  res.json(atualizado);
+}));
+
 router.put('/:id', middlewareAdmin, validarCliente, wrapAsync(async (req, res) => {
   const { nome, telefone, rua, numero, bairro, complemento, ponto_referencia } = req.body;
   await db.run(

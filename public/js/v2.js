@@ -238,7 +238,7 @@ V2.mostrarConta=function(){
   if(cli&&cli.telefone){
     const end=[cli.rua,cli.numero,cli.complemento,cli.bairro].filter(Boolean).join(' - ');
     const body=`<div style="text-align:center;padding:8px"><div style="width:64px;height:64px;border-radius:9999px;background:linear-gradient(135deg,#FF6B35,#E55A2B);color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.6rem;margin:0 auto 10px">👤</div><div style="font-weight:800">${esc(cli.nome)}</div><div style="color:#525252">${esc(cli.telefone)}</div><div style="font-size:.82rem;color:#777;margin-top:4px">${esc(end||'Endereço não cadastrado')}</div></div>`;
-    const foot=`<button class="v2-btn v2-btn-primary" onclick="V2.abrirAcompanhar()">Meus pedidos</button><button class="v2-btn v2-btn-outline" style="margin-top:8px" onclick="V2.sairConta()">Sair da conta</button>`;
+    const foot=`<button class="v2-btn v2-btn-primary" onclick="V2.abrirAcompanhar()">Meus pedidos</button><button class="v2-btn v2-btn-outline" style="margin-top:8px" onclick="V2.mostrarEdicao()">Editar cadastro</button><button class="v2-btn v2-btn-outline" style="margin-top:8px" onclick="V2.sairConta()">Sair da conta</button>`;
     openDrawer('Minha conta',body,foot); return;
   }
   const body=`<div style="display:flex;gap:8px;margin-bottom:12px"><button class="v2-btn v2-btn-primary" style="flex:1" onclick="V2.mostrarCadastro()">Cadastrar</button><button class="v2-btn v2-btn-outline" style="flex:1" onclick="V2.mostrarEntrar()">Entrar</button></div><div id="v2-conta-form"></div><div id="v2-conta-err" style="color:#E74C3C;font-size:.82rem;margin-top:6px"></div>`;
@@ -273,14 +273,40 @@ V2.sairConta=function(){
   toast('Saiu da conta');
   setTimeout(()=>{ try{ V2.mostrarConta(); }catch(e){} }, 80);
 };
+V2.mostrarEdicao=function(){
+  const cli=getClienteLogado()||window.clienteLogado; if(!cli||!cli.telefone){ toast('Faça login para editar'); return; }
+  const body=`<div style="display:flex;flex-direction:column;gap:10px"><div class="v2-form-group"><label>Nome *</label><input id="v2-edit-nome" class="v2-form-control" value="${esc(cli.nome||'')}"></div><div class="v2-form-group"><label>Telefone *</label><input id="v2-edit-tel" class="v2-form-control" value="${esc(cli.telefone||'')}"></div><div class="v2-form-group"><label>Bairro</label><select id="v2-edit-bairro" class="v2-form-control"><option value="">Selecione</option></select></div><div class="v2-form-row"><div class="v2-form-group"><label>Rua</label><input id="v2-edit-rua" class="v2-form-control" value="${esc(cli.rua||'')}"></div><div class="v2-form-group" style="max-width:110px"><label>Nº</label><input id="v2-edit-num" class="v2-form-control" value="${esc(cli.numero||'')}"></div></div><div class="v2-form-group"><label>Complemento</label><input id="v2-edit-comp" class="v2-form-control" value="${esc(cli.complemento||'')}"></div><div class="v2-form-group"><label>Referência</label><input id="v2-edit-ref" class="v2-form-control" value="${esc(cli.ponto_referencia||'')}"></div><div id="v2-edit-err" style="color:#E74C3C;font-size:.82rem"></div></div>`;
+  const foot=`<button class="v2-btn v2-btn-primary" onclick="V2.salvarEdicao()">Salvar alterações</button><button class="v2-btn v2-btn-outline" style="margin-top:8px" onclick="V2.mostrarConta()">← Voltar</button>`;
+  openDrawer('Editar cadastro',body,foot);
+  popularBairrosSelect('v2-edit-bairro');
+  if(cli.bairro){ const sel=document.getElementById('v2-edit-bairro'); for(let i=0;i<sel.options.length;i++){ if(sel.options[i].text.includes(cli.bairro)){ sel.selectedIndex=i; break; } } }
+  const telEl=document.getElementById('v2-edit-tel'); if(telEl) telEl.addEventListener('input',function(){ let v=this.value.replace(/\D/g,''); if(v.length>11) v=v.slice(0,11); if(v.length>6) v=`(${v.slice(0,2)}) ${v.slice(2,7)}-${v.slice(7)}`; else if(v.length>2) v=`(${v.slice(0,2)}) ${v.slice(2)}`; else if(v.length>0) v=`(${v}`; this.value=v; });
+};
+V2.salvarEdicao=async function(){
+  const cli=getClienteLogado()||window.clienteLogado; if(!cli) return;
+  const nome=document.getElementById('v2-edit-nome')?.value.trim(), telefone=document.getElementById('v2-edit-tel')?.value.trim();
+  const rua=document.getElementById('v2-edit-rua')?.value.trim()||'', numero=document.getElementById('v2-edit-num')?.value.trim()||'', comp=document.getElementById('v2-edit-comp')?.value.trim()||'', ref=document.getElementById('v2-edit-ref')?.value.trim()||'';
+  const sel=document.getElementById('v2-edit-bairro'); const bairro=sel&&sel.selectedIndex>0?sel.options[sel.selectedIndex].text.split(' - ')[0].trim():'';
+  if(!nome||!telefone){ document.getElementById('v2-edit-err').textContent='Preencha nome e telefone'; return; }
+  try{
+    const r=await fetch(`/api/clientes/by-telefone/${encodeURIComponent(cli.telefone)}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({nome,telefone,rua,numero,bairro,complemento:comp,ponto_referencia:ref})});
+    const j=await r.json().catch(()=>({})); if(!r.ok){ document.getElementById('v2-edit-err').textContent=j.error||'Erro ao salvar'; return; }
+    const atualizado=j&&j.telefone?j:{...cli,nome,telefone,rua,numero,bairro,complemento:comp,ponto_referencia:ref};
+    if(window.salvarClienteLocal) window.salvarClienteLocal(atualizado); else { window.clienteLogado=atualizado; try{ localStorage.setItem('clienteLogado',JSON.stringify(atualizado)); }catch(e){} try{ if(typeof clienteLogado!=='undefined') clienteLogado=atualizado; }catch(e){} }
+    toast('Dados atualizados!'); V2.mostrarConta();
+  }catch(e){ document.getElementById('v2-edit-err').textContent='Erro ao salvar'; }
+};
 V2.abrirAcompanhar=function(){
-  const cli=window.clienteLogado; const tel=cli?.telefone||'';
-  const body=`<div class="v2-form-group"><label>Telefone</label><input id="v2-acomp-tel" class="v2-form-control" placeholder="(00) 00000-0000" value="${esc(tel)}"></div><button class="v2-btn v2-btn-primary" onclick="V2.buscarPedidos()">Buscar pedidos</button><div id="v2-pedidos" style="margin-top:12px"></div>`;
+  const cli=getClienteLogado()||window.clienteLogado; const tel=(cli&&cli.telefone)||'';
+  const hideInput = tel ? 'style="display:none"' : '';
+  const body=`<div class="v2-form-group" ${hideInput}><label>Telefone</label><input id="v2-acomp-tel" class="v2-form-control" placeholder="(00) 00000-0000" value="${esc(tel)}"></div>${tel?`<div style="font-size:.82rem;color:#525252;margin-bottom:8px">Exibindo pedidos de <strong>${esc(tel)}</strong> • <a href="#" onclick="document.getElementById('v2-acomp-tel').parentElement.style.display='block';return false" style="color:#FF6B35">trocar</a></div>`:''}<button class="v2-btn v2-btn-primary" onclick="V2.buscarPedidos()">Buscar pedidos</button><div id="v2-pedidos" style="margin-top:12px"></div>`;
   openDrawer('Meus pedidos',body,'');
-  if(tel) V2.buscarPedidos();
+  if(tel) setTimeout(()=>V2.buscarPedidos(),0);
 };
 V2.buscarPedidos=async function(){
-  const tel=document.getElementById('v2-acomp-tel')?.value.trim(); if(!tel){ toast('Informe seu telefone'); return; }
+  let tel=document.getElementById('v2-acomp-tel')?.value.trim();
+  if(!tel){ const cli=getClienteLogado()||window.clienteLogado; if(cli&&cli.telefone) tel=cli.telefone; const el=document.getElementById('v2-acomp-tel'); if(el&&tel) el.value=tel; }
+  if(!tel){ toast('Informe seu telefone'); return; }
   const cont=document.getElementById('v2-pedidos'); if(cont) cont.innerHTML='<div class="v2-empty">Carregando...</div>';
   try{ const r=await fetch(`/api/clientes/telefone/${encodeURIComponent(tel)}/pedidos`); const ps=await r.json(); if(!ps.length){ cont.innerHTML='<div class="v2-empty">Nenhum pedido encontrado</div>'; return; } const labels={recebido:'Recebido',em_preparo:'Em preparo',saiu_entrega:'Saiu p/ entrega',entregue:'Entregue',cancelado:'Cancelado'}; cont.innerHTML=ps.map(p=>`<div class="v2-cart-item"><div style="flex:1"><div class="v2-cart-item-name">Pedido #${p.id}</div><div class="v2-cart-item-meta">${new Date(p.criado_em).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'})} • ${labels[p.status]||p.status}</div></div><div class="v2-cart-item-price">R$ ${Number(p.total).toFixed(2)}</div></div>`).join(''); }catch(e){ cont.innerHTML='<div class="v2-empty">Erro ao buscar</div>'; }
 };

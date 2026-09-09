@@ -1275,10 +1275,12 @@ function novoPedido() {
 }
 
 function acompanharPedido() {
-  const tel = document.getElementById('cli-telefone').value.trim();
+  let tel = document.getElementById('cli-telefone').value.trim();
+  if (!tel && clienteLogado && clienteLogado.telefone) tel = clienteLogado.telefone;
   if (tel) document.getElementById('acomp-telefone').value = tel;
   mostrarPagina('page-acompanhar');
   if (tel) buscarPedidos();
+  else if (clienteLogado && clienteLogado.telefone) buscarPedidos();
 }
 
 let meusPedidosCache = [];
@@ -1322,8 +1324,10 @@ function inscreverStatusPedidos(pedidos) {
 }
 
 async function buscarPedidos() {
-  const telefone = document.getElementById('acomp-telefone').value.trim();
+  let telefone = document.getElementById('acomp-telefone').value.trim();
+  if (!telefone && clienteLogado && clienteLogado.telefone) telefone = clienteLogado.telefone;
   if (!telefone) { mostrarToast('Informe seu telefone'); return; }
+  document.getElementById('acomp-telefone').value = telefone;
 
   try {
     const pedRes = await fetch(`/api/clientes/telefone/${encodeURIComponent(telefone)}/pedidos`);
@@ -1756,12 +1760,14 @@ async function salvarEdicaoCliente() {
   if (!nome || !telefone) { mostrarToast('Preencha nome e telefone!'); return; }
 
   try {
-    await fetch(`/api/clientes/${escapeHtml(clienteLogado.id)}`, {
+    const res = await fetch(`/api/clientes/by-telefone/${encodeURIComponent(clienteLogado.telefone)}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ nome, telefone, rua, numero, bairro, complemento, ponto_referencia: referencia })
     });
-    const updated = { ...clienteLogado, nome, telefone, rua, numero, bairro, complemento, ponto_referencia: referencia };
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) { mostrarToast(data.error || 'Erro ao salvar'); return; }
+    const updated = data && data.telefone ? data : { ...clienteLogado, nome, telefone, rua, numero, bairro, complemento, ponto_referencia: referencia };
     salvarClienteLocal(updated);
     mostrarToast('Dados atualizados!');
     mostrarPagina('page-cadastro');
