@@ -43,8 +43,14 @@ router.get('/:id', middlewareAdmin, wrapAsync(async (req, res) => {
   res.json(cliente);
 }));
 
+function onlyDigits(s){ return String(s||'').replace(/\D/g,''); }
 router.get('/telefone/:telefone', publicLimiter, wrapAsync(async (req, res) => {
-  const cliente = await db.get('SELECT * FROM clientes WHERE telefone = $1', req.params.telefone);
+  const digits = onlyDigits(req.params.telefone);
+  let cliente = null;
+  if(digits.length>=8){
+    cliente = await db.get("SELECT * FROM clientes WHERE regexp_replace(telefone, '[^0-9]', '', 'g') = $1 LIMIT 1", digits);
+  }
+  if(!cliente) cliente = await db.get('SELECT * FROM clientes WHERE telefone = $1', req.params.telefone);
   if (!cliente) return res.status(404).json({ error: 'Cliente não encontrado' });
   if (cliente.bloqueado) return res.status(403).json({ error: 'Cliente bloqueado. Entre em contato com o estabelecimento.' });
   res.json(cliente);
@@ -52,7 +58,10 @@ router.get('/telefone/:telefone', publicLimiter, wrapAsync(async (req, res) => {
 
 // Publico: cliente acompanha os proprios pedidos pelo telefone
 router.get('/telefone/:telefone/pedidos', publicLimiter, wrapAsync(async (req, res) => {
-  const cliente = await db.get('SELECT id FROM clientes WHERE telefone = $1', req.params.telefone);
+  const digits = onlyDigits(req.params.telefone);
+  let cliente = null;
+  if(digits.length>=8) cliente = await db.get("SELECT id FROM clientes WHERE regexp_replace(telefone, '[^0-9]', '', 'g') = $1 LIMIT 1", digits);
+  if(!cliente) cliente = await db.get('SELECT id FROM clientes WHERE telefone = $1', req.params.telefone);
   if (!cliente) return res.json([]);
 
   const pedidos = await db.all('SELECT * FROM pedidos WHERE cliente_id = $1 ORDER BY criado_em DESC', cliente.id);
@@ -77,6 +86,7 @@ router.post('/', validarCliente, wrapAsync(async (req, res) => {
   let { nome, telefone, rua, numero, bairro, complemento, ponto_referencia } = req.body;
   // nunca salvar "Retirada no local" como bairro do cadastro
   if (bairro === 'Retirada no local') bairro = '';
+  const telDigits = onlyDigits(telefone);
   try {
     const info = await db.run(
       'INSERT INTO clientes (nome, telefone, rua, numero, bairro, complemento, ponto_referencia) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id',
@@ -85,7 +95,9 @@ router.post('/', validarCliente, wrapAsync(async (req, res) => {
     const cliente = await db.get('SELECT * FROM clientes WHERE id = $1', info.lastInsertRowid);
     res.json(cliente);
   } catch (e) {
-    const existing = await db.get('SELECT * FROM clientes WHERE telefone = $1', telefone);
+    let existing = null;
+    if(telDigits.length>=8) existing = await db.get("SELECT * FROM clientes WHERE regexp_replace(telefone, '[^0-9]', '', 'g') = $1 LIMIT 1", telDigits);
+    if(!existing) existing = await db.get('SELECT * FROM clientes WHERE telefone = $1', telefone);
     if (existing) {
       // mesclar: não sobrescrever com vazio e nunca com "Retirada"
       const novoBairro = (bairro && bairro !== 'Retirada no local') ? bairro : existing.bairro;

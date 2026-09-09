@@ -264,7 +264,15 @@ V2.entrar=async function(){
   const tel=document.getElementById('v2-login-tel')?.value.trim(); if(!tel){ document.getElementById('v2-conta-err').textContent='Informe o telefone'; return; }
   try{ const r=await fetch(`/api/clientes/telefone/${encodeURIComponent(tel)}`); if(!r.ok) throw 0; const c=await r.json(); if(window.salvarClienteLocal) window.salvarClienteLocal(c); else { window.clienteLogado=c; localStorage.setItem('clienteLogado',JSON.stringify(c)); } toast('Bem-vindo!'); V2.mostrarConta(); }catch(e){ document.getElementById('v2-conta-err').textContent='Cliente não encontrado'; }
 };
-V2.sairConta=function(){ if(window.sairCliente) window.sairCliente(); else { localStorage.removeItem('clienteLogado'); window.clienteLogado=null; } toast('Saiu da conta'); V2.mostrarConta(); };
+V2.sairConta=function(){
+  try{ localStorage.removeItem('clienteLogado'); }catch(e){}
+  try{ if(typeof clienteLogado!=='undefined') clienteLogado=null; }catch(e){}
+  try{ window.clienteLogado=null; }catch(e){}
+  try{ window.clienteLogado=null; }catch(e){}
+  try{ const a=document.getElementById('cadastro-logged-out'); if(a) a.style.display='block'; const b=document.getElementById('cadastro-logged-in'); if(b) b.style.display='none'; }catch(e){}
+  toast('Saiu da conta');
+  setTimeout(()=>{ try{ V2.mostrarConta(); }catch(e){} }, 80);
+};
 V2.abrirAcompanhar=function(){
   const cli=window.clienteLogado; const tel=cli?.telefone||'';
   const body=`<div class="v2-form-group"><label>Telefone</label><input id="v2-acomp-tel" class="v2-form-control" placeholder="(00) 00000-0000" value="${esc(tel)}"></div><button class="v2-btn v2-btn-primary" onclick="V2.buscarPedidos()">Buscar pedidos</button><div id="v2-pedidos" style="margin-top:12px"></div>`;

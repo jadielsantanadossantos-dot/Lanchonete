@@ -1643,13 +1643,14 @@ async function entrarCliente() {
 function sairCliente() {
   localStorage.removeItem('clienteLogado');
   clienteLogado = null;
-  document.getElementById('cadastro-logged-out').style.display = 'block';
-  document.getElementById('cadastro-logged-in').style.display = 'none';
-  document.getElementById('cad-tab-cadastrar').style.display = 'block';
-  document.getElementById('cad-tab-entrar').style.display = 'block';
-  document.querySelector('.cadastro-tabs').style.display = 'flex';
-  document.getElementById('cad-error').textContent = '';
-  mostrarToast('Saiu da conta');
+  const a = document.getElementById('cadastro-logged-out'); if (a) a.style.display = 'block';
+  const b = document.getElementById('cadastro-logged-in'); if (b) b.style.display = 'none';
+  const c = document.getElementById('cad-tab-cadastrar'); if (c) c.style.display = 'block';
+  const d = document.getElementById('cad-tab-entrar'); if (d) d.style.display = 'block';
+  const e = document.querySelector('.cadastro-tabs'); if (e) e.style.display = 'flex';
+  const f = document.getElementById('cad-error'); if (f) f.textContent = '';
+  try { if (typeof mostrarToast === 'function') mostrarToast('Saiu da conta'); } catch (_) {}
+  try { if (window.V2 && V2.sairConta && V2._inside !== true) { /* evita loop */ } } catch (_) {}
 }
 
 function carregarClienteLocal() {
