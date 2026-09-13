@@ -178,7 +178,7 @@ router.post('/mesa/:mesaId/item', wrapAsync(async (req, res) => {
     vinc.forEach(v => { if (!vinculosMap.has(v.adicional_id)) vinculosMap.set(v.adicional_id, new Set()); vinculosMap.get(v.adicional_id).add(v.produto_id); });
     const isPizzaProd = produto.categoria_nome || (await db.get('SELECT c.nome as n FROM categorias c WHERE c.id=$1', produto.categoria_id).then(r=>r&&r.n||'').catch(()=>''));
     const catNome = produto.categoria_nome || (await db.get('SELECT nome FROM categorias WHERE id=$1', produto.categoria_id).then(r=>r&&r.nome||'').catch(()=>''));
-    const isPizza = catNome && ['pizza','suco','bebida'].some(k=>catNome.toLowerCase().includes(k));
+    const isPizza = catNome && ['pizza','suco','bebida','milk','shake'].some(k=>catNome.toLowerCase().includes(k));
     const prodIsPizzaCat = pizzaCatIds.has(produto.categoria_id);
     for (const a of adicionais) {
       const reg = porId.get(parseInt(a.id));
