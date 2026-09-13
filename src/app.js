@@ -17,6 +17,7 @@ function buildApp() {
     req.emitToAdmin = notifier.emitToAdmin;
     req.emitToGarcom = notifier.emitToGarcom;
     req.emitToMesa = notifier.emitToMesa;
+    req.emitToPedido = notifier.emitToPedido;
     next();
   });
 

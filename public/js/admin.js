@@ -178,15 +178,31 @@ async function carregarPedidos() {
   const status = document.getElementById('filtro-status').value;
   const url = status ? `/api/pedidos?status=${status}` : '/api/pedidos';
   try {
-    // Garante lista de motoboys carregada antes de renderizar os cards (evita select vazio)
     if (!motoboysLista.length) {
       try { await carregarMotoboys(); } catch (e) {}
     }
+    const prevIds = new Set(todosPedidos.map(p => p.id));
+    const primeiraCarga = todosPedidos.length === 0;
     const res = await authFetch(url);
-    todosPedidos = await res.json();
+    const novosDados = await res.json();
+    const novosDetectados = !primeiraCarga ? novosDados.filter(p => !prevIds.has(p.id) && !['entregue','cancelado'].includes(p.status)) : [];
+    todosPedidos = novosDados;
     const ativos = todosPedidos.filter(p => !['entregue', 'cancelado'].includes(p.status));
     document.getElementById('pedidos-count').textContent = ativos.length;
     filtrarPedidosPorTab();
+    atualizarBadgeNotificacao();
+    if (novosDetectados.length) {
+      novosDetectados.forEach(p => {
+        if (!pedidosNovos.has(p.id)) {
+          pedidosNovos.add(p.id);
+          showToast(`Novo pedido recebido! #${p.id} - ${escapeHtml(p.cliente_nome || '')}`, 'success', '🔔');
+          tocarSomNovoPedido();
+          setTimeout(() => pedidosNovos.delete(p.id), 60000);
+        }
+      });
+      atualizarBadgeNotificacao();
+      filtrarPedidosPorTab();
+    }
   } catch (e) {}
 }
 
@@ -2439,14 +2455,35 @@ async function enviarPedidoWhatsApp(){
 
 // ===== SOM DE NOTIFICACAO =====
 
+let audioDesbloqueado = false;
+function desbloquearAudio() {
+  if (audioDesbloqueado) return;
+  document.querySelectorAll('audio[id^="som-"]').forEach(a => {
+    a.muted = true; a.play().then(() => { a.pause(); a.currentTime = 0; a.muted = false; }).catch(()=>{});
+  });
+  audioDesbloqueado = true;
+}
+document.addEventListener('click', desbloquearAudio, { once: true });
+document.addEventListener('keydown', desbloquearAudio, { once: true });
 function tocarSomNovoPedido() {
   try {
     const prefs = JSON.parse(localStorage.getItem('somPrefs')) || {};
     if (prefs.ativo === false) return;
+    if ((prefs.volume !== undefined ? prefs.volume : 100) === 0) return;
     const tipo = prefs.tipo || 'classic';
-    const audio = new Audio(`/sounds/${tipo}.wav`);
-    audio.volume = (prefs.volume !== undefined ? prefs.volume : 100) / 100;
-    audio.play().catch(() => {});
+    const vol = (prefs.volume !== undefined ? prefs.volume : 100) / 100;
+    const el = document.getElementById('som-' + tipo);
+    if (el) {
+      el.volume = vol; el.currentTime = 0;
+      const p = el.play();
+      if (p && p.catch) p.catch(() => {
+        const fb = new Audio(`/sounds/${tipo}.wav`);
+        fb.volume = vol; fb.play().catch(()=>{});
+      });
+      return;
+    }
+    const fb2 = new Audio(`/sounds/${tipo}.wav`);
+    fb2.volume = vol; fb2.play().catch(()=>{});
   } catch (e) {}
 }
 
