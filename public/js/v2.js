@@ -68,7 +68,7 @@ function getTaxa(){ try{ if(typeof taxaEntregaAtual!=='undefined' && taxaEntrega
 function setTaxa(v){ v=Number(v)||0; try{ if(typeof taxaEntregaAtual!=='undefined') taxaEntregaAtual=v; }catch(e){} try{ window.taxaEntregaAtual=v; }catch(e){} return v; }
 function cardHtml(p){
   const hasAdd=(p.adicionais&&p.adicionais.length)||p.unidade==='kg';
-  const img=p.foto?`<img src="${p.foto}" alt="${esc(p.nome)}" loading="lazy">`:`<div class="v2-card-placeholder">🍔</div>`;
+  const img=p.foto?`<img src="${p.foto}" alt="${esc(p.nome)}" loading="lazy" onerror="handleImgError(this)">`:`<div class="v2-card-placeholder">🍔</div>`;
   const preco=`R$ ${Number(p.preco).toFixed(2)}${p.unidade==='kg'?'/kg':''}`;
   if(hasAdd){
     return `<div class="v2-card" onclick="V2.abrirProduto(${p.id})"><div class="v2-card-media">${img}</div><div class="v2-card-info"><div><div class="v2-card-name">${esc(p.nome)}</div>${p.descricao?`<div class="v2-card-desc">${esc(p.descricao)}</div>`:''}</div><div class="v2-card-foot"><span class="v2-price">${preco}</span><button class="v2-add" onclick="event.stopPropagation();V2.abrirProduto(${p.id})" aria-label="Configurar">+</button></div></div></div>`;

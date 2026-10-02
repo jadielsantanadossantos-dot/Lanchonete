@@ -346,8 +346,8 @@ function produtoCardHtml(p) {
     <div class="product-card" onclick="abrirProduto(${p.id})">
       <div class="product-media">
         ${p.foto
-          ? `<img class="product-img" src="${p.foto}" alt="${escapeHtml(p.nome)}" loading="lazy">`
-          : `<div class="product-img-placeholder">&#127828;</div>`}
+           ? `<img class="product-img" src="${p.foto}" alt="${escapeHtml(p.nome)}" loading="lazy" onerror="handleImgError(this)">`
+           : `<div class="product-img-placeholder">&#127828;</div>`}
       </div>
       <div class="product-info">
         <div>
@@ -410,8 +410,8 @@ function abrirProduto(id) {
   }
 
   const img = document.getElementById('modal-img');
-  if (produtoAtual.foto) { img.src = produtoAtual.foto; img.style.display = 'block'; }
-  else { img.style.display = 'none'; }
+  if (produtoAtual.foto) { img.onerror=function(){ this.style.display='none'; this.onerror=null; }; img.src = produtoAtual.foto; img.style.display = 'block'; }
+  else { img.style.display = 'none'; img.onerror=null; }
 
   const adcSection = document.getElementById('modal-adicionais');
   const adcList = document.getElementById('adicionais-list');

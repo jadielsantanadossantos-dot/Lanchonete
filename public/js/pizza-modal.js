@@ -397,8 +397,8 @@
       const minPreco = pizzas.length ? Math.min(...pizzas.map(p => parseFloat(p.preco) || 0)) : null;
       const precoTxt = minPreco ? `A partir de R$ ${minPreco.toFixed(2)}` : '';
       const fotoPizza = (pizzas.find(p => p.foto) || {}).foto || null;
-      const mediaPizza = fotoPizza ? `<img class="product-img" src="${fotoPizza}" alt="Pizza" loading="lazy" style="width:100%;height:100%;object-fit:cover">` : `<div class="product-img-placeholder">&#127829;</div>`;
-      const mediaPizzaGarcom = fotoPizza ? `<img src="${fotoPizza}" alt="Pizza" loading="lazy" style="width:100%;height:100%;object-fit:cover;border-radius:10px">` : `&#127829;`;
+      const mediaPizza = fotoPizza ? `<img class="product-img" src="${fotoPizza}" alt="Pizza" loading="lazy" style="width:100%;height:100%;object-fit:cover" onerror="handleImgError(this)">` : `<div class="product-img-placeholder">&#127829;</div>`;
+      const mediaPizzaGarcom = fotoPizza ? `<img src="${fotoPizza}" alt="Pizza" loading="lazy" style="width:100%;height:100%;object-fit:cover;border-radius:10px" onerror="handleImgError(this)">` : `&#127829;`;
 
       if (contexto === 'garcom') {
         return `

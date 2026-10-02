@@ -581,8 +581,8 @@ function produtoCardHtmlGarcom(p, contexto) {
   return `
     <div class="g-produto-card" onclick="${onclick}">
       ${p.foto
-        ? `<img class="g-produto-img" src="${p.foto}" alt="${escapeHtml(p.nome)}" loading="lazy">`
-        : `<div class="g-produto-placeholder">&#127828;</div>`}
+         ? `<img class="g-produto-img" src="${p.foto}" alt="${escapeHtml(p.nome)}" loading="lazy" onerror="handleImgError(this)">`
+         : `<div class="g-produto-placeholder">&#127828;</div>`}
       <div class="g-produto-info">
         <div class="g-produto-text">
           <div class="g-produto-nome">${escapeHtml(p.nome)}</div>
