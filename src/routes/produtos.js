@@ -34,13 +34,19 @@ function validarBufferImagem(buffer) {
   return false;
 }
 
+function isStorageQuotaError(e) {
+  const msg = (e && (e.message || e.error || '')) + '';
+  return e && (e.status === 402 || e.statusCode === '402' || e.statusCode === 402 || /quota|restricted|402|egress/i.test(msg));
+}
 async function uploadFoto(file) {
   if (!validarBufferImagem(file.buffer)) {
     throw new Error('Arquivo não é uma imagem válida (conteúdo não corresponde ao tipo)');
   }
+  const fallbackDataUrl = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
   const ext = path.extname(file.originalname).toLowerCase();
   const nome = `${Date.now()}-${crypto.randomBytes(6).toString('hex')}${ext}`;
-  const supabase = getStorage();
+  let supabase;
+  try { supabase = getStorage(); } catch (e) { return fallbackDataUrl; }
   try {
     const { error } = await supabase.storage.from('produtos').upload(nome, file.buffer, {
       contentType: file.mimetype,
@@ -48,14 +54,26 @@ async function uploadFoto(file) {
     });
     if (error) throw error;
   } catch (e) {
+    if (isStorageQuotaError(e)) {
+      console.warn('Supabase Storage bloqueado (quota 402) — salvando imagem como data URL');
+      return fallbackDataUrl;
+    }
     if (/Bucket not found/i.test(e.message)) {
-      const { error: createErr } = await supabase.storage.createBucket('produtos', { public: true });
-      if (createErr && !/already exists/i.test(createErr.message)) throw createErr;
-      const { error: retryErr } = await supabase.storage.from('produtos').upload(nome, file.buffer, {
-        contentType: file.mimetype,
-        cacheControl: '31536000'
-      });
-      if (retryErr) throw retryErr;
+      try {
+        const { error: createErr } = await supabase.storage.createBucket('produtos', { public: true });
+        if (createErr && !/already exists/i.test(createErr.message)) throw createErr;
+        const { error: retryErr } = await supabase.storage.from('produtos').upload(nome, file.buffer, {
+          contentType: file.mimetype,
+          cacheControl: '31536000'
+        });
+        if (retryErr) throw retryErr;
+      } catch (e2) {
+        if (isStorageQuotaError(e2)) {
+          console.warn('Supabase Storage bloqueado (quota 402) — salvando imagem como data URL');
+          return fallbackDataUrl;
+        }
+        throw e2;
+      }
     } else {
       throw e;
     }
@@ -75,7 +93,7 @@ function fileFilter(req, file, cb) {
   cb(null, true);
 }
 
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 }, fileFilter });
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 700 * 1024 }, fileFilter });
 
 function wrapAsync(fn) {
   return (req, res, next) => {

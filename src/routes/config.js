@@ -83,20 +83,38 @@ function validarBufferImagemLogo(buffer) {
   if (buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46 && buffer[8] === 0x57 && buffer[9] === 0x45 && buffer[10] === 0x42 && buffer[11] === 0x50) return true;
   return false;
 }
+function isStorageQuotaErrorLogo(e) {
+  const msg = (e && (e.message || e.error || '')) + '';
+  return e && (e.status === 402 || e.statusCode === '402' || e.statusCode === 402 || /quota|restricted|402|egress/i.test(msg));
+}
 async function uploadLogo(file) {
   if (!validarBufferImagemLogo(file.buffer)) throw new Error('Arquivo não é uma imagem válida (conteúdo não corresponde ao tipo)');
+  const fallbackDataUrl = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
   const ext = path.extname(file.originalname).toLowerCase();
   const nome = `logo-${Date.now()}-${crypto.randomBytes(6).toString('hex')}${ext}`;
-  const supabase = getStorageLogo();
+  let supabase;
+  try { supabase = getStorageLogo(); } catch (e) { return fallbackDataUrl; }
   try {
     const { error } = await supabase.storage.from('logos').upload(nome, file.buffer, { contentType: file.mimetype, cacheControl: '31536000' });
     if (error) throw error;
   } catch (e) {
+    if (isStorageQuotaErrorLogo(e)) {
+      console.warn('Supabase Storage bloqueado (quota 402) — salvando logo como data URL');
+      return fallbackDataUrl;
+    }
     if (/Bucket not found/i.test(e.message)) {
-      const { error: createErr } = await supabase.storage.createBucket('logos', { public: true });
-      if (createErr && !/already exists/i.test(createErr.message)) throw createErr;
-      const { error: retryErr } = await supabase.storage.from('logos').upload(nome, file.buffer, { contentType: file.mimetype, cacheControl: '31536000' });
-      if (retryErr) throw retryErr;
+      try {
+        const { error: createErr } = await supabase.storage.createBucket('logos', { public: true });
+        if (createErr && !/already exists/i.test(createErr.message)) throw createErr;
+        const { error: retryErr } = await supabase.storage.from('logos').upload(nome, file.buffer, { contentType: file.mimetype, cacheControl: '31536000' });
+        if (retryErr) throw retryErr;
+      } catch (e2) {
+        if (isStorageQuotaErrorLogo(e2)) {
+          console.warn('Supabase Storage bloqueado (quota 402) — salvando logo como data URL');
+          return fallbackDataUrl;
+        }
+        throw e2;
+      }
     } else throw e;
   }
   const { data } = supabase.storage.from('logos').getPublicUrl(nome);
