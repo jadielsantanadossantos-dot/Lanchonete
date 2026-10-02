@@ -346,8 +346,8 @@ function produtoCardHtml(p) {
     <div class="product-card" onclick="abrirProduto(${p.id})">
       <div class="product-media">
         ${p.foto
-           ? `<img class="product-img" src="${p.foto}" alt="${escapeHtml(p.nome)}" loading="lazy" onerror="handleImgError(this)">`
-           : `<div class="product-img-placeholder">&#127828;</div>`}
+           ? `<img class="product-img" src="${p.foto}" alt="${escapeHtml(p.nome)}" data-categoria="${escapeHtml(p.categoria_nome||'')}" data-nome="${escapeHtml(p.nome)}" loading="lazy" onerror="handleImgError(this)">`
+           : `<div class="product-img-placeholder">${(window.categoriaIcon?window.categoriaIcon(p.nome,p.categoria_nome):'&#127828;')}</div>`}
       </div>
       <div class="product-info">
         <div>

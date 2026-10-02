@@ -905,7 +905,7 @@ function renderizarProdutosAdmin(produtos) {
       const categoria = (window.categoriasAdmin || []).find(c => c.id === p.categoria_id);
       return `
       <tr style="${p.ativo ? '' : 'opacity:.55'}">
-        <td>${p.foto ? `<img src="${p.foto}" style="width:50px;height:50px;object-fit:cover;border-radius:6px" onerror="handleImgError(this)">` : '<div style="width:50px;height:50px;border-radius:6px;background:var(--color-bg-alt);display:flex;align-items:center;justify-content:center;font-size:20px">&#127828;</div>'}</td>
+        <td>${p.foto ? `<img src="${p.foto}" style="width:50px;height:50px;object-fit:cover;border-radius:6px" alt="${escapeHtml(p.nome)}" data-categoria="${escapeHtml(p.categoria_nome||'')}" data-nome="${escapeHtml(p.nome)}" onerror="handleImgError(this)">` : `<div style="width:50px;height:50px;border-radius:6px;background:var(--color-bg-alt);display:flex;align-items:center;justify-content:center;font-size:22px">${(window.categoriaIcon?window.categoriaIcon(p.nome,p.categoria_nome):'&#127828;')}</div>`}</td>
         <td><strong>${escapeHtml(p.nome)}</strong><br><small style="color:var(--gray)">${escapeHtml(p.descricao || '')}</small></td>
         <td><span class="pix-badge" style="background:var(--color-bg-alt);color:var(--color-text-secondary)">${escapeHtml(p.categoria_nome)}${categoria ? ` (#${categoria.ordem})` : ''}</span></td>
         <td><strong>R$ ${p.preco.toFixed(2)}</strong>${p.unidade === 'kg' ? '/kg' : ''}</td>
@@ -1982,7 +1982,7 @@ function whatsappProdutoCardHtml(p){
   return `
     <div class="product-card" onclick="abrirModalWhatsAppQtd(${p.id})">
       <div class="product-media">
-        ${p.foto?`<img class="product-img" src="${p.foto}" alt="${escapeHtml(p.nome)}" loading="lazy" onerror="handleImgError(this)">`:`<div class="product-img-placeholder">🍔</div>`}
+        ${p.foto?`<img class="product-img" src="${p.foto}" alt="${escapeHtml(p.nome)}" data-categoria="${escapeHtml(p.categoria_nome||'')}" data-nome="${escapeHtml(p.nome)}" loading="lazy" onerror="handleImgError(this)">`:`<div class="product-img-placeholder">${(window.categoriaIcon?window.categoriaIcon(p.nome,p.categoria_nome):'🍔')}</div>`}
       </div>
       <div class="product-info">
         <div>
