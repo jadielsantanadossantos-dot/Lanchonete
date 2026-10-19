@@ -402,10 +402,13 @@ function abrirProduto(id) {
   document.getElementById('modal-qtd-control').style.display = porKg ? 'none' : 'flex';
   const dica = document.getElementById('modal-kg-dica');
   if (porKg) {
-    dica.style.display = 'block';
-    dica.textContent = `Digite quanto quer gastar. Preço: R$ ${produtoAtual.preco.toFixed(2)} por kg`;
-    document.getElementById('modal-kg-valor').value = 15;
-  } else {
+    if (dica) {
+      dica.style.display = 'block';
+      dica.textContent = `Digite quanto quer gastar. Preço: R$ ${produtoAtual.preco.toFixed(2)} por kg`;
+    }
+    const kgValor = document.getElementById('modal-kg-valor');
+    if (kgValor) kgValor.value = 15;
+  } else if (dica) {
     dica.style.display = 'none';
   }
 
@@ -427,21 +430,18 @@ function abrirProduto(id) {
     if (!items.length) return '';
     const isRadio = inputType === 'radio';
     const limiteTexto = limite > 0 ? ` (máx: ${limite})` : '';
-    return `<div style="margin-bottom: 12px; padding-bottom: 12px; ${items === adicionaisAcai.slice(-1)[0] ? '' : 'border-bottom: 1px solid var(--color-border);'}">
-      <div style="font-size: 0.85rem; color: var(--color-text-secondary); margin-bottom: 8px; display: flex; justify-content: space-between;">
-        <span>${titulo}${limiteTexto}</span>
-        ${isRadio ? '<span style="color: var(--color-primary); font-weight: 600;">Escolha 1</span>' : ''}
-      </div>
+    return `<div style="margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--color-border);">
+      <div class="modal-section-title" style="margin: 8px 0;">${titulo}${limiteTexto}</div>
       ${items.map(a => `
-        <div class="adicional-item">
-          <label>
-            <input type="${inputType}" name="${grupo}" value="${a.id}" data-nome="${escapeHtml(a.nome)}" data-preco="${a.preco}" data-tipo="${a.tipo}" data-grupo="${grupo}" data-limite="${limite}" class="${grupo}-checkbox">
+        <div class="pm-item" style="display:flex;justify-content:space-between;align-items:center;padding:10px 4px;border-bottom:1px solid var(--color-border);">
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;flex:1;">
+            <input type="${inputType}" name="${grupo}" value="${a.id}" data-nome="${escapeHtml(a.nome)}" data-preco="${a.preco}" data-tipo="${a.tipo}" data-grupo="${grupo}" data-limite="${limite}" class="${grupo}-checkbox" style="width:18px;height:18px;accent-color:var(--color-primary);">
             <div>
-              <span>${escapeHtml(a.nome)}</span>
-              ${a.descricao ? `<br><small style="color: var(--color-text-secondary); display: block; margin-top: 2px;">${escapeHtml(a.descricao)}</small>` : ''}
+              <span style="font-weight:600;color:var(--color-text);">${escapeHtml(a.nome)}</span>
+              ${a.descricao ? `<br><small style="color:var(--color-text-secondary);display:block;margin-top:2px;font-size:0.8rem;">${escapeHtml(a.descricao)}</small>` : ''}
             </div>
           </label>
-          <span class="adicional-price">${a.preco > 0 ? '+ R$ ' + a.preco.toFixed(2) : 'Incluído'}</span>
+          <span style="font-size:0.85rem;color:var(--color-text-secondary);white-space:nowrap;font-weight:600;">${a.preco > 0 ? '+ R$ ' + a.preco.toFixed(2) : 'Incluído'}</span>
         </div>
       `).join('')}
     </div>`;
@@ -491,17 +491,17 @@ function abrirProduto(id) {
       if (sabores.length) {
         const titulo = isPizza ? `Escolha até ${maxSabores} sabores` : `Escolha ${maxSabores} sabor`;
         htmlSabores = `<div style="margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--color-border);">
-          <div style="font-size: 0.85rem; color: var(--color-text-secondary); margin-bottom: 8px;">${titulo}</div>
+          <div class="modal-section-title" style="margin: 8px 0;">${titulo}</div>
           ${sabores.map(a => `
-            <div class="adicional-item">
-              <label>
-                <input type="checkbox" value="${a.id}" data-nome="${escapeHtml(a.nome)}" data-preco="${a.preco}" data-tipo="sabor" class="sabor-checkbox" data-max="${maxSabores}">
+            <div class="pm-item" style="display:flex;justify-content:space-between;align-items:center;padding:10px 4px;border-bottom:1px solid var(--color-border);">
+              <label style="display:flex;align-items:center;gap:10px;cursor:pointer;flex:1;">
+                <input type="checkbox" value="${a.id}" data-nome="${escapeHtml(a.nome)}" data-preco="${a.preco}" data-tipo="sabor" class="sabor-checkbox" data-max="${maxSabores}" style="width:18px;height:18px;accent-color:var(--color-primary);">
                 <div>
-                  <span>${escapeHtml(a.nome)}</span>
-                  ${a.descricao ? `<br><small style="color: var(--color-text-secondary); display: block; margin-top: 2px;">${escapeHtml(a.descricao)}</small>` : ''}
+                  <span style="font-weight:600;color:var(--color-text);">${escapeHtml(a.nome)}</span>
+                  ${a.descricao ? `<br><small style="color:var(--color-text-secondary);display:block;margin-top:2px;font-size:0.8rem;">${escapeHtml(a.descricao)}</small>` : ''}
                 </div>
               </label>
-              <span class="adicional-price">${a.preco > 0 ? '+ R$ ' + a.preco.toFixed(2) : 'Incluído'}</span>
+              <span style="font-size:0.85rem;color:var(--color-text-secondary);white-space:nowrap;font-weight:600;">${a.preco > 0 ? '+ R$ ' + a.preco.toFixed(2) : 'Incluído'}</span>
             </div>
           `).join('')}
         </div>`;
@@ -529,17 +529,17 @@ function abrirProduto(id) {
           const limiteGrupo = parseInt(items[0]?.limite) || 0;
           const tituloTxt = limiteGrupo > 0 ? `${titulo} (máx: ${limiteGrupo})` : titulo;
           return `<div style="margin-top: 12px;">
-          <div style="font-size: 0.85rem; color: var(--color-text-secondary); margin-bottom: 8px;">${tituloTxt}</div>
+          <div class="modal-section-title" style="margin: 8px 0;">${tituloTxt}</div>
           ${items.map(a => `
-            <div class="adicional-item">
-              <label>
-                <input type="checkbox" value="${a.id}" data-nome="${escapeHtml(a.nome)}" data-preco="${a.preco}" data-tipo="${a.tipo}" class="check-lim" data-grupo="${grupo}" data-grupo-label="${titulo.toLowerCase()}" data-max="${limiteGrupo}">
+            <div class="pm-item" style="display:flex;justify-content:space-between;align-items:center;padding:10px 4px;border-bottom:1px solid var(--color-border);">
+              <label style="display:flex;align-items:center;gap:10px;cursor:pointer;flex:1;">
+                <input type="checkbox" value="${a.id}" data-nome="${escapeHtml(a.nome)}" data-preco="${a.preco}" data-tipo="${a.tipo}" class="check-lim" data-grupo="${grupo}" data-grupo-label="${titulo.toLowerCase()}" data-max="${limiteGrupo}" style="width:18px;height:18px;accent-color:var(--color-primary);">
                 <div>
-                  <span>${escapeHtml(a.nome)}</span>
-                  ${a.descricao ? `<br><small style="color: var(--color-text-secondary); display: block; margin-top: 2px;">${escapeHtml(a.descricao)}</small>` : ''}
+                  <span style="font-weight:600;color:var(--color-text);">${escapeHtml(a.nome)}</span>
+                  ${a.descricao ? `<br><small style="color:var(--color-text-secondary);display:block;margin-top:2px;font-size:0.8rem;">${escapeHtml(a.descricao)}</small>` : ''}
                 </div>
               </label>
-              <span class="adicional-price">+ R$ ${a.preco.toFixed(2)}</span>
+              <span style="font-size:0.85rem;color:var(--color-text-secondary);white-space:nowrap;font-weight:600;">+ R$ ${a.preco.toFixed(2)}</span>
             </div>
           `).join('')}
         </div>`;
@@ -560,17 +560,17 @@ function abrirProduto(id) {
         // Limite configurado no painel admin (campo "Limite" do adicional)
         const limiteSabores = parseInt(sabores[0]?.limite) || 0;
         const tituloSabores = limiteSabores > 0 ? `Sabores (máx: ${limiteSabores})` : 'Sabores';
-        html += `<div style="margin-bottom: 8px; font-size: 0.85rem; color: var(--color-text-secondary);" class="titulo-grupo-lim" data-base="${limiteSabores}" data-label="Sabores">${tituloSabores}</div>` +
+        html += `<div class="modal-section-title titulo-grupo-lim" style="margin: 8px 0;" data-base="${limiteSabores}" data-label="Sabores">${tituloSabores}</div>` +
           sabores.map(a => `
-            <div class="adicional-item">
-              <label>
-                <input type="checkbox" value="${a.id}" data-nome="${escapeHtml(a.nome)}" data-preco="${a.preco}" data-tipo="sabor" class="sabor-check-gen" data-max="${limiteSabores}" data-base-max="${limiteSabores}">
+            <div class="pm-item" style="display:flex;justify-content:space-between;align-items:center;padding:10px 4px;border-bottom:1px solid var(--color-border);">
+              <label style="display:flex;align-items:center;gap:10px;cursor:pointer;flex:1;">
+                <input type="checkbox" value="${a.id}" data-nome="${escapeHtml(a.nome)}" data-preco="${a.preco}" data-tipo="sabor" class="sabor-check-gen" data-max="${limiteSabores}" data-base-max="${limiteSabores}" style="width:18px;height:18px;accent-color:var(--color-primary);">
                 <div>
-                  <span>${escapeHtml(a.nome)}</span>
-                  ${a.descricao ? `<br><small style="color: var(--color-text-secondary); display: block; margin-top: 2px;">${escapeHtml(a.descricao)}</small>` : ''}
+                  <span style="font-weight:600;color:var(--color-text);">${escapeHtml(a.nome)}</span>
+                  ${a.descricao ? `<br><small style="color:var(--color-text-secondary);display:block;margin-top:2px;font-size:0.8rem;">${escapeHtml(a.descricao)}</small>` : ''}
                 </div>
               </label>
-              <span class="adicional-price">${a.preco > 0 ? '+ R$ ' + a.preco.toFixed(2) : 'Incluído'}</span>
+              <span style="font-size:0.85rem;color:var(--color-text-secondary);white-space:nowrap;font-weight:600;">${a.preco > 0 ? '+ R$ ' + a.preco.toFixed(2) : 'Incluído'}</span>
             </div>
           `).join('');
 
@@ -593,17 +593,17 @@ function abrirProduto(id) {
       if (bordas.length) {
         const limiteBordas = parseInt(bordas[0]?.limite) || 0;
         const tituloBordas = limiteBordas > 0 ? `Borda Recheada (máx: ${limiteBordas})` : 'Borda Recheada';
-        html += `<div style="margin-bottom: 8px; font-size: 0.85rem; color: var(--color-text-secondary);" class="titulo-grupo-lim" data-base="${limiteBordas}" data-label="Borda Recheada">${tituloBordas}</div>` +
+        html += `<div class="modal-section-title titulo-grupo-lim" style="margin: 8px 0;" data-base="${limiteBordas}" data-label="Borda Recheada">${tituloBordas}</div>` +
           bordas.map(a => `
-            <div class="adicional-item">
-              <label>
-                <input type="checkbox" value="${a.id}" data-nome="${escapeHtml(a.nome)}" data-preco="${a.preco}" data-tipo="borda" class="check-lim" data-grupo="gen-borda" data-grupo-label="borda recheada" data-max="${limiteBordas}" data-base-max="${limiteBordas}">
+            <div class="pm-item" style="display:flex;justify-content:space-between;align-items:center;padding:10px 4px;border-bottom:1px solid var(--color-border);">
+              <label style="display:flex;align-items:center;gap:10px;cursor:pointer;flex:1;">
+                <input type="checkbox" value="${a.id}" data-nome="${escapeHtml(a.nome)}" data-preco="${a.preco}" data-tipo="borda" class="check-lim" data-grupo="gen-borda" data-grupo-label="borda recheada" data-max="${limiteBordas}" data-base-max="${limiteBordas}" style="width:18px;height:18px;accent-color:var(--color-primary);">
                 <div>
-                  <span>${escapeHtml(a.nome)}</span>
-                  ${a.descricao ? `<br><small style="color: var(--color-text-secondary); display: block; margin-top: 2px;">${escapeHtml(a.descricao)}</small>` : ''}
+                  <span style="font-weight:600;color:var(--color-text);">${escapeHtml(a.nome)}</span>
+                  ${a.descricao ? `<br><small style="color:var(--color-text-secondary);display:block;margin-top:2px;font-size:0.8rem;">${escapeHtml(a.descricao)}</small>` : ''}
                 </div>
               </label>
-              <span class="adicional-price">${a.preco > 0 ? '+ R$ ' + a.preco.toFixed(2) : 'Incluído'}</span>
+              <span style="font-size:0.85rem;color:var(--color-text-secondary);white-space:nowrap;font-weight:600;">${a.preco > 0 ? '+ R$ ' + a.preco.toFixed(2) : 'Incluído'}</span>
             </div>
           `).join('');
       }
@@ -611,17 +611,17 @@ function abrirProduto(id) {
       if (adicionaisFiltrados.length) {
         const limiteAdic = parseInt(adicionaisFiltrados[0]?.limite) || 0;
         const tituloAdic = limiteAdic > 0 ? `Adicionais (máx: ${escapeHtml(limiteAdic)})` : 'Adicionais';
-        html += `<div style="margin-bottom: 8px; font-size: 0.85rem; color: var(--color-text-secondary);" class="titulo-grupo-lim" data-base="${escapeHtml(limiteAdic)}" data-label="Adicionais">${escapeHtml(tituloAdic)}</div>` +
+        html += `<div class="modal-section-title titulo-grupo-lim" style="margin: 8px 0;" data-base="${escapeHtml(limiteAdic)}" data-label="Adicionais">${escapeHtml(tituloAdic)}</div>` +
           adicionaisFiltrados.map(a => `
-            <div class="adicional-item">
-              <label>
-                <input type="checkbox" value="${a.id}" data-nome="${escapeHtml(a.nome)}" data-preco="${a.preco}" data-tipo="adicional" class="check-lim" data-grupo="gen-adic" data-grupo-label="adicional" data-max="${escapeHtml(limiteAdic)}" data-base-max="${escapeHtml(limiteAdic)}">
+            <div class="pm-item" style="display:flex;justify-content:space-between;align-items:center;padding:10px 4px;border-bottom:1px solid var(--color-border);">
+              <label style="display:flex;align-items:center;gap:10px;cursor:pointer;flex:1;">
+                <input type="checkbox" value="${a.id}" data-nome="${escapeHtml(a.nome)}" data-preco="${a.preco}" data-tipo="adicional" class="check-lim" data-grupo="gen-adic" data-grupo-label="adicional" data-max="${escapeHtml(limiteAdic)}" data-base-max="${escapeHtml(limiteAdic)}" style="width:18px;height:18px;accent-color:var(--color-primary);">
                 <div>
-                  <span>${escapeHtml(a.nome)}</span>
-                  ${a.descricao ? `<br><small style="color: var(--color-text-secondary); display: block; margin-top: 2px;">${escapeHtml(a.descricao)}</small>` : ''}
+                  <span style="font-weight:600;color:var(--color-text);">${escapeHtml(a.nome)}</span>
+                  ${a.descricao ? `<br><small style="color:var(--color-text-secondary);display:block;margin-top:2px;font-size:0.8rem;">${escapeHtml(a.descricao)}</small>` : ''}
                 </div>
               </label>
-              <span class="adicional-price">${a.preco > 0 ? '+ R$ ' + a.preco.toFixed(2) : 'Incluído'}</span>
+              <span style="font-size:0.85rem;color:var(--color-text-secondary);white-space:nowrap;font-weight:600;">${a.preco > 0 ? '+ R$ ' + a.preco.toFixed(2) : 'Incluído'}</span>
             </div>
           `).join('');
       }
@@ -656,17 +656,29 @@ function abrirProduto(id) {
   }
 
   atualizarBtnAdd();
-  document.getElementById('modal-produto').classList.add('active');
+  abrirModalEl();
   } catch (e) {
     console.error('abrirProduto falhou:', e);
     // Fallback: mostra modal mesmo com erro parcial
-    try { document.getElementById('modal-produto').classList.add('active'); } catch (_) {}
+    try { abrirModalEl(); } catch (_) {}
     mostrarToast('Erro ao abrir produto. Tente novamente.');
   }
 }
 
+// Abre/fecha o modal de produto garantindo consistencia entre classe CSS e display inline
+// (o CSS define .modal-overlay{display:none} e .modal-overlay.active{display:flex})
+function abrirModalEl() {
+  const m = document.getElementById('modal-produto');
+  if (!m) return;
+  m.classList.add('active');
+  m.style.display = 'flex';
+}
+
 function fecharModal() {
-  document.getElementById('modal-produto').classList.remove('active');
+  const m = document.getElementById('modal-produto');
+  if (!m) return;
+  m.classList.remove('active');
+  m.style.display = 'none';
 }
 
 function alterarQtd(delta) {

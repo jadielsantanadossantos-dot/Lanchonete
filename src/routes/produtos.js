@@ -117,7 +117,7 @@ router.get('/', wrapAsync(async (req, res) => {
 
   const produtos = rows.map(p => ({
     ...p,
-    adicionais: adicionais.filter(a => !a.categoria_id || a.categoria_id === p.categoria_id)
+    adicionais: adicionais.filter(a => a.categoria_id === p.categoria_id)
   }));
 
   res.json(produtos);
@@ -186,8 +186,8 @@ router.get('/ativos', wrapAsync(async (req, res) => {
         }
         return (produtoEspecifico || adicionalGlobal) && ['adicional', 'borda'].includes(a.tipo) && a.preco > 0;
       } else {
-        // Não-pizzas recebem adicionais sem tipo, tipo='adicional', sabores, bordas e tipos de açaí (base/cobertura/acompanhamento)
-        return (produtoEspecifico || adicionalGlobal) && (!a.tipo || ['adicional', 'sabor', 'base', 'cobertura', 'acompanhamento', 'borda'].includes(a.tipo));
+        // Não-pizzas recebem apenas adicionais especificamente vinculados ao produto
+        return produtoEspecifico;
       }
     });
     

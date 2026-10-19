@@ -1,0 +1,602 @@
+{
+  "D:\\Jadiel\\Projetos\\Lanchonete\\.eslintrc.json": {
+    "mtime": 1787790447.3104317,
+    "seen": 1788578909.6557357,
+    "ast_hash": "1620c8da12f12ae876aefb937762fb11",
+    "semantic_hash": "1620c8da12f12ae876aefb937762fb11"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\.opencode\\opencode.json": {
+    "mtime": 1788578609.917868,
+    "seen": 1788578909.6557357,
+    "ast_hash": "f2ae21510d07365eb2bce8159272c7a0",
+    "semantic_hash": "f2ae21510d07365eb2bce8159272c7a0"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\.opencode\\plugins\\graphify.js": {
+    "mtime": 1788578609.917868,
+    "seen": 1788578909.6557357,
+    "ast_hash": "b33d000860642c6f4907a877e0387a21",
+    "semantic_hash": "b33d000860642c6f4907a877e0387a21"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\api\\index.js": {
+    "mtime": 1787790209.521363,
+    "seen": 1788578909.6557357,
+    "ast_hash": "b23ded0444ee09f15797b37781c61916",
+    "semantic_hash": "b23ded0444ee09f15797b37781c61916"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\audit-ci.json": {
+    "mtime": 1787063233.5508883,
+    "seen": 1788578909.6557357,
+    "ast_hash": "a65c5c2d53b14f923d1a8c6800584314",
+    "semantic_hash": "a65c5c2d53b14f923d1a8c6800584314"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\package.json": {
+    "mtime": 1787790431.3977695,
+    "seen": 1788578909.6557357,
+    "ast_hash": "4428a488e59976c1cde09d08e955f51a",
+    "semantic_hash": "4428a488e59976c1cde09d08e955f51a"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\public\\js\\admin.js": {
+    "mtime": 1788575703.6965344,
+    "seen": 1788578909.6557357,
+    "ast_hash": "35b786b205343daa11e95f4b118c0886",
+    "semantic_hash": "35b786b205343daa11e95f4b118c0886"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\public\\js\\app.js": {
+    "mtime": 1788474755.860648,
+    "seen": 1788578909.6557357,
+    "ast_hash": "bca7f00391872f780e26be6754248c2f",
+    "semantic_hash": "bca7f00391872f780e26be6754248c2f"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\public\\js\\auth.js": {
+    "mtime": 1788530778.263677,
+    "seen": 1788578909.6557357,
+    "ast_hash": "fafff7e3592e1a36d6f68f0001b987fa",
+    "semantic_hash": "fafff7e3592e1a36d6f68f0001b987fa"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\public\\js\\garcom.js": {
+    "mtime": 1788188908.1387632,
+    "seen": 1788578909.6557357,
+    "ast_hash": "613869a045c4545561d97f57f1a9e918",
+    "semantic_hash": "613869a045c4545561d97f57f1a9e918"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\public\\js\\login.js": {
+    "mtime": 1787451034.5924325,
+    "seen": 1788578909.6557357,
+    "ast_hash": "0c1dbaef4360429a3c031ba499b6b982",
+    "semantic_hash": "0c1dbaef4360429a3c031ba499b6b982"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\public\\js\\pizza-modal.js": {
+    "mtime": 1788056331.2736292,
+    "seen": 1788578909.6557357,
+    "ast_hash": "d5aec07616b2428392d602a2a3e60662",
+    "semantic_hash": "d5aec07616b2428392d602a2a3e60662"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\public\\js\\realtime.js": {
+    "mtime": 1787790323.894264,
+    "seen": 1788578909.6557357,
+    "ast_hash": "751f80e57a112ea129a78ca6fd7582b6",
+    "semantic_hash": "751f80e57a112ea129a78ca6fd7582b6"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\scripts\\add_fotos_placeholders.js": {
+    "mtime": 1788048514.960277,
+    "seen": 1788578909.6557357,
+    "ast_hash": "eca9268465de69b4561868b1ea40cfa5",
+    "semantic_hash": "eca9268465de69b4561868b1ea40cfa5"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\scripts\\versionar-assets.js": {
+    "mtime": 1787676906.7114525,
+    "seen": 1788578909.6557357,
+    "ast_hash": "21f5e71369fe0ad962cdde1a5907c828",
+    "semantic_hash": "21f5e71369fe0ad962cdde1a5907c828"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\server.js": {
+    "mtime": 1787614283.8543859,
+    "seen": 1788578909.6557357,
+    "ast_hash": "d1f743b02ecf3ed85f29699e1d1567c9",
+    "semantic_hash": "d1f743b02ecf3ed85f29699e1d1567c9"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\src\\app.js": {
+    "mtime": 1788048738.0820878,
+    "seen": 1788578909.6557357,
+    "ast_hash": "be3b11e4447ad0006be87c75dc1b24f9",
+    "semantic_hash": "be3b11e4447ad0006be87c75dc1b24f9"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\src\\auth\\auth.js": {
+    "mtime": 1787676647.8847957,
+    "seen": 1788578909.6557357,
+    "ast_hash": "9a93c63f49c1f74673273654f73a43c0",
+    "semantic_hash": "9a93c63f49c1f74673273654f73a43c0"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\src\\db\\database.js": {
+    "mtime": 1787790469.4846325,
+    "seen": 1788578909.6557357,
+    "ast_hash": "5e6cb8195491bd6887983465a192e153",
+    "semantic_hash": "5e6cb8195491bd6887983465a192e153"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\src\\generate-sounds.js": {
+    "mtime": 1786907231.811625,
+    "seen": 1788578909.6557357,
+    "ast_hash": "4fd3a9cc7f641aea305239890df209bc",
+    "semantic_hash": "4fd3a9cc7f641aea305239890df209bc"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\src\\realtime\\notifier.js": {
+    "mtime": 1787790316.5901482,
+    "seen": 1788578909.6557357,
+    "ast_hash": "0665e2212c846fc4adc85b57dcb288cb",
+    "semantic_hash": "0665e2212c846fc4adc85b57dcb288cb"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\src\\routes\\adicionais.js": {
+    "mtime": 1787588265.165943,
+    "seen": 1788578909.6557357,
+    "ast_hash": "9b2a7467fe65486d3e288c4d01ecfdaa",
+    "semantic_hash": "9b2a7467fe65486d3e288c4d01ecfdaa"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\src\\routes\\auth.js": {
+    "mtime": 1788124157.8035803,
+    "seen": 1788578909.6557357,
+    "ast_hash": "52e34860d455a75330d66739e6f11348",
+    "semantic_hash": "52e34860d455a75330d66739e6f11348"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\src\\routes\\bairros.js": {
+    "mtime": 1787856267.7825274,
+    "seen": 1788578909.6557357,
+    "ast_hash": "cf9e9072a6d94e7c38cfb3cecb3d877e",
+    "semantic_hash": "cf9e9072a6d94e7c38cfb3cecb3d877e"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\src\\routes\\categorias.js": {
+    "mtime": 1787485132.410106,
+    "seen": 1788578909.6557357,
+    "ast_hash": "648612e7736592a3c22c354c4c5c59a2",
+    "semantic_hash": "648612e7736592a3c22c354c4c5c59a2"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\src\\routes\\clientes.js": {
+    "mtime": 1787795575.5377433,
+    "seen": 1788578909.6557357,
+    "ast_hash": "b4cc6e72e30fcc7b5cd9960fd9a470e0",
+    "semantic_hash": "b4cc6e72e30fcc7b5cd9960fd9a470e0"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\src\\routes\\comandas.js": {
+    "mtime": 1788576299.2611847,
+    "seen": 1788578909.6557357,
+    "ast_hash": "826855e69ee95bbf91f2c57376ed66a1",
+    "semantic_hash": "826855e69ee95bbf91f2c57376ed66a1"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\src\\routes\\config.js": {
+    "mtime": 1788194496.0336637,
+    "seen": 1788578909.6557357,
+    "ast_hash": "ebbfb35637267e524cdab1b3c42550e4",
+    "semantic_hash": "ebbfb35637267e524cdab1b3c42550e4"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\src\\routes\\cron.js": {
+    "mtime": 1787850366.4159086,
+    "seen": 1788578909.6557357,
+    "ast_hash": "7f931df13db006d3ad39f0aa3210fefa",
+    "semantic_hash": "7f931df13db006d3ad39f0aa3210fefa"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\src\\routes\\mesas.js": {
+    "mtime": 1787415906.7884765,
+    "seen": 1788578909.6557357,
+    "ast_hash": "67296821453fe9b514209ad9196da284",
+    "semantic_hash": "67296821453fe9b514209ad9196da284"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\src\\routes\\motoboys.js": {
+    "mtime": 1788194791.5817525,
+    "seen": 1788578909.6557357,
+    "ast_hash": "8d1be9fe9e5fe26814151ac63d0ac794",
+    "semantic_hash": "8d1be9fe9e5fe26814151ac63d0ac794"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\src\\routes\\pedidos.js": {
+    "mtime": 1788575272.8267958,
+    "seen": 1788578909.6557357,
+    "ast_hash": "d18460f4af8f43dd1369b3a1ff56a45b",
+    "semantic_hash": "d18460f4af8f43dd1369b3a1ff56a45b"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\src\\routes\\produtos.js": {
+    "mtime": 1788474717.7882307,
+    "seen": 1788578909.6557357,
+    "ast_hash": "a9b322ca6065023e811eff6c773a5dfd",
+    "semantic_hash": "a9b322ca6065023e811eff6c773a5dfd"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\src\\utils\\audit.js": {
+    "mtime": 1787849424.1222713,
+    "seen": 1788578909.6557357,
+    "ast_hash": "27e56ec16553ef010ab4f1bb94dc1741",
+    "semantic_hash": "27e56ec16553ef010ab4f1bb94dc1741"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\src\\utils\\horario.js": {
+    "mtime": 1788006411.1860948,
+    "seen": 1788578909.6557357,
+    "ast_hash": "c8123e161e829834903edcbb7adc22ed",
+    "semantic_hash": "c8123e161e829834903edcbb7adc22ed"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\src\\utils\\validation.js": {
+    "mtime": 1787062269.73044,
+    "seen": 1788578909.6557357,
+    "ast_hash": "b6fac6fafb31e07d9416d719a1569354",
+    "semantic_hash": "b6fac6fafb31e07d9416d719a1569354"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\supabase\\migrations\\20260822000000_initial_schema.sql": {
+    "mtime": 1787619419.2712646,
+    "seen": 1788578909.6557357,
+    "ast_hash": "fb213e88c2950770378decd5420a3fdc",
+    "semantic_hash": "fb213e88c2950770378decd5420a3fdc"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\supabase\\migrations\\20260823000000_adicionais_por_categoria.sql": {
+    "mtime": 1787453144.319216,
+    "seen": 1788578909.6557357,
+    "ast_hash": "8887d360bbdb354a6092c4583746e76e",
+    "semantic_hash": "8887d360bbdb354a6092c4583746e76e"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\supabase\\migrations\\20260823010000_venda_por_peso.sql": {
+    "mtime": 1787453787.2561095,
+    "seen": 1788578909.6557357,
+    "ast_hash": "3524f5c824deb49ad17ddef2fd078a2e",
+    "semantic_hash": "3524f5c824deb49ad17ddef2fd078a2e"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\supabase\\migrations\\20260823020000_quantidade_miligramas.sql": {
+    "mtime": 1787456012.431001,
+    "seen": 1788578909.6557357,
+    "ast_hash": "6e70f5291befc8c5baa2970ace5cc44e",
+    "semantic_hash": "6e70f5291befc8c5baa2970ace5cc44e"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\supabase\\migrations\\20260823030000_allow_delete_produtos_categorias.sql": {
+    "mtime": 1787485114.4224792,
+    "seen": 1788578909.6557357,
+    "ast_hash": "6a6901237a80e3f494281a590946f4f2",
+    "semantic_hash": "6a6901237a80e3f494281a590946f4f2"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\supabase\\migrations\\20260823040000_clientes_bloqueado.sql": {
+    "mtime": 1787485392.2783103,
+    "seen": 1788578909.6557357,
+    "ast_hash": "f72d5e7f86fd9f0c08ecb80ff46f64d1",
+    "semantic_hash": "f72d5e7f86fd9f0c08ecb80ff46f64d1"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\supabase\\migrations\\20260823050000_allow_null_cliente_pedidos.sql": {
+    "mtime": 1787486082.56268,
+    "seen": 1788578909.6557357,
+    "ast_hash": "08094acf9518d1325d0bdd4e4cfd708e",
+    "semantic_hash": "08094acf9518d1325d0bdd4e4cfd708e"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\supabase\\migrations\\20260823060000_adicionar_tipo_adicional.sql": {
+    "mtime": 1787506617.3063433,
+    "seen": 1788578909.6557357,
+    "ast_hash": "11588b4dcbe0c6c99704b02160ad945b",
+    "semantic_hash": "11588b4dcbe0c6c99704b02160ad945b"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\supabase\\migrations\\20260823070000_adicionar_descricao_adicionais.sql": {
+    "mtime": 1787507861.4345372,
+    "seen": 1788578909.6557357,
+    "ast_hash": "0cb9ec013548aac275be18816f0c2c71",
+    "semantic_hash": "0cb9ec013548aac275be18816f0c2c71"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\supabase\\migrations\\20260823080000_garantir_tipo_adicionais.sql": {
+    "mtime": 1787508240.0714242,
+    "seen": 1788578909.6557357,
+    "ast_hash": "344f2ebce49ac86af2bee356235fd7ca",
+    "semantic_hash": "344f2ebce49ac86af2bee356235fd7ca"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\supabase\\migrations\\20260823090000_fix_adicionais_colunas.sql": {
+    "mtime": 1787509075.6729925,
+    "seen": 1788578909.6557357,
+    "ast_hash": "56d8d4dc2ef3c1ceda63f5c17c82baf0",
+    "semantic_hash": "56d8d4dc2ef3c1ceda63f5c17c82baf0"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\supabase\\migrations\\20260823100000_adicionais_por_produto.sql": {
+    "mtime": 1787522900.8593132,
+    "seen": 1788578909.6557357,
+    "ast_hash": "a94ff4fd2c18c7c377a20b0a01d67d40",
+    "semantic_hash": "a94ff4fd2c18c7c377a20b0a01d67d40"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\supabase\\migrations\\20260823500000_adicionais_tipos_acai.sql": {
+    "mtime": 1787761391.139777,
+    "seen": 1788578909.6557357,
+    "ast_hash": "86da7cc2e14871943c106826d9e85af0",
+    "semantic_hash": "86da7cc2e14871943c106826d9e85af0"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\supabase\\migrations\\20260824000000_acai_categoria.sql": {
+    "mtime": 1787575173.3718863,
+    "seen": 1788578909.6557357,
+    "ast_hash": "f9e963c008664bd073c69e05cfcad8ab",
+    "semantic_hash": "f9e963c008664bd073c69e05cfcad8ab"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\supabase\\migrations\\20260824120000_adicional_produtos.sql": {
+    "mtime": 1787580269.839883,
+    "seen": 1788578909.6557357,
+    "ast_hash": "49f94276c1a8156ae112a038e9331376",
+    "semantic_hash": "49f94276c1a8156ae112a038e9331376"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\supabase\\migrations\\20260824130000_produto_somente_garcom.sql": {
+    "mtime": 1787582091.0037763,
+    "seen": 1788578909.6557357,
+    "ast_hash": "f35513c12a77a2d208a47d11581ebbd5",
+    "semantic_hash": "f35513c12a77a2d208a47d11581ebbd5"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\supabase\\migrations\\20260824140000_motoboys.sql": {
+    "mtime": 1787583413.7826552,
+    "seen": 1788578909.6557357,
+    "ast_hash": "89f9630d438ee35897496e55065a0de7",
+    "semantic_hash": "89f9630d438ee35897496e55065a0de7"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\supabase\\migrations\\20260824150000_produto_limite_sabores.sql": {
+    "mtime": 1787585281.7591345,
+    "seen": 1788578909.6557357,
+    "ast_hash": "8bffe3d0df79fdd8b7d4e8b96d706e3c",
+    "semantic_hash": "8bffe3d0df79fdd8b7d4e8b96d706e3c"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\supabase\\migrations\\20260825000000_whatsapp_msg_saiu_entrega.sql": {
+    "mtime": 1787756750.366012,
+    "seen": 1788578909.6557357,
+    "ast_hash": "fab85f4b77af1659a7516f2043a4d7f1",
+    "semantic_hash": "fab85f4b77af1659a7516f2043a4d7f1"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\supabase\\migrations\\20260826000000_enable_rls.sql": {
+    "mtime": 1787675884.0827754,
+    "seen": 1788578909.6557357,
+    "ast_hash": "9cd70ba2c6333cef270722fa40cda31f",
+    "semantic_hash": "9cd70ba2c6333cef270722fa40cda31f"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\supabase\\migrations\\20260826000001_refresh_tokens_revogados.sql": {
+    "mtime": 1787676621.599995,
+    "seen": 1788578909.6557357,
+    "ast_hash": "68419b04ddbaa0f53d9a26187c427f65",
+    "semantic_hash": "68419b04ddbaa0f53d9a26187c427f65"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\supabase\\migrations\\20260826000004_usuario_demo.sql": {
+    "mtime": 1787763202.715107,
+    "seen": 1788578909.6557357,
+    "ast_hash": "f16c23dee79aecbb4171cc4bcd91a83e",
+    "semantic_hash": "f16c23dee79aecbb4171cc4bcd91a83e"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\supabase\\migrations\\20260826000005_seed_demo.sql": {
+    "mtime": 1787763205.852101,
+    "seen": 1788578909.6557357,
+    "ast_hash": "a6e30541a921eab3786e3abe2b1be8a3",
+    "semantic_hash": "a6e30541a921eab3786e3abe2b1be8a3"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\supabase\\migrations\\20260826000006_grant_service_role.sql": {
+    "mtime": 1787762420.5369465,
+    "seen": 1788578909.6557357,
+    "ast_hash": "91f0fc0207e89454032a6d0ea89e5548",
+    "semantic_hash": "91f0fc0207e89454032a6d0ea89e5548"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\supabase\\migrations\\20260826000007_fix_concorrencia_rls.sql": {
+    "mtime": 1787790305.2637782,
+    "seen": 1788578909.6557357,
+    "ast_hash": "20d9585abbf85e23fe67d7f79191b679",
+    "semantic_hash": "20d9585abbf85e23fe67d7f79191b679"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\supabase\\migrations\\20260826000008_allow_observador.sql": {
+    "mtime": 1787849663.4350781,
+    "seen": 1788578909.6557357,
+    "ast_hash": "3c96724da4765587f1a7ed6b0ae8263e",
+    "semantic_hash": "3c96724da4765587f1a7ed6b0ae8263e"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\supabase\\migrations\\20260826000009_revert_demo_prod.sql": {
+    "mtime": 1787849828.8199408,
+    "seen": 1788578909.6557357,
+    "ast_hash": "56362df91d8409157a05283a151e5016",
+    "semantic_hash": "56362df91d8409157a05283a151e5016"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\supabase\\migrations\\20260826000010_fix_demo_login_demo.sql": {
+    "mtime": 1787850369.761878,
+    "seen": 1788578909.6557357,
+    "ast_hash": "d790f744b7fd4f3a0d0bc289bb888b2c",
+    "semantic_hash": "d790f744b7fd4f3a0d0bc289bb888b2c"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\supabase\\migrations\\20260830000000_fix_pizza_ordem.sql": {
+    "mtime": 1788052120.5064206,
+    "seen": 1788578909.6557357,
+    "ast_hash": "9a60b60c9cdaf8b82a9586ca421c7a5d",
+    "semantic_hash": "9a60b60c9cdaf8b82a9586ca421c7a5d"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\supabase\\migrations\\20260904000001_fix_erilane_admin.sql": {
+    "mtime": 1788531016.281833,
+    "seen": 1788578909.6557357,
+    "ast_hash": "65b1c271441f7c29669fb0ba6647d567",
+    "semantic_hash": "65b1c271441f7c29669fb0ba6647d567"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\supabase\\migrations\\20260905000000_pedido_item_adicionais_tipo.sql": {
+    "mtime": 1788575874.917288,
+    "seen": 1788578909.6557357,
+    "ast_hash": "f37ac8c0ddac86b142707ca48966412b",
+    "semantic_hash": "f37ac8c0ddac86b142707ca48966412b"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\supabase\\seed.sql": {
+    "mtime": 1787415267.6097827,
+    "seen": 1788578909.6557357,
+    "ast_hash": "0db7912b3d7d429f74bebf33edfa0e7d",
+    "semantic_hash": "0db7912b3d7d429f74bebf33edfa0e7d"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\supabase\\seed_pizzas.sql": {
+    "mtime": 1788052097.4675176,
+    "seen": 1788578909.6557357,
+    "ast_hash": "d5b4087bfef65582501a0f65445eb981",
+    "semantic_hash": "d5b4087bfef65582501a0f65445eb981"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\tests\\comandas.concurrent.test.js": {
+    "mtime": 1787849462.8167083,
+    "seen": 1788578909.6557357,
+    "ast_hash": "2ec2b37e679e19fd97215c94cca588b7",
+    "semantic_hash": "2ec2b37e679e19fd97215c94cca588b7"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\tests\\horario.test.js": {
+    "mtime": 1787791893.060925,
+    "seen": 1788578909.6557357,
+    "ast_hash": "65506adc824a042b126fd95dce3b03c2",
+    "semantic_hash": "65506adc824a042b126fd95dce3b03c2"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\tests\\pedidos-calc.test.js": {
+    "mtime": 1787790440.94188,
+    "seen": 1788578909.6557357,
+    "ast_hash": "7a4711a30b38358d802a5697a2ca17e6",
+    "semantic_hash": "7a4711a30b38358d802a5697a2ca17e6"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\tests\\produtos.test.js": {
+    "mtime": 1787790443.3014112,
+    "seen": 1788578909.6557357,
+    "ast_hash": "02d17a94a687c48d308456e87113f55e",
+    "semantic_hash": "02d17a94a687c48d308456e87113f55e"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\tests\\validation.test.js": {
+    "mtime": 1787790438.331459,
+    "seen": 1788578909.6557357,
+    "ast_hash": "3db4608722fbd9f380f5385037e567b0",
+    "semantic_hash": "3db4608722fbd9f380f5385037e567b0"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\tsconfig.json": {
+    "mtime": 1787366643.305254,
+    "seen": 1788578909.6557357,
+    "ast_hash": "5938aedf92e14bb999d8286b1eef8e91",
+    "semantic_hash": "5938aedf92e14bb999d8286b1eef8e91"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\vercel.json": {
+    "mtime": 1787790830.7781947,
+    "seen": 1788578909.6557357,
+    "ast_hash": "1e648ebc5f570e8fd81e3e4a376e4190",
+    "semantic_hash": "1e648ebc5f570e8fd81e3e4a376e4190"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\public\\admin.html": {
+    "mtime": 1788217437.4778435,
+    "seen": 1788578909.6557357,
+    "ast_hash": "542f10bf085d0d5c8b4c5dd4752bfd5b",
+    "semantic_hash": "542f10bf085d0d5c8b4c5dd4752bfd5b"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\public\\alterar-senha.html": {
+    "mtime": 1787676911.9503653,
+    "seen": 1788578909.6557357,
+    "ast_hash": "c852c4afc167e20f1aef5ea5f84ad180",
+    "semantic_hash": "c852c4afc167e20f1aef5ea5f84ad180"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\public\\folder-70x100.html": {
+    "mtime": 1787792854.7163005,
+    "seen": 1788578909.6557357,
+    "ast_hash": "39ed05d02817a2e70167967a608118b5",
+    "semantic_hash": "39ed05d02817a2e70167967a608118b5"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\public\\folder.html": {
+    "mtime": 1788095483.7598212,
+    "seen": 1788578909.6557357,
+    "ast_hash": "1a0a5945c44f129c20b695302834fc70",
+    "semantic_hash": "1a0a5945c44f129c20b695302834fc70"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\public\\garcom.html": {
+    "mtime": 1788188986.3342738,
+    "seen": 1788578909.6557357,
+    "ast_hash": "a8bb6aa36cf83073530b6610821fc30a",
+    "semantic_hash": "a8bb6aa36cf83073530b6610821fc30a"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\public\\index.html": {
+    "mtime": 1788137648.1432996,
+    "seen": 1788578909.6557357,
+    "ast_hash": "ebf097ba6e6a9014f34ff459366757ef",
+    "semantic_hash": "ebf097ba6e6a9014f34ff459366757ef"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\public\\login-admin.html": {
+    "mtime": 1787953675.6928523,
+    "seen": 1788578909.6557357,
+    "ast_hash": "1791e97cd11336fe540a4ccea759d527",
+    "semantic_hash": "1791e97cd11336fe540a4ccea759d527"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\public\\login-garcom.html": {
+    "mtime": 1787953677.0025887,
+    "seen": 1788578909.6557357,
+    "ast_hash": "d5171dc57cc758caa5bb89a0f6b00aab",
+    "semantic_hash": "d5171dc57cc758caa5bb89a0f6b00aab"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\public\\panfleto.html": {
+    "mtime": 1788095477.0402913,
+    "seen": 1788578909.6557357,
+    "ast_hash": "93b654bd75d0a32f80b3afe5f3d953d8",
+    "semantic_hash": "93b654bd75d0a32f80b3afe5f3d953d8"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\public\\folder-70x100.pdf": {
+    "mtime": 1787769207.1197858,
+    "seen": 1788578909.6557357,
+    "ast_hash": "952e863e6d5bc153971510f42181141a",
+    "semantic_hash": "952e863e6d5bc153971510f42181141a"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\public\\folder.pdf": {
+    "mtime": 1787768074.477694,
+    "seen": 1788578909.6557357,
+    "ast_hash": "20ab2db097c4cbe9a9345c37331eda93",
+    "semantic_hash": "20ab2db097c4cbe9a9345c37331eda93"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\public\\panfleto.pdf": {
+    "mtime": 1787767776.2814538,
+    "seen": 1788578909.6557357,
+    "ast_hash": "4f7f3c5176316ac9ccefe218b391537c",
+    "semantic_hash": "4f7f3c5176316ac9ccefe218b391537c"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\public\\folder-1.jpg": {
+    "mtime": 1787768078.5522587,
+    "seen": 1788578909.6557357,
+    "ast_hash": "e28394818c2cd3fc1eaf13ff6122b68d",
+    "semantic_hash": "e28394818c2cd3fc1eaf13ff6122b68d"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\public\\folder-2.jpg": {
+    "mtime": 1787768080.0104294,
+    "seen": 1788578909.6557357,
+    "ast_hash": "1e7cccc6249892541adfd341669c6023",
+    "semantic_hash": "1e7cccc6249892541adfd341669c6023"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\public\\folder-70x100-preview.png": {
+    "mtime": 1787768369.109261,
+    "seen": 1788578909.6557357,
+    "ast_hash": "3d2ae3499f87672050631703fb8d1824",
+    "semantic_hash": "3d2ae3499f87672050631703fb8d1824"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\public\\folder-70x100.jpg": {
+    "mtime": 1787769209.3784752,
+    "seen": 1788578909.6557357,
+    "ast_hash": "8580e3c4922df90928d13a62b18b42b0",
+    "semantic_hash": "8580e3c4922df90928d13a62b18b42b0"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\public\\folder.png": {
+    "mtime": 1787768082.8434527,
+    "seen": 1788578909.6557357,
+    "ast_hash": "9f6e443a14b3af8775294893b04d579d",
+    "semantic_hash": "9f6e443a14b3af8775294893b04d579d"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\public\\logo.jpeg": {
+    "mtime": 1787489257.034941,
+    "seen": 1788578909.6557357,
+    "ast_hash": "d574a04335f11f3ccc36e69099096a46",
+    "semantic_hash": "d574a04335f11f3ccc36e69099096a46"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\public\\panfleto.jpg": {
+    "mtime": 1787767781.7188454,
+    "seen": 1788578909.6557357,
+    "ast_hash": "d09e926b211fa9642b002db480030605",
+    "semantic_hash": "d09e926b211fa9642b002db480030605"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\public\\sounds\\alert.wav": {
+    "mtime": 1786907242.006098,
+    "seen": 1788578909.6557357,
+    "ast_hash": "424d6c896a506322bb28227cef545b11",
+    "semantic_hash": "424d6c896a506322bb28227cef545b11"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\public\\sounds\\bell.wav": {
+    "mtime": 1786907242.0031004,
+    "seen": 1788578909.6557357,
+    "ast_hash": "94a2522ab2ddebda22c41dcba9babace",
+    "semantic_hash": "94a2522ab2ddebda22c41dcba9babace"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\public\\sounds\\chime.wav": {
+    "mtime": 1786907242.005089,
+    "seen": 1788578909.6557357,
+    "ast_hash": "a4f8302c6dd9765103214c360cc07629",
+    "semantic_hash": "a4f8302c6dd9765103214c360cc07629"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\public\\sounds\\classic.wav": {
+    "mtime": 1786907241.9961457,
+    "seen": 1788578909.6557357,
+    "ast_hash": "6dc16230952d97f9b2df83cfefaf42ad",
+    "semantic_hash": "6dc16230952d97f9b2df83cfefaf42ad"
+  },
+  "D:\\Jadiel\\Projetos\\Lanchonete\\public\\sounds\\notification.wav": {
+    "mtime": 1786907242.0081055,
+    "seen": 1788578909.6557357,
+    "ast_hash": "3363ceec00bcbf1ea1d275b779bdd95c",
+    "semantic_hash": "3363ceec00bcbf1ea1d275b779bdd95c"
+  }
+}

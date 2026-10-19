@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="client">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Lanchonete</title>
+  <link rel="stylesheet" href="/css/style.css?v=20260826a">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <header class="header" id="header">
+    <div class="header-row">
+      <div class="header-brand">
+        <img src="/logo.jpeg" id="site-logo" alt="Logo" class="header-logo" style="height: 50px; width: auto; margin-right: 12px; border-radius: 8px;" onerror="this.src='/logo.jpeg'">
+        <div>
+          <h1 id="loja-nome" class="loja-nome">Lanchonete</h1>
+          <div class="header-sub">Faça seu pedido</div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="header-btn header-btn--user" onclick="mostrarPagina('page-cadastro')" aria-label="Minha conta">
+          <span class="header-btn-icon">&#128100;</span>
+          <span class="header-btn-label">LOGIN<br>REGISTRAR</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- TEMPO DE ESPERA - topo pequeno -->
+  <div id="tempo-espera-box" class="tempo-espera-box" style="display:none">
+    <span class="tempo-icon">⏱️</span>
+    <span class="tempo-label">Tempo de espera:</span>
+    <span class="tempo-valor" id="tempo-espera-valor">30-40 min</span>
+  </div>
+
+  <!-- LOJA FECHADA -->
+  <div id="loja-fechada-banner" class="alert alert-danger loja-fechada-banner" style="display:none">
+    <div class="alert-content">
+      <div class="alert-title">Loja fechada no momento</div>
+      <div class="alert-message">Não estamos aceitando pedidos agora. Volte em breve!</div>
+    </div>
+  </div>
+
+  <!-- CARDÁPIO -->
+  <div id="page-cardapio" class="page active">
+    <div class="categories" id="categories"></div>
+    <div class="products-grid" id="products-grid"></div>
+  </div>
+
+  <!-- MODAL PRODUTO -->
+  <div class="modal-overlay" id="modal-produto" role="dialog" aria-modal="true" aria-labelledby="modal-nome">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="modal-nome" class="modal-title"></h2>
+        <button class="modal-close" onclick="fecharModal()" aria-label="Fechar">&times;</button>
+      </div>
+      <div class="modal-body">
+        <img id="modal-img" class="modal-img" style="display:none" alt="">
+        <p id="modal-desc" class="modal-desc"></p>
+        <p id="modal-preco" class="modal-price"></p>
+        <div id="modal-adicionais" class="adicionais-section" style="display:none">
+          <div id="adicionais-list"></div>
+        </div>
+        <div class="qty-control" id="modal-kg-control" style="display:none">
+          <span class="qty-value" style="font-weight:700;color:var(--color-primary)">R$</span>
+          <input class="form-control" id="modal-kg-valor" type="number" min="1" step="0.50" value="15" style="width:120px" inputmode="decimal" aria-label="Valor em reais" oninput="atualizarBtnAdd()">
+        </div>
+        <p id="modal-kg-dica" style="display:none;font-size:var(--text-sm);color:var(--color-text-secondary);margin-top:4px"></p>
+        <div class="qty-control" id="modal-qtd-control">
+          <button class="qty-btn" onclick="alterarQtd(-1)" aria-label="Diminuir quantidade">-</button>
+          <span class="qty-value" id="modal-qty">1</span>
+          <button class="qty-btn" onclick="alterarQtd(1)" aria-label="Aumentar quantidade">+</button>
+        </div>
+        <div class="form-group">
+          <textarea class="obs-field" id="modal-obs" placeholder="Observações (ex: sem cebola)" rows="2" aria-label="Observações"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" id="btn-add-cart" onclick="adicionarAoCarrinho()">
+          Adicionar ao carrinho
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CARRINHO -->
+  <div id="page-carrinho" class="page page-carrinho">
+    <div class="page-title">
+      <button class="back-btn" onclick="mostrarPagina('page-cardapio')" aria-label="Voltar">Voltar</button>
+      <span>Meu Carrinho</span>
+    </div>
+    <div class="cart-items" id="cart-items"></div>
+    <div id="cart-empty" class="empty-state" style="display:none">
+      <div class="empty-icon">&#128722;</div>
+      <div class="empty-title">Carrinho vazio</div>
+      <p class="empty-message">Adicione itens do cardápio para começar seu pedido</p>
+    </div>
+    <div id="cart-summary" class="cart-summary" style="display:none">
+      <div class="summary-row">
+        <span class="label">Subtotal</span>
+        <span class="value" id="cart-subtotal">R$ 0,00</span>
+      </div>
+      <div class="summary-row">
+        <span class="label">Taxa de entrega</span>
+        <span class="value" id="cart-taxa">R$ 0,00</span>
+      </div>
+      <div class="summary-row summary-total">
+        <span class="label">Total</span>
+        <span class="value" id="cart-total">R$ 0,00</span>
+      </div>
+    </div>
+    <button class="btn btn-primary btn-checkout" id="btn-checkout" style="display:none" onclick="mostrarPagina('page-dados')">
+      Continuar para entrega &rarr;
+    </button>
+  </div>
+
+  <!-- DADOS DO CLIENTE -->
+  <div id="page-dados" class="page page-dados">
+    <div class="page-title">
+      <button class="back-btn" onclick="mostrarPagina('page-carrinho')" aria-label="Voltar">Voltar</button>
+      <span>Seus Dados</span>
+    </div>
+    <div class="form-group">
+      <label>Nome <span class="required">*</span></label>
+      <input class="form-control" id="cli-nome" placeholder="Seu nome" required>
+    </div>
+    <div class="form-group">
+      <label>Telefone <span class="required">*</span></label>
+      <input class="form-control" id="cli-telefone" placeholder="(00) 00000-0000" type="tel" required>
+    </div>
+    <div class="form-group">
+      <label>Como deseja receber? <span class="required">*</span></label>
+      <div style="display:flex;gap:12px">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="radio" name="tipo-entrega" value="entrega" checked onchange="alternarTipoEntrega()"> Entrega</label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="radio" name="tipo-entrega" value="retirada" onchange="alternarTipoEntrega()"> Retirar no local</label>
+      </div>
+    </div>
+    <div id="retirada-info" style="display:none;background:#E8F5E9;border:1px solid #A5D6A7;border-radius:8px;padding:12px;margin-bottom:12px">
+      <div style="font-weight:700;margin-bottom:6px">Retirar no local</div>
+      <div id="retirada-endereco" style="font-size:0.92rem;line-height:1.4"></div>
+      <a id="retirada-maps" href="#" target="_blank" class="btn btn-outline btn-sm" style="margin-top:8px;display:inline-flex;align-items:center;gap:6px">📍 Abrir no Google Maps</a>
+    </div>
+    <div id="entrega-campos">
+    <div class="section-title">Endereço de entrega</div>
+    <div class="form-group">
+      <label>Bairro <span class="required">*</span></label>
+      <select class="form-control" id="cli-bairro" onchange="atualizarTaxaBairro()">
+        <option value="">Selecione o bairro</option>
+      </select>
+    </div>
+    <div class="form-row">
+ <div class="form-group">
+        <label>Rua</label>
+        <input class="form-control" id="cli-rua" placeholder="Rua, Avenida, etc.">
+      </div>
+      <div class="form-group">
+        <label>Nº</label>
+        <input class="form-control" id="cli-numero" placeholder="Nº">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Complemento</label>
+      <input class="form-control" id="cli-complemento" placeholder="Apto, bloco...">
+    </div>
+    <div class="form-group">
+      <label>Ponto de referência</label>
+      <input class="form-control" id="cli-referencia" placeholder="Próximo a...">
+    </div>
+    </div>
+    <button class="btn btn-primary" onclick="irParaPagamento()">
+      Ir para pagamento
+    </button>
+  </div>
+
+  <!-- PAGAMENTO -->
+  <div id="page-pagamento" class="page page-pagamento">
+    <div class="page-title">
+      <button class="back-btn" onclick="mostrarPagina('page-dados')" aria-label="Voltar">Voltar</button>
+      <span>Pagamento</span>
+    </div>
+    <div class="section-title">Resumo do pedido</div>
+    <div id="pagamento-itens"></div>
+    <div class="cart-summary">
+      <div class="summary-row">
+        <span class="label">Subtotal</span>
+        <span class="value" id="pay-subtotal">R$ 0,00</span>
+      </div>
+      <div class="summary-row">
+        <span class="label">Taxa de entrega</span>
+        <span class="value" id="pay-taxa">R$ 0,00</span>
+      </div>
+      <div class="summary-row summary-total">
+        <span class="label">Total</span>
+        <span class="value" id="pay-total">R$ 0,00</span>
+      </div>
+    </div>
+    <div class="section-title">Forma de pagamento</div>
+    <div class="payment-options" id="payment-options">
+      <label class="payment-option selected" onclick="selecionarPagamento(this, 'pix')">
+        <input type="radio" name="pagamento" value="pix" checked>
+        <span class="payment-icon">&#9889;</span>
+        <span class="payment-label">Pix</span>
+      </label>
+      <label class="payment-option" onclick="selecionarPagamento(this, 'dinheiro')">
+        <input type="radio" name="pagamento" value="dinheiro">
+        <span class="payment-icon">&#128176;</span>
+        <span class="payment-label">Dinheiro</span>
+      </label>
+      <label class="payment-option" onclick="selecionarPagamento(this, 'cartao')">
+        <input type="radio" name="pagamento" value="cartao">
+        <span class="payment-icon">&#128179;</span>
+        <span class="payment-label">Cartão (na entrega)</span>
+      </label>
+    </div>
+    <div id="troco-section" class="troco-section" style="display:none;margin-top:12px">
+      <div class="form-group">
+        <label>Precisa de troco para quanto?</label>
+        <input class="form-control" id="troco-valor" type="number" placeholder="Ex: 50.00">
+      </div>
+    </div>
+    <div class="form-group" style="margin-top:12px">
+      <label>Observações do pedido</label>
+      <textarea class="obs-field" id="pedido-obs" placeholder="Alguma observação?" rows="2"></textarea>
+    </div>
+    <button class="btn btn-success" id="btn-finalizar" onclick="finalizarPedido()">
+      Finalizar Pedido
+    </button>
+  </div>
+
+  <!-- PIX -->
+  <div id="page-pix" class="page page-pix">
+    <div class="page-title">
+      <button class="back-btn" onclick="mostrarPagina('page-pagamento')" aria-label="Voltar">Voltar</button>
+      <span>Pagamento Pix</span>
+    </div>
+    <div class="pix-section">
+      <h2 class="pix-title">Pagamento via Pix</h2>
+      <div style="background:#FFF7ED;border:1px solid #FDBA74;border-radius:10px;padding:12px 14px;margin-bottom:16px;text-align:left;display:flex;gap:10px;align-items:flex-start">
+        <span style="font-size:1.2rem;flex-shrink:0">📲</span>
+        <div style="font-size:0.88rem;line-height:1.4;color:#7C2D12">
+          <strong>Pagou via Pix?</strong> Envie o <strong>comprovante no WhatsApp</strong> da loja para confirmação imediata. Clique no botão verde abaixo — a conversa já abre com os dados do seu pedido.
+        </div>
+      </div>
+      <div class="pix-qr" id="pix-qr"></div>
+      <div class="pix-key" id="pix-key" style="display:none"></div>
+      <button class="copy-btn" onclick="copiarPix()">Copiar código Pix (copia e cola)</button>
+      <button id="btn-enviar-comprovante" class="btn btn-comprovante" onclick="enviarComprovantePix()" style="display:inline-flex;width:100%">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="white" aria-hidden="true"><path d="M19.05 4.94A9.91 9.91 0 0 0 12.04 2C6.55 2 2.08 6.47 2.08 11.96c0 1.75.46 3.46 1.33 4.97L2 22l5.2-1.36a9.96 9.96 0 0 0 4.84 1.23h.01c5.49 0 9.96-4.47 9.96-9.96 0-2.66-1.03-5.16-2.96-7.07Zm-7.01 15.24h-.01a8.13 8.13 0 0 1-4.15-1.14l-.3-.17-3.09.81.82-3.01-.19-.31a8.14 8.14 0 0 1-1.26-4.4c0-4.51 3.67-8.18 8.18-8.18 2.18 0 4.24.85 5.78 2.4a8.12 8.12 0 0 1 2.39 5.78c0 4.51-3.67 8.22-8.18 8.22Zm6.92-6.11c-.38-.19-2.24-1.11-2.59-1.23-.35-.12-.6-.19-.86.19-.25.38-.99 1.23-1.21 1.48-.22.25-.45.28-.83.09-.38-.19-1.6-.59-3.05-1.88-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.13-.13.28-.34.42-.51.14-.17.19-.29.28-.48.09-.19.05-.36-.02-.51-.07-.15-.86-2.07-1.18-2.84-.31-.75-.63-.65-.86-.66l-.73-.01c-.25 0-.66.09-1 .45-.35.36-1.32 1.29-1.32 3.15 0 1.86 1.35 3.65 1.54 3.9.19.25 2.66 4.06 6.44 5.7.9.39 1.6.62 2.15.79.9.29 1.72.25 2.37.15.72-.11 2.24-.92 2.56-1.81.32-.89.32-1.65.22-1.81-.1-.16-.35-.25-.73-.44Z"/></svg>
+        Enviar Comprovante no WhatsApp
+      </button>
+      <button id="btn-falar-loja" class="btn btn-outline" onclick="enviarComprovantePix()" style="display:inline-flex;width:100%;margin-top:10px;border-color:#25D366;color:#128C7E;background:#F0FDF4">
+        💬 Iniciar conversa com a loja
+      </button>
+      <p id="pix-comprovante-dica" class="pix-dica" style="display:block">Após pagar, clique no botão acima e <strong>anexe o comprovante</strong> na conversa para a Loja confirmar</p>
+      <div class="pix-waiting" id="pix-aguardando">
+        <div class="pix-spinner"></div>
+        <p>Após pagar, aguarde a confirmação do estabelecimento.<br>Você será avisado automaticamente.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUCESSO -->
+  <div id="page-sucesso" class="page page-sucesso">
+    <div class="page-title">
+      <span>Pedido Confirmado</span>
+    </div>
+    <div class="success-page">
+      <div class="success-icon">&#10004;</div>
+      <div class="success-title">Pedido Recebido!</div>
+      <p class="success-msg" id="success-msg">Seu pedido #0 foi recebido com sucesso!</p>
+      <p style="color:var(--color-text-secondary);margin-bottom:24px">Acompanhe o status pelo seu telefone.</p>
+      <div class="success-actions">
+        <button class="btn btn-primary" onclick="novoPedido()">Fazer novo pedido</button>
+        <button class="btn btn-outline" onclick="acompanharPedido()">Acompanhar pedido</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ACOMPANHAR -->
+  <div id="page-acompanhar" class="page page-acompanhar">
+    <div class="page-title">
+      <button class="back-btn" onclick="mostrarPagina('page-cardapio')" aria-label="Voltar">Voltar</button>
+      <span>Meus Pedidos</span>
+    </div>
+    <div class="form-group">
+      <label>Informe seu telefone</label>
+      <input class="form-control" id="acomp-telefone" placeholder="(00) 00000-0000" type="tel">
+    </div>
+    <button class="btn btn-primary" onclick="buscarPedidos()">Buscar pedidos</button>
+    <div id="meus-pedidos"></div>
+  </div>
+
+  <!-- CADASTRO DO CLIENTE -->
+  <div id="page-cadastro" class="page page-cadastro">
+    <div class="page-title">
+      <button class="back-btn" onclick="mostrarPagina('page-cardapio')" aria-label="Voltar">Voltar</button>
+      <span>Minha Conta</span>
+    </div>
+    <div id="cadastro-logged-out">
+      <div class="cadastro-tabs">
+        <button class="cad-tab active" onclick="switchTab('cad-tab-cadastrar', this)">Cadastrar</button>
+        <button class="cad-tab" onclick="switchTab('cad-tab-entrar', this)">Entrar</button>
+      </div>
+      <!-- Tab: Cadastrar -->
+      <div id="cad-tab-cadastrar" class="cad-tab-content active">
+        <div class="form-group">
+          <label>Nome <span class="required">*</span></label>
+          <input class="form-control" id="cad-nome" placeholder="Seu nome">
+        </div>
+        <div class="form-group">
+          <label>Telefone <span class="required">*</span></label>
+          <input class="form-control" id="cad-telefone" placeholder="(00) 00000-0000" type="tel">
+        </div>
+        <div class="section-title">Endereço de entrega</div>
+        <div class="form-group">
+          <label>Bairro</label>
+          <select class="form-control" id="cad-bairro">
+            <option value="">Selecione o bairro</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Rua</label>
+            <input class="form-control" id="cad-rua" placeholder="Nome da rua">
+          </div>
+          <div class="form-group">
+            <label>Nº</label>
+            <input class="form-control" id="cad-numero" placeholder="Nº">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Complemento</label>
+          <input class="form-control" id="cad-complemento" placeholder="Apto, bloco...">
+        </div>
+        <div class="form-group">
+          <label>Ponto de referência</label>
+          <input class="form-control" id="cad-referencia" placeholder="Próximo a...">
+        </div>
+        <button class="btn btn-primary" onclick="cadastrarCliente()">Cadastrar</button>
+      </div>
+      <!-- Tab: Entrar -->
+      <div id="cad-tab-entrar" class="cad-tab-content" style="display:none">
+        <div class="form-group">
+          <label>Telefone</label>
+          <input class="form-control" id="login-telefone" placeholder="(00) 00000-0000" type="tel">
+        </div>
+        <button class="btn btn-primary" onclick="entrarCliente()">Entrar</button>
+      </div>
+      <p id="cad-error" class="form-error"></p>
+    </div>
+    <!-- Logado -->
+    <div id="cadastro-logged-in" style="display:none">
+      <div class="perfil-card">
+        <div class="perfil-icon">&#128100;</div>
+        <div class="perfil-nome" id="perfil-nome"></div>
+        <div class="perfil-tel" id="perfil-tel"></div>
+        <div class="perfil-end" id="perfil-end"></div>
+      </div>
+      <div class="perfil-actions">
+        <button class="btn btn-primary" onclick="mostrarPagina('page-editar-cadastro')">Editar dados</button>
+        <button class="btn btn-outline" onclick="verMeusPedidos()">Meus pedidos</button>
+        <button class="btn btn-outline btn-danger" onclick="sairCliente()">Sair da conta</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- EDITAR CADASTRO -->
+  <div id="page-editar-cadastro" class="page page-editar-cadastro">
+    <div class="page-title">
+      <button class="back-btn" onclick="mostrarPagina('page-cadastro')" aria-label="Voltar">Voltar</button>
+      <span>Editar Dados</span>
+    </div>
+    <div class="form-group">
+      <label>Nome <span class="required">*</span></label>
+      <input class="form-control" id="edit-nome" placeholder="Seu nome">
+    </div>
+    <div class="form-group">
+      <label>Telefone <span class="required">*</span></label>
+      <input class="form-control" id="edit-telefone" placeholder="(00) 00000-0000" type="tel">
+    </div>
+    <div class="section-title">Endereço de entrega</div>
+    <div class="form-group">
+      <label>Bairro</label>
+      <select class="form-control" id="edit-bairro">
+        <option value="">Selecione o bairro</option>
+      </select>
+    </div>
+    <div class="form-row">
+<div class="form-group">
+        <label>Rua</label>
+        <input class="form-control" id="edit-rua" placeholder="Rua, Avenida, etc.">
+      </div>
+      <div class="form-group">
+        <label>Nº</label>
+        <input class="form-control" id="edit-numero" placeholder="Nº">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Complemento</label>
+      <input class="form-control" id="edit-complemento" placeholder="Apto, bloco...">
+    </div>
+    <div class="form-group">
+      <label>Ponto de referência</label>
+      <input class="form-control" id="edit-referencia" placeholder="Próximo a...">
+    </div>
+    <button class="btn btn-primary" onclick="salvarEdicaoCliente()">Salvar alterações</button>
+  </div>
+
+  <!-- Cart FAB -->
+  <button class="cart-fab hidden" id="cart-fab" onclick="mostrarPagina('page-carrinho')" aria-label="Carrinho">
+    &#128722;
+    <span class="cart-badge" id="cart-badge">0</span>
+  </button>
+
+<script src="/js/realtime.js?v=20260829b"></script>
+  <script src="/js/pizza-modal.js?v=20260831b"></script>
+<script src="/js/app.js?v=20260831d"></script>
+  <script>
+    // Registrar Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
+  </script>
+  <script>
+    // Demo: esconde logo original (apenas lanchonete-demo)
+    (function(){
+      var isDemoHost = location.hostname.includes('demo');
+      function hideLogos(){ document.querySelectorAll('img[src="/logo.jpeg"]').forEach(function(i){ i.style.display='none'; }); }
+      if(isDemoHost) hideLogos();
+      fetch('/api/config').then(function(r){return r.json();}).then(function(cfg){
+        if(cfg.loja_nome && cfg.loja_nome.toLowerCase().includes('demo')) hideLogos();
+      }).catch(function(){});
+    })();
+  </script>
+</body>
+</html>
+

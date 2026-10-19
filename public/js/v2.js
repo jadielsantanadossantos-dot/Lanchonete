@@ -13,23 +13,43 @@ function syncConfig(arr){ if(!arr||typeof arr!=='object') return; try{ if(typeof
 function getBairros(){ try{ if(typeof bairros!=='undefined'&&Array.isArray(bairros)&&bairros.length) return bairros; }catch(e){} return window.bairros||[]; }
 function syncBairros(arr){ if(!Array.isArray(arr)) return; try{ if(typeof bairros!=='undefined') bairros=arr; }catch(e){} try{ window.bairros=arr; }catch(e){} }
 function getClienteLogado(){ try{ if(typeof clienteLogado!=='undefined'&&clienteLogado) return clienteLogado; }catch(e){} return window.clienteLogado||null; }
+function syncContaLabel(){
+  const el=document.querySelector('.v2-account-label'); if(!el) return;
+  const cli=getClienteLogado();
+  if(cli&&cli.telefone){ const primeiro=String(cli.nome||'').trim().split(/\s+/)[0]||'Minha conta'; el.textContent=primeiro; }
+  else el.innerHTML='LOGIN<br>REGISTRAR';
+}
 function syncHeaderConfig(){
   try{
     const cfg=getConfig(); const nome=cfg.loja_nome||'Lanchonete';
-    const ln=document.getElementById('v2-loja-nome'); if(ln) ln.textContent=nome; document.title=nome+' — Experimento';
+    const ln=document.getElementById('v2-loja-nome'); if(ln) ln.textContent=nome; document.title=nome;
     const logo=document.getElementById('v2-logo'); if(logo&&cfg.logo_url) logo.src=cfg.logo_url;
     const t=document.getElementById('v2-tempo'), tv=document.getElementById('v2-tempo-val');
     if(t&&tv){ if(cfg.tempo_espera&&String(cfg.tempo_espera).trim()){ tv.textContent=cfg.tempo_espera; t.style.display='flex'; } else t.style.display='none'; }
     const fech=document.getElementById('v2-fechada'); if(fech){ const aberta=cfg.loja_aberta_efetiva!==undefined?cfg.loja_aberta_efetiva!=='false':cfg.loja_aberta!=='false'; fech.style.display=aberta?'none':'block'; try{ if(typeof lojaAberta!=='undefined') lojaAberta=aberta; }catch(e){} window.lojaAberta=aberta; }
+    syncContaLabel();
   }catch(e){}
 }
-function isLojaAberta(){ try{ if(typeof lojaAberta!=='undefined') return !!lojaAberta; }catch(e){} return !!window.lojaAberta; }
+function getCatEmoji(name){
+  const n=String(name||'').toLowerCase();
+  if(n.includes('hamb')) return '🍔';
+  if(n.includes('pizza')) return '🍕';
+  if(n.includes('bebida')||n.includes('suco')||n.includes('refr')) return '🥤';
+  if(n.includes('doce')||n.includes('sobrem')) return '🍰';
+  if(n.includes('porç')) return '🍟';
+  if(n.includes('cachorro')||n.includes('hot')) return '🌭';
+  if(n.includes('açaí')||n.includes('acai')) return '🍇';
+  if(n.includes('milk')||n.includes('shake')) return '🍦';
+  if(n.includes('combo')) return '🎁';
+  if(n.includes('especial')) return '⭐';
+  return '🍽️';
+}
 function renderCategorias(){
   const prods=getProdutos(); const tabs=[]; const vistos=new Set();
   prods.forEach(p=>{ if(vistos.has(p.categoria_id)) return; vistos.add(p.categoria_id); if(isPizza(p)){ if(!tabs.includes('__pizzas__')) tabs.push('__pizzas__'); } else tabs.push(p.categoria_nome); });
   const c=document.getElementById('v2-cats'); if(!c) return;
-  let html=`<button class="v2-cat ${filtroCat===''?'active':''}" onclick="V2.filtrarCat('',this)">Todos</button>`;
-  tabs.forEach(cat=>{ const token=cat==='__pizzas__'?'__pizzas__':cat; const label=cat==='__pizzas__'?'Pizzas':cat; const active=filtroCat===cat?'active':''; html+=`<button class="v2-cat ${active}" data-cat="${token}" onclick="V2.filtrarCat('${cat.replace(/'/g,"\\'")}',this)">${esc(label)}</button>`; });
+  let html=`<button class="v2-cat ${filtroCat===''?'active':''}" onclick="V2.filtrarCat('',this)">🏠 Todos</button>`;
+  tabs.forEach(cat=>{ const token=cat==='__pizzas__'?'__pizzas__':cat; const label=cat==='__pizzas__'?'Pizzas':cat; const active=filtroCat===cat?'active':''; html+=`<button class="v2-cat ${active}" data-cat="${token}" onclick="V2.filtrarCat('${cat.replace(/'/g,"\\'")}',this)">${getCatEmoji(label)} ${esc(label)}</button>`; });
   c.innerHTML=html;
 }
 function getFiltered(){
@@ -115,7 +135,7 @@ V2.addInline=function(id,delta){
     c.push({produto_id:p.id,produto_nome:p.nome,preco_unitario:Number(p.preco),quantidade:1,unidade:'un',observacao:'',adicionais:[]});
   }
   setCarrinho(c); try{ if(_origFab) _origFab(); }catch(e){} syncCart();
-  renderGrid(); toast(delta>0?'Adicionado ao carrinho':'Atualizado');
+  toast(delta>0?'Adicionado ao carrinho':'Atualizado');
 };
 function calcTotais(){
   let sub=0; getCarrinho().forEach(it=>{ sub+=Number(it.preco_unitario)*Number(it.quantidade); (it.adicionais||[]).forEach(a=>sub+=Number(a.preco)*Number(it.quantidade)); });
@@ -145,7 +165,7 @@ function syncCart(){
         const qTexto=it.unidade==='kg'?(window.formatarPeso?window.formatarPeso(it.quantidade):it.quantidade+' kg'):`${it.quantidade}x`;
         let adc=(it.adicionais||[]).map(a=>`+ ${esc(a.nome)}${a.preco>0?' (+R$ '+Number(a.preco).toFixed(2)+')':''}`).join(', ');
         let lineTot=Number(it.preco_unitario)*Number(it.quantidade); (it.adicionais||[]).forEach(a=>lineTot+=Number(a.preco)*Number(it.quantidade));
-        return `<div class="v2-cart-item"><div class="v2-cart-item-head"><div style="flex:1;min-width:0"><div class="v2-cart-item-name">${esc(it.produto_nome)}</div>${adc?`<div class="v2-cart-item-meta">${adc}</div>`:''}${it.observacao?`<div class="v2-cart-item-meta">Obs: ${esc(it.observacao)}</div>`:''}${it.unidade==='un'?`<div style="display:flex;align-items:center;gap:6px;margin-top:6px"><button onclick="V2.qtdCarrinho(${i},-1)" style="width:28px;height:28px;border-radius:9999px;border:2px solid #FF6B35;background:#fff;color:#FF6B35">−</button><span style="font-weight:800;min-width:18px;text-align:center">${it.quantidade}</span><button onclick="V2.qtdCarrinho(${i},1)" style="width:28px;height:28px;border-radius:9999px;border:2px solid #FF6B35;background:#fff;color:#FF6B35">+</button></div>`:`<div class="v2-cart-item-meta" style="color:#FF6B35;font-weight:700;margin-top:4px">${qTexto}</div>`}</div><div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:6px"><div class="v2-cart-item-price">R$ ${lineTot.toFixed(2)}</div><button class="v2-remove" onclick="V2.remover(${i})" aria-label="Remover">×</button></div></div></div>`;
+        return `<div class="v2-cart-item"><div class="v2-cart-item-head"><div style="flex:1;min-width:0"><div class="v2-cart-item-name">${esc(it.produto_nome)}</div>${adc?`<div class="v2-cart-item-meta">${adc}</div>`:''}${it.observacao?`<div class="v2-cart-item-meta">Obs: ${esc(it.observacao)}</div>`:''}${it.unidade==='un'?`<div style="display:flex;align-items:center;gap:6px;margin-top:6px"><button class="v2-qty-btn" onclick="V2.qtdCarrinho(${i},-1)">−</button><span style="font-weight:800;min-width:18px;text-align:center">${it.quantidade}</span><button class="v2-qty-btn" onclick="V2.qtdCarrinho(${i},1)">+</button></div>`:`<div class="v2-cart-item-meta" style="color:var(--color-primary);font-weight:700;margin-top:4px">${qTexto}</div>`}</div><div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:6px"><div class="v2-cart-item-price">R$ ${lineTot.toFixed(2)}</div><button class="v2-remove" onclick="V2.remover(${i})" aria-label="Remover">×</button></div></div></div>`;
       }).join('');
     }
   }
@@ -181,7 +201,7 @@ function renderDrawerCart(){
     let adc=(it.adicionais||[]).map(a=>`+ ${esc(a.nome)}${a.preco>0?' (+R$ '+Number(a.preco).toFixed(2)+')':''}`).join('<br>');
     let lineTot=Number(it.preco_unitario)*Number(it.quantidade); (it.adicionais||[]).forEach(a=>lineTot+=Number(a.preco)*Number(it.quantidade));
     const qTexto=it.unidade==='kg'?(window.formatarPeso?window.formatarPeso(it.quantidade):it.quantidade+' kg'):`${it.quantidade}x`;
-    return `<div class="v2-cart-item"><div class="v2-cart-item-head"><div style="flex:1"><div class="v2-cart-item-name">${esc(it.produto_nome)}</div>${adc?`<div class="v2-cart-item-meta">${adc}</div>`:''}${it.observacao?`<div class="v2-cart-item-meta">Obs: ${esc(it.observacao)}</div>`:''}${it.unidade==='un'?`<div style="display:flex;align-items:center;gap:6px;margin-top:6px"><button onclick="V2.qtdCarrinho(${i},-1)" style="width:28px;height:28px;border-radius:9999px;border:2px solid #FF6B35;background:#fff;color:#FF6B35">−</button><span style="font-weight:800">${it.quantidade}</span><button onclick="V2.qtdCarrinho(${i},1)" style="width:28px;height:28px;border-radius:9999px;border:2px solid #FF6B35;background:#fff;color:#FF6B35">+</button></div>`:`<div class="v2-cart-item-meta" style="color:#FF6B35;font-weight:700">${qTexto}</div>`}</div><div style="text-align:right"><div class="v2-cart-item-price">R$ ${lineTot.toFixed(2)}</div><button class="v2-remove" onclick="V2.remover(${i})">×</button></div></div></div>`;
+    return `<div class="v2-cart-item"><div class="v2-cart-item-head"><div style="flex:1"><div class="v2-cart-item-name">${esc(it.produto_nome)}</div>${adc?`<div class="v2-cart-item-meta">${adc}</div>`:''}${it.observacao?`<div class="v2-cart-item-meta">Obs: ${esc(it.observacao)}</div>`:''}${it.unidade==='un'?`<div style="display:flex;align-items:center;gap:6px;margin-top:6px"><button class="v2-qty-btn" onclick="V2.qtdCarrinho(${i},-1)">−</button><span style="font-weight:800">${it.quantidade}</span><button class="v2-qty-btn" onclick="V2.qtdCarrinho(${i},1)">+</button></div>`:`<div class="v2-cart-item-meta" style="color:var(--color-primary);font-weight:700">${qTexto}</div>`}</div><div style="text-align:right"><div class="v2-cart-item-price">R$ ${lineTot.toFixed(2)}</div><button class="v2-remove" onclick="V2.remover(${i})">×</button></div></div></div>`;
   }).join('');
   const foot=`<div class="v2-summary"><div class="v2-summary-row"><span>Subtotal</span><strong>R$ ${sub.toFixed(2)}</strong></div><div class="v2-summary-row"><span>Taxa de entrega</span><strong>R$ ${taxa.toFixed(2)}</strong></div><div class="v2-summary-row total"><span>Total</span><span>R$ ${total.toFixed(2)}</span></div></div><button class="v2-btn v2-btn-primary" style="margin-top:10px" onclick="V2.abrirCheckout()">Continuar →</button>`;
   openDrawer('Carrinho', body, foot);
@@ -243,7 +263,7 @@ V2.mostrarConta=function(){
   const cli=getClienteLogado();
   if(cli&&cli.telefone){
     const end=[cli.rua,cli.numero,cli.complemento,cli.bairro].filter(Boolean).join(' - ');
-    const body=`<div style="text-align:center;padding:8px"><div style="width:64px;height:64px;border-radius:9999px;background:linear-gradient(135deg,#FF6B35,#E55A2B);color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.6rem;margin:0 auto 10px">👤</div><div style="font-weight:800">${esc(cli.nome)}</div><div style="color:#525252">${esc(cli.telefone)}</div><div style="font-size:.82rem;color:#777;margin-top:4px">${esc(end||'Endereço não cadastrado')}</div></div>`;
+    const body=`<div style="text-align:center;padding:8px"><div class="v2-avatar">👤</div><div style="font-weight:800">${esc(cli.nome)}</div><div style="color:#525252">${esc(cli.telefone)}</div><div style="font-size:.82rem;color:#777;margin-top:4px">${esc(end||'Endereço não cadastrado')}</div></div>`;
     const foot=`<button class="v2-btn v2-btn-primary" onclick="V2.abrirAcompanhar()">Meus pedidos</button><button class="v2-btn v2-btn-outline" style="margin-top:8px" onclick="V2.mostrarEdicao()">Editar cadastro</button><button class="v2-btn v2-btn-outline" style="margin-top:8px" onclick="V2.sairConta()">Sair da conta</button>`;
     openDrawer('Minha conta',body,foot); return;
   }
@@ -252,36 +272,67 @@ V2.mostrarConta=function(){
 };
 V2.mostrarCadastro=function(){
   const f=document.getElementById('v2-conta-form'); if(!f) return;
-  f.innerHTML=`<div class="v2-form-group"><label>Nome *</label><input id="v2-cad-nome" class="v2-form-control" placeholder="Seu nome"></div><div class="v2-form-group"><label>Telefone *</label><input id="v2-cad-tel" class="v2-form-control" placeholder="(00) 00000-0000"></div><div class="v2-form-group"><label>Bairro</label><select id="v2-cad-bairro" class="v2-form-control"><option value="">Selecione</option></select></div><div class="v2-form-row"><div class="v2-form-group"><label>Rua</label><input id="v2-cad-rua" class="v2-form-control" placeholder="Rua"></div><div class="v2-form-group" style="max-width:110px"><label>Nº</label><input id="v2-cad-num" class="v2-form-control" placeholder="Nº"></div></div><div class="v2-form-group"><label>Complemento</label><input id="v2-cad-comp" class="v2-form-control" placeholder="Apto"></div><div class="v2-form-group"><label>Referência</label><input id="v2-cad-ref" class="v2-form-control" placeholder="Próximo a..."></div><button class="v2-btn v2-btn-primary" onclick="V2.cadastrar()">Cadastrar</button>`;
+  f.innerHTML=`
+    <div class="v2-form-group"><label>Nome *</label><input id="v2-cad-nome" class="v2-form-control" placeholder="Seu nome"></div>
+    <div class="v2-form-group"><label>Telefone *</label><input id="v2-cad-tel" class="v2-form-control" placeholder="(00) 00000-0000"></div>
+    <div class="v2-form-group">
+      <label>CEP (Opcional)</label>
+      <div style="display:flex;gap:8px">
+        <input id="v2-cad-cep" class="v2-form-control" placeholder="00000-000" oninput="this.value=this.value.replace(/\\D/g,'').slice(0,8)">
+        <button class="v2-btn v2-btn-outline" type="button" onclick="V2.buscarCep('cad')" style="white-space:nowrap;padding:0 12px">🔍 Buscar</button>
+      </div>
+    </div>
+    <div class="v2-form-group"><label>Bairro</label><select id="v2-cad-bairro" class="v2-form-control"><option value="">Selecione</option></select></div>
+    <div class="v2-form-row"><div class="v2-form-group"><label>Rua</label><input id="v2-cad-rua" class="v2-form-control" placeholder="Rua"></div><div class="v2-form-group" style="max-width:110px"><label>Nº</label><input id="v2-cad-num" class="v2-form-control" placeholder="Nº"></div></div>
+    <div class="v2-form-group"><label>Complemento</label><input id="v2-cad-comp" class="v2-form-control" placeholder="Apto"></div>
+    <div class="v2-form-group"><label>Referência</label><input id="v2-cad-ref" class="v2-form-control" placeholder="Próximo a..."></div>
+    <button class="v2-btn v2-btn-primary" onclick="V2.cadastrar()">Cadastrar</button>`;
   popularBairrosSelect('v2-cad-bairro');
+  const tel=document.getElementById('v2-cad-tel'); if(tel) tel.addEventListener('input',function(){ let v=this.value.replace(/\D/g,''); if(v.length>11) v=v.slice(0,11); if(v.length>6) v=`(${v.slice(0,2)}) ${v.slice(2,7)}-${v.slice(7)}`; else if(v.length>2) v=`(${v.slice(0,2)}) ${v.slice(2)}`; else if(v.length>0) v=`(${v}`; this.value=v; });
 };
 V2.mostrarEntrar=function(){
   const f=document.getElementById('v2-conta-form'); if(!f) return;
   f.innerHTML=`<div class="v2-form-group"><label>Telefone</label><input id="v2-login-tel" class="v2-form-control" placeholder="(00) 00000-0000"></div><button class="v2-btn v2-btn-primary" onclick="V2.entrar()">Entrar</button>`;
 };
-V2.cadastrar=async function(){
+V2.buscarCep=async function(prefix){
+  const cep=document.getElementById(`v2-${prefix}-cep`)?.value.replace(/\D/g,'');
+  if(!cep||cep.length!==8){ toast('CEP inválido'); return; }
+  try{
+    const r=await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+    const d=await r.json();
+    if(d.erro){ toast('CEP não encontrado'); return; }
+    const rua=document.getElementById(`v2-${prefix}-rua`), num=document.getElementById(`v2-${prefix}-num`), comp=document.getElementById(`v2-${prefix}-comp`), sel=document.getElementById(`v2-${prefix}-bairro`);
+    if(rua) rua.value=d.logradouro||'';
+    if(comp) comp.value=d.complemento||'';
+    if(d.bairro&&sel){
+      let found=false;
+      for(let i=0;i<sel.options.length;i++){ if(sel.options[i].text.toLowerCase().includes(d.bairro.toLowerCase())){ sel.selectedIndex=i; found=true; break; } }
+      if(!found) toast(`Bairro "${d.bairro}" não atendido, selecione manualmente.`);
+    }
+    if(num) num.focus();
+  }catch(e){ toast('Erro ao buscar CEP'); }
   const nome=document.getElementById('v2-cad-nome')?.value.trim(), tel=document.getElementById('v2-cad-tel')?.value.trim();
   if(!nome||!tel){ document.getElementById('v2-conta-err').textContent='Preencha nome e telefone'; return; }
   const sel=document.getElementById('v2-cad-bairro'); const bairro=sel.selectedIndex>0?sel.options[sel.selectedIndex].text.split(' - ')[0].trim():'';
   const rua=document.getElementById('v2-cad-rua')?.value.trim()||'', numero=document.getElementById('v2-cad-num')?.value.trim()||'', comp=document.getElementById('v2-cad-comp')?.value.trim()||'', ref=document.getElementById('v2-cad-ref')?.value.trim()||'';
-  try{ const r=await fetch('/api/clientes',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nome,telefone:tel,rua,numero,bairro,complemento:comp,ponto_referencia:ref})}); const c=await r.json(); if(window.salvarClienteLocal) window.salvarClienteLocal(c); else { window.clienteLogado=c; localStorage.setItem('clienteLogado',JSON.stringify(c)); } toast('Cadastro realizado!'); V2.mostrarConta(); }catch(e){ document.getElementById('v2-conta-err').textContent='Erro ao cadastrar'; }
+  try{ const r=await fetch('/api/clientes',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nome,telefone:tel,rua,numero,bairro,complemento:comp,ponto_referencia:ref})}); const c=await r.json(); if(window.salvarClienteLocal) window.salvarClienteLocal(c); else { window.clienteLogado=c; localStorage.setItem('clienteLogado',JSON.stringify(c)); } syncContaLabel(); toast('Cadastro realizado!'); V2.mostrarConta(); }catch(e){ document.getElementById('v2-conta-err').textContent='Erro ao cadastrar'; }
 };
 V2.entrar=async function(){
   const tel=document.getElementById('v2-login-tel')?.value.trim(); if(!tel){ document.getElementById('v2-conta-err').textContent='Informe o telefone'; return; }
-  try{ const r=await fetch(`/api/clientes/telefone/${encodeURIComponent(tel)}`); if(!r.ok) throw 0; const c=await r.json(); if(window.salvarClienteLocal) window.salvarClienteLocal(c); else { window.clienteLogado=c; localStorage.setItem('clienteLogado',JSON.stringify(c)); } toast('Bem-vindo!'); V2.mostrarConta(); }catch(e){ document.getElementById('v2-conta-err').textContent='Cliente não encontrado'; }
+  try{ const r=await fetch(`/api/clientes/telefone/${encodeURIComponent(tel)}`); if(!r.ok) throw 0; const c=await r.json(); if(window.salvarClienteLocal) window.salvarClienteLocal(c); else { window.clienteLogado=c; localStorage.setItem('clienteLogado',JSON.stringify(c)); } syncContaLabel(); toast('Bem-vindo!'); V2.mostrarConta(); }catch(e){ document.getElementById('v2-conta-err').textContent='Cliente não encontrado'; }
 };
 V2.sairConta=function(){
   try{ localStorage.removeItem('clienteLogado'); }catch(e){}
   try{ if(typeof clienteLogado!=='undefined') clienteLogado=null; }catch(e){}
   try{ window.clienteLogado=null; }catch(e){}
-  try{ window.clienteLogado=null; }catch(e){}
   try{ const a=document.getElementById('cadastro-logged-out'); if(a) a.style.display='block'; const b=document.getElementById('cadastro-logged-in'); if(b) b.style.display='none'; }catch(e){}
+  syncContaLabel();
   toast('Saiu da conta');
   setTimeout(()=>{ try{ V2.mostrarConta(); }catch(e){} }, 80);
 };
 V2.mostrarEdicao=function(){
   const cli=getClienteLogado()||window.clienteLogado; if(!cli||!cli.telefone){ toast('Faça login para editar'); return; }
-  const body=`<div style="display:flex;flex-direction:column;gap:10px"><div class="v2-form-group"><label>Nome *</label><input id="v2-edit-nome" class="v2-form-control" value="${esc(cli.nome||'')}"></div><div class="v2-form-group"><label>Telefone *</label><input id="v2-edit-tel" class="v2-form-control" value="${esc(cli.telefone||'')}"></div><div class="v2-form-group"><label>Bairro</label><select id="v2-edit-bairro" class="v2-form-control"><option value="">Selecione</option></select></div><div class="v2-form-row"><div class="v2-form-group"><label>Rua</label><input id="v2-edit-rua" class="v2-form-control" value="${esc(cli.rua||'')}"></div><div class="v2-form-group" style="max-width:110px"><label>Nº</label><input id="v2-edit-num" class="v2-form-control" value="${esc(cli.numero||'')}"></div></div><div class="v2-form-group"><label>Complemento</label><input id="v2-edit-comp" class="v2-form-control" value="${esc(cli.complemento||'')}"></div><div class="v2-form-group"><label>Referência</label><input id="v2-edit-ref" class="v2-form-control" value="${esc(cli.ponto_referencia||'')}"></div><div id="v2-edit-err" style="color:#E74C3C;font-size:.82rem"></div></div>`;
+  const body=`<div style="display:flex;flex-direction:column;gap:10px"><div class="v2-form-group"><label>Nome *</label><input id="v2-edit-nome" class="v2-form-control" value="${esc(cli.nome||'')}"></div><div class="v2-form-group"><label>Telefone *</label><input id="v2-edit-tel" class="v2-form-control" value="${esc(cli.telefone||'')}"></div><div class="v2-form-group"><label>CEP (Opcional)</label><div style="display:flex;gap:8px"><input id="v2-edit-cep" class="v2-form-control" placeholder="00000-000" oninput="this.value=this.value.replace(/\\D/g,'').slice(0,8)"><button class="v2-btn v2-btn-outline" type="button" onclick="V2.buscarCep('edit')" style="white-space:nowrap;padding:0 12px">🔍 Buscar</button></div></div><div class="v2-form-group"><label>Bairro</label><select id="v2-edit-bairro" class="v2-form-control"><option value="">Selecione</option></select></div><div class="v2-form-row"><div class="v2-form-group"><label>Rua</label><input id="v2-edit-rua" class="v2-form-control" value="${esc(cli.rua||'')}"></div><div class="v2-form-group" style="max-width:110px"><label>Nº</label><input id="v2-edit-num" class="v2-form-control" value="${esc(cli.numero||'')}"></div></div><div class="v2-form-group"><label>Complemento</label><input id="v2-edit-comp" class="v2-form-control" value="${esc(cli.complemento||'')}"></div><div class="v2-form-group"><label>Referência</label><input id="v2-edit-ref" class="v2-form-control" value="${esc(cli.ponto_referencia||'')}"></div><div id="v2-edit-err" style="color:#E74C3C;font-size:.82rem"></div></div>`;
   const foot=`<button class="v2-btn v2-btn-primary" onclick="V2.salvarEdicao()">Salvar alterações</button><button class="v2-btn v2-btn-outline" style="margin-top:8px" onclick="V2.mostrarConta()">← Voltar</button>`;
   openDrawer('Editar cadastro',body,foot);
   popularBairrosSelect('v2-edit-bairro');
@@ -299,13 +350,13 @@ V2.salvarEdicao=async function(){
     const j=await r.json().catch(()=>({})); if(!r.ok){ document.getElementById('v2-edit-err').textContent=j.error||'Erro ao salvar'; return; }
     const atualizado=j&&j.telefone?j:{...cli,nome,telefone,rua,numero,bairro,complemento:comp,ponto_referencia:ref};
     if(window.salvarClienteLocal) window.salvarClienteLocal(atualizado); else { window.clienteLogado=atualizado; try{ localStorage.setItem('clienteLogado',JSON.stringify(atualizado)); }catch(e){} try{ if(typeof clienteLogado!=='undefined') clienteLogado=atualizado; }catch(e){} }
-    toast('Dados atualizados!'); V2.mostrarConta();
+    syncContaLabel(); toast('Dados atualizados!'); V2.mostrarConta();
   }catch(e){ document.getElementById('v2-edit-err').textContent='Erro ao salvar'; }
 };
 V2.abrirAcompanhar=function(){
   const cli=getClienteLogado()||window.clienteLogado; const tel=(cli&&cli.telefone)||'';
   const hideInput = tel ? 'style="display:none"' : '';
-  const body=`<div class="v2-form-group" ${hideInput}><label>Telefone</label><input id="v2-acomp-tel" class="v2-form-control" placeholder="(00) 00000-0000" value="${esc(tel)}"></div>${tel?`<div style="font-size:.82rem;color:#525252;margin-bottom:8px">Exibindo pedidos de <strong>${esc(tel)}</strong> • <a href="#" onclick="document.getElementById('v2-acomp-tel').parentElement.style.display='block';return false" style="color:#FF6B35">trocar</a></div>`:''}<button class="v2-btn v2-btn-primary" onclick="V2.buscarPedidos()">Buscar pedidos</button><div id="v2-pedidos" style="margin-top:12px"></div>`;
+  const body=`<div class="v2-form-group" ${hideInput}><label>Telefone</label><input id="v2-acomp-tel" class="v2-form-control" placeholder="(00) 00000-0000" value="${esc(tel)}"></div>${tel?`<div style="font-size:.82rem;color:#525252;margin-bottom:8px">Exibindo pedidos de <strong>${esc(tel)}</strong> • <a href="#" onclick="document.getElementById('v2-acomp-tel').parentElement.style.display='block';return false" style="color:var(--color-primary)">trocar</a></div>`:''}<button class="v2-btn v2-btn-primary" onclick="V2.buscarPedidos()">Buscar pedidos</button><div id="v2-pedidos" style="margin-top:12px"></div>`;
   openDrawer('Meus pedidos',body,'');
   if(tel) setTimeout(()=>V2.buscarPedidos(),0);
 };
@@ -354,7 +405,7 @@ V2.finalizar=async function(){
       const bodyPix=`<div class="v2-pix"><h3 style="font-weight:800;margin-bottom:8px">Pagamento via Pix</h3><div style="background:#FFF7ED;border:1px solid #FDBA74;border-radius:10px;padding:10px;text-align:left;font-size:.82rem;color:#7C2D12;margin-bottom:10px">Pagou? Envie o comprovante no WhatsApp para confirmação imediata.</div>${qrcode?`<img src="${qrcode}" alt="QR Pix">`: '<p>Chave Pix não configurada</p>'}<button class="v2-copy" onclick="navigator.clipboard.writeText('${payload.replace(/'/g,"\\'")}').then(()=>V2.toast('Copiado!')).catch(()=>{})">Copiar código Pix</button><button class="v2-wpp" onclick="window.enviarComprovantePix&&window.enviarComprovantePix()">💬 Enviar comprovante no WhatsApp</button><div style="margin-top:10px;color:#525252;font-size:.82rem">Após pagar, aguarde confirmação. Você será avisado automaticamente.</div></div>`;
       openDrawer('Pix',bodyPix,'<button class="v2-btn v2-btn-outline" onclick="V2.fecharDrawer();V2.abrirAcompanhar()">Acompanhar pedido</button>');
     } else {
-      openDrawer('Pedido confirmado',`<div style="text-align:center;padding:16px"><div style="width:64px;height:64px;border-radius:9999px;background:#E8F8F0;color:#2ECC71;display:flex;align-items:center;justify-content:center;font-size:1.8rem;margin:0 auto 10px">✓</div><div style="font-weight:800;font-size:1.1rem">Pedido #${ped.id} recebido!</div><div style="color:#525252;margin-top:6px">Acompanhe pelo seu telefone</div></div>`,'<button class="v2-btn v2-btn-primary" onclick="V2.fecharDrawer()">Continuar comprando</button><button class="v2-btn v2-btn-outline" style="margin-top:8px" onclick="V2.abrirAcompanhar()">Acompanhar pedido</button>');
+      openDrawer('Pedido confirmado',`<div style="text-align:center;padding:16px"><div class="v2-success-badge">✓</div><div style="font-weight:800;font-size:1.1rem">Pedido #${ped.id} recebido!</div><div style="color:#525252;margin-top:6px">Acompanhe pelo seu telefone</div></div>`,'<button class="v2-btn v2-btn-primary" onclick="V2.fecharDrawer()">Continuar comprando</button><button class="v2-btn v2-btn-outline" style="margin-top:8px" onclick="V2.abrirAcompanhar()">Acompanhar pedido</button>');
     }
   }catch(e){ toast('Erro ao finalizar. Tente novamente.'); }
   finally{ finalizando=false; if(btn){ btn.disabled=false; btn.textContent='Finalizar pedido'; } }
@@ -385,7 +436,7 @@ function patchModal(){
       if(!p) p=prods.find(x=>x.id===id)||null;
       if(p){ window.produtoAtual=p; window.V2_lastProduto=p; window.V2_lastId=id; }
     }catch(_){}
-    const m=document.getElementById('modal-produto'); if(m){ m.style.display='flex'; m.classList.add('active'); if(mo) mo.style.display='flex'; }
+    const m=document.getElementById('modal-produto'); if(m){ m.classList.add('active'); m.style.display='flex'; }
     setTimeout(()=>{
       const btn=document.getElementById('btn-add-cart');
       if(btn && !btn._v2b){
@@ -468,6 +519,7 @@ async function waitInit(){
   tries=0; const iv=setInterval(async()=>{ syncHeaderConfig(); if(!getProdutos().length){ await ensureData(); renderCategorias(); renderGrid(); syncCart(); } if(++tries>20) clearInterval(iv); },2000);
   setTimeout(async()=>{ await ensureData(); renderCategorias(); renderGrid(); syncCart(); },900);
 }
+document.addEventListener('keydown',e=>{ if(e.key!=='Escape') return; const mo=document.getElementById('modal-produto'); if(mo&&mo.classList.contains('active')){ window.fecharModal(); return; } const dr=document.getElementById('v2-drawer'); if(dr&&dr.classList.contains('open')) V2.fecharDrawer(); });
 window.addEventListener('resize', ()=>{ try{ syncCart(); }catch(e){} });
 document.addEventListener('DOMContentLoaded', waitInit);
 window.addEventListener('load', async()=>{ await ensureData(); syncHeaderConfig(); renderCategorias(); renderGrid(); syncCart(); });

@@ -1449,22 +1449,47 @@ async function excluirAdicional(id) {
 }
 
 // CLIENTES
+const CLIENTES_POR_PAGINA = 20;
+let clientesPagina = 1;
+let clientesFiltrados = [];
+
 async function carregarClientes() {
   const res = await authFetch('/api/clientes');
   allClientes = await res.json();
-  renderClientes(allClientes);
+  const campo = document.getElementById('busca-cliente');
+  const busca = campo ? campo.value.trim().toLowerCase() : '';
+  clientesFiltrados = busca
+    ? allClientes.filter(c => (c.nome || '').toLowerCase().includes(busca) || (c.telefone || '').includes(busca))
+    : allClientes;
+  renderClientes(clientesFiltrados);
 }
 
 function filtrarClientes() {
   const busca = document.getElementById('busca-cliente').value.toLowerCase();
-  const filtrados = allClientes.filter(c => c.nome.toLowerCase().includes(busca) || c.telefone.includes(busca));
-  renderClientes(filtrados);
+  clientesPagina = 1;
+  clientesFiltrados = allClientes.filter(c => c.nome.toLowerCase().includes(busca) || c.telefone.includes(busca));
+  renderClientes(clientesFiltrados);
+}
+
+function irParaPaginaClientes(pagina) {
+  clientesPagina = pagina;
+  renderClientes(clientesFiltrados);
+  const lista = document.getElementById('clientes-list');
+  if (lista) lista.scrollTop = 0;
 }
 
 function renderClientes(clientes) {
+  clientesFiltrados = clientes || [];
+  const total = clientesFiltrados.length;
+  const totalPaginas = Math.max(1, Math.ceil(total / CLIENTES_POR_PAGINA));
+  if (clientesPagina > totalPaginas) clientesPagina = totalPaginas;
+  if (clientesPagina < 1) clientesPagina = 1;
+  const inicio = (clientesPagina - 1) * CLIENTES_POR_PAGINA;
+  const daPagina = clientesFiltrados.slice(inicio, inicio + CLIENTES_POR_PAGINA);
+
   document.getElementById('clientes-list').innerHTML = `<table>
     <thead><tr><th>Nome</th><th>Telefone</th><th>Bairro</th><th>Status</th><th>Ações</th></tr></thead>
-    <tbody>${clientes.map(c => `
+    <tbody>${daPagina.map(c => `
       <tr style="${c.bloqueado ? 'background-color: #ffe6e6;' : ''}">
         <td>${escapeHtml(c.nome)}</td>
         <td>${escapeHtml(c.telefone)}</td>
@@ -1481,6 +1506,34 @@ function renderClientes(clientes) {
       </tr>
     `).join('')}</tbody>
   </table>`;
+
+  renderPaginacaoClientes(total, totalPaginas, inicio, daPagina.length);
+}
+
+function renderPaginacaoClientes(total, totalPaginas, inicio, qtd) {
+  const el = document.getElementById('clientes-paginacao');
+  if (!el) return;
+  if (!total) { el.innerHTML = '<div class="tp-info">Nenhum cliente encontrado.</div>'; return; }
+
+  const janela = [];
+  const ini = Math.max(1, clientesPagina - 2);
+  const fim = Math.min(totalPaginas, clientesPagina + 2);
+  if (ini > 1) { janela.push(1); if (ini > 2) janela.push('…'); }
+  for (let p = ini; p <= fim; p++) janela.push(p);
+  if (fim < totalPaginas) { if (fim < totalPaginas - 1) janela.push('…'); janela.push(totalPaginas); }
+
+  const botoes = janela.map(p => p === '…'
+    ? '<span class="tp-reticencias">…</span>'
+    : `<button class="tp-btn${p === clientesPagina ? ' active' : ''}" onclick="irParaPaginaClientes(${p})">${p}</button>`
+  ).join('');
+
+  el.innerHTML = `
+    <div class="tp-info">Mostrando <strong>${inicio + 1}–${inicio + qtd}</strong> de <strong>${total}</strong></div>
+    <div class="tp-botoes">
+      <button class="tp-btn" ${clientesPagina === 1 ? 'disabled' : ''} onclick="irParaPaginaClientes(${clientesPagina - 1})" aria-label="Página anterior">‹</button>
+      ${botoes}
+      <button class="tp-btn" ${clientesPagina === totalPaginas ? 'disabled' : ''} onclick="irParaPaginaClientes(${clientesPagina + 1})" aria-label="Próxima página">›</button>
+    </div>`;
 }
 
 async function verDetalhesCliente(id) {
@@ -1924,6 +1977,7 @@ async function abrirModalPedidoWhatsApp() {
   whatsappCategoriaFiltro = '';
   document.getElementById('whatsapp-cliente-nome').value = '';
   document.getElementById('whatsapp-cliente-telefone').value = '';
+  document.getElementById('whatsapp-cliente-cep').value = '';
   document.getElementById('whatsapp-cliente-bairro').value = '';
   document.getElementById('whatsapp-cliente-rua').value = '';
   document.getElementById('whatsapp-cliente-numero').value = '';
@@ -2362,6 +2416,42 @@ document.getElementById('whatsapp-cliente-bairro')?.addEventListener('change', r
 document.getElementById('whatsapp-forma-pagamento')?.addEventListener('change', function(){
   document.getElementById('whatsapp-troco-box').style.display=this.value==='dinheiro'?'block':'none';
 });
+async function buscarCepWhatsApp() {
+  const cep = document.getElementById('whatsapp-cliente-cep').value.replace(/\D/g, '');
+  if (cep.length !== 8) { showToast('CEP inválido (digite 8 números)'); return; }
+  const btn = document.querySelector('button[onclick="buscarCepWhatsApp()"]');
+  const originalTxt = btn.textContent;
+  btn.disabled = true; btn.textContent = '...';
+  try {
+    const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+    const data = await res.json();
+    if (data.erro) { showToast('CEP não encontrado'); return; }
+    document.getElementById('whatsapp-cliente-rua').value = data.logradouro || '';
+    document.getElementById('whatsapp-cliente-complemento').value = data.complemento || '';
+    if (data.bairro) {
+      const bairroSel = document.getElementById('whatsapp-cliente-bairro');
+      let encontrou = false;
+      for (let i = 0; i < bairroSel.options.length; i++) {
+        if (bairroSel.options[i].value.toLowerCase() === data.bairro.toLowerCase()) {
+          bairroSel.selectedIndex = i;
+          encontrou = true;
+          break;
+        }
+      }
+      if (!encontrou) {
+        showToast(`Bairro "${data.bairro}" não atendido, selecione manualmente.`);
+      } else {
+        renderCarrinhoWhatsApp(); // Atualiza taxa
+      }
+    }
+    document.getElementById('whatsapp-cliente-numero').focus();
+  } catch (e) {
+    showToast('Erro ao buscar CEP');
+  } finally {
+    btn.disabled = false; btn.textContent = originalTxt;
+  }
+}
+
 async function enviarPedidoWhatsApp(){
   if(!whatsappCarrinho.length){ showToast('Carrinho vazio'); return; }
   const tipoEntrega=getTipoWhatsApp();

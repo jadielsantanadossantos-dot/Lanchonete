@@ -42,7 +42,12 @@ function ensureTopic(topic) {
   });
   ch.subscribe(status => {
     if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-      console.error(`Realtime canal ${topic}:`, status);
+      // Silenciar avisos de CHANNEL_ERROR/TIMED_OUT em ambiente local sem Supabase Realtime ativo
+      if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+        console.warn(`Realtime canal ${topic}:`, status);
+      } else {
+        console.error(`Realtime canal ${topic}:`, status);
+      }
       channels.delete(topic);
       setTimeout(() => ensureTopic(topic), 3000);
     }
