@@ -186,8 +186,8 @@ router.get('/ativos', wrapAsync(async (req, res) => {
         }
         return (produtoEspecifico || adicionalGlobal) && ['adicional', 'borda'].includes(a.tipo) && a.preco > 0;
       } else {
-        // Não-pizzas recebem apenas adicionais especificamente vinculados ao produto
-        return produtoEspecifico;
+        // Para não-pizzas: se houver vínculo explícito ou se for da mesma categoria e não houver restrição restrita de vinculo exclusivo
+        return produtoEspecifico || adicionalGlobal;
       }
     });
     
