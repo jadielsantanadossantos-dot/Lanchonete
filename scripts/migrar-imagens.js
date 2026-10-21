@@ -16,11 +16,18 @@ const ROOT = path.resolve(__dirname, '..', 'public', 'uploads', 'migrados');
 const LOGO_DIR = path.resolve(__dirname, '..', 'public', 'uploads', 'logos');
 
 function targetUrl() {
-  const raw = process.env.SHARDCLOUD_DB_URL || process.env.DATABASE_URL;
-  if (!raw) throw new Error('SHARDCLOUD_DB_URL/DATABASE_URL nao configurada');
-  const u = new URL(raw);
-  if (u.pathname !== '/database') u.pathname = '/database';
-  return u.toString();
+  // Usa exatamente o banco configurado no .env (nao força /database).
+  const raw = process.env.DATABASE_URL || process.env.SHARDCLOUD_DB_URL;
+  if (!raw) throw new Error('DATABASE_URL/SHARDCLOUD_DB_URL nao configurada');
+  return raw;
+}
+
+function sslFor(rawUrl) {
+  if (process.env.SHARD_SSL === 'true' || process.env.PGSSL === 'require') {
+    return { rejectUnauthorized: false };
+  }
+  const host = new URL(rawUrl).hostname;
+  return /supabase\.(co|com)|pooler\.supabase/.test(host) ? { rejectUnauthorized: false } : false;
 }
 
 async function fetchImage(url) {
@@ -58,16 +65,30 @@ async function migrarProdutos(client) {
 
   for (const row of rows) {
     try {
-      const original = await fetchImage(row.foto);
-      const convertida = await converter(original);
       const hash = crypto.createHash('sha1').update(row.foto).digest('hex').slice(0, 12);
       const nome = `produto-${row.id}-${hash}.webp`;
-      await fs.writeFile(path.join(ROOT, nome), convertida, { mode: 0o644 });
+      const destino = path.join(ROOT, nome);
+      let reaproveitada = false;
+      try {
+        const st = await fs.stat(destino);
+        reaproveitada = st.size > 32;
+      } catch (_) {}
+
+      let original = 0, convertida = 0;
+      if (reaproveitada) {
+        console.log(`  ${row.id} ${row.nome}: arquivo local ja existe, atualizando banco`);
+      } else {
+        const buf = await fetchImage(row.foto);
+        const webp = await converter(buf);
+        await fs.writeFile(destino, webp, { mode: 0o644 });
+        original = buf.length;
+        convertida = webp.length;
+        bytesAntes += original;
+        bytesDepois += convertida;
+        console.log(`  ${row.id} ${row.nome}: ${(original / 1024).toFixed(0)} KB -> ${(convertida / 1024).toFixed(0)} KB`);
+      }
       await client.query('UPDATE produtos SET foto = $1 WHERE id = $2', [`/uploads/migrados/${nome}`, row.id]);
-      bytesAntes += original.length;
-      bytesDepois += convertida.length;
       migradas++;
-      console.log(`  ${row.id} ${row.nome}: ${(original.length / 1024).toFixed(0)} KB -> ${(convertida.length / 1024).toFixed(0)} KB`);
     } catch (e) {
       falhas++;
       console.warn(`  ${row.id} ${row.nome}: mantida URL original (${e.message})`);
@@ -101,8 +122,10 @@ async function migrarLogo(client) {
 }
 
 (async () => {
-  const client = new Client({ connectionString: targetUrl(), ssl: false });
+  const raw = targetUrl();
+  const client = new Client({ connectionString: raw, ssl: sslFor(raw) });
   await client.connect();
+  console.log(`Banco alvo: ${new URL(raw).hostname}${new URL(raw).pathname}`);
   try {
     await migrarProdutos(client);
     await migrarLogo(client);

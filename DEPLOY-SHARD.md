@@ -4,16 +4,17 @@ Este documento resume o que já foi feito no banco e o passo a passo para coloca
 
 ## 1. O que já está pronto
 
-- Banco PostgreSQL da Shard (`postgres.sharddatabases.app`, banco real `database`) com:
+- Banco PostgreSQL da Shard (`postgres.sharddatabases.app`, banco ativo **`lanchonete_db`**) com:
   - schema completo (migrations aplicadas);
   - clone integral do Supabase: **3.478 pedidos, 992 clientes, 1.082 comandas, 86 produtos, 163 adicionais, 5 usuários, configurações, bairros e motoboys**;
   - sequences ajustadas e contagens conferidas.
-- 64 imagens de produtos migradas do Supabase Storage para `public/uploads/migrados` em **WebP** (76,4 MB → 8,1 MB) e URLs do banco atualizadas.
+- O banco `/database` existe no mesmo servidor e tem o mesmo clone, mas é uma cópia anterior. **Não use `/database` no deploy**; o `.env` e o `.env.shard` apontam para `/lanchonete_db`.
+- 64 imagens de produtos migradas do Supabase Storage para `public/uploads/migrados` em **WebP** (76,4 MB → 8,1 MB) e URLs do banco ativo atualizadas.
 - Realtime migrado de Supabase Broadcast para **Socket.io** (salas `admin`, `garcom`, `mesa-*`, `pedido-*`, com JWT para admin/garçom).
 - Uploads de produtos/logo agora vão para **disco local** (`UPLOADS_DIR`, padrão `public/uploads`).
 - Sessão do admin/garçom corrigida para não deslogar ao atualizar a página ou abrir nova aba.
 - Arquivos de deploy: `.shardcloud`, `Dockerfile`, `.dockerignore`, `.shardignore`.
-- `.env.shard` gerado localmente com `DATABASE_URL`, `JWT_SECRET` e `CRON_SECRET` (não versionado).
+- `.env.shard` gerado localmente com `DATABASE_URL`, `SHARD_SSL`, `JWT_SECRET` e `CRON_SECRET` (não versionado).
 
 > **Importante:** o arquivo `.env.shard` contém segredos. Ele está no `.gitignore`; não envie esse arquivo para o GitHub.
 
@@ -68,7 +69,8 @@ No painel da aplicação, em **Environment Variables**, cadastre:
 | `TZ` | `America/Sao_Paulo` |
 | `TRUST_PROXY` | `1` |
 | `CORS_ORIGIN` | `https://andersonlanches.shardweb.app` (ajuste para o subdomínio/domínio real) |
-| `DATABASE_URL` | copie de `.env.shard` (já aponta para `/database`) |
+| `DATABASE_URL` | copie de `.env.shard` (já aponta para `/lanchonete_db`) |
+| `SHARD_SSL` | `true` (o `.env.shard` já inclui; mantenha igual) |
 | `JWT_SECRET` | copie de `.env.shard` (64 caracteres) |
 | `CRON_SECRET` | copie de `.env.shard` |
 | `UPLOADS_DIR` | `public/uploads` |
@@ -78,6 +80,9 @@ Comandos para copiar os valores sem exibi-los no terminal:
 ```powershell
 # DATABASE_URL
 (Get-Content .env.shard | Where-Object { $_ -like 'DATABASE_URL=*' }) -replace '^DATABASE_URL=', '' | Set-Clipboard
+
+# SHARD_SSL
+(Get-Content .env.shard | Where-Object { $_ -like 'SHARD_SSL=*' }) -replace '^SHARD_SSL=', '' | Set-Clipboard
 
 # JWT_SECRET
 (Get-Content .env.shard | Where-Object { $_ -like 'JWT_SECRET=*' }) -replace '^JWT_SECRET=', '' | Set-Clipboard
@@ -170,7 +175,7 @@ Procedimento:
 
 Se precisar voltar ao Supabase:
 
-1. No painel da Shard, altere `DATABASE_URL` para a URL do Supabase (`SUPABASE_DB_URL` do seu `.env`).
+1. No painel da Shard, altere `DATABASE_URL` para a connection string do Supabase (painel do Supabase → **Settings → Database → Connection string**). O `.env` atual não guarda mais `SUPABASE_DB_URL`.
 2. Remova o `JWT_SECRET` ou use o mesmo segredo do ambiente antigo para os tokens continuarem válidos.
 3. Faça redeploy.
 
@@ -182,7 +187,8 @@ O código atual continua compatível com PostgreSQL/Supabase. O realtime, porém
 # Conferir o schema/dados do banco novo
 node scripts/preparar-shard.js --migrate
 
-# Reclonar tudo do Supabase (CUIDADO: limpa o destino)
+# Reclonar tudo do Supabase (CUIDADO: limpa o banco ativo /lanchonete_db)
+# Requer SUPABASE_DB_URL no .env; faça backup antes de rodar.
 node scripts/preparar-shard.js --clone --yes
 
 # Migrar imagens restantes do Supabase

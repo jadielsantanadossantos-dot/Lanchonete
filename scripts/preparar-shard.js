@@ -8,8 +8,12 @@
  *   node scripts/preparar-shard.js --clone --yes --only=catalog
  *
  * Variaveis lidas do .env:
- *   SHARDCLOUD_DB_URL  (destino)
- *   SUPABASE_DB_URL    (origem, usada apenas no --clone)
+ *   DATABASE_URL        (destino; tem prioridade)
+ *   SHARDCLOUD_DB_URL   (destino alternativo)
+ *   SUPABASE_DB_URL     (origem, obrigatoria apenas no --clone)
+ *   SHARD_SSL=true      (opcional; ativa SSL no destino)
+ *
+ * O script usa o banco exatamente como está na URL (não força /database).
  */
 require('dotenv').config();
 const fs = require('fs');
@@ -86,7 +90,7 @@ function warn(msg) { console.log('  AVISO ' + msg); }
 function fail(msg) { console.error('  ERRO  ' + msg); }
 
 function sslFor(url) {
-  if (process.env.PGSSL === 'require') return { rejectUnauthorized: false };
+  if (process.env.SHARD_SSL === 'true' || process.env.PGSSL === 'require') return { rejectUnauthorized: false };
   const host = new URL(url).hostname;
   if (/supabase\.(co|com)|pooler\.supabase/.test(host)) return { rejectUnauthorized: false };
   return false;
@@ -105,34 +109,18 @@ async function connect(rawUrl, label) {
 }
 
 async function connectTarget() {
-  const raw = process.env.SHARDCLOUD_DB_URL;
-  if (!raw) throw new Error('SHARDCLOUD_DB_URL nao configurada no .env');
-  const original = new URL(raw);
-  const candidates = [raw];
-  if (original.pathname !== '/database') {
-    const fixed = new URL(raw);
-    fixed.pathname = '/database';
-    candidates.push(fixed.toString());
-  }
-  let lastError = null;
-  for (const candidate of candidates) {
-    const client = new Client({
-      connectionString: candidate,
-      ssl: sslFor(candidate),
-      connectionTimeoutMillis: 20000,
-      statement_timeout: 120000,
-    });
-    try {
-      await client.connect();
-      log(`Conectado ao destino (Shard): ${new URL(candidate).hostname}${new URL(candidate).pathname}`);
-      return client;
-    } catch (e) {
-      lastError = e;
-      try { await client.end(); } catch (_) {}
-      if (!/does not exist/i.test(e.message)) throw e;
-    }
-  }
-  throw lastError;
+  // Usa exatamente o banco configurado (DATABASE_URL tem prioridade).
+  const raw = process.env.DATABASE_URL || process.env.SHARDCLOUD_DB_URL;
+  if (!raw) throw new Error('DATABASE_URL/SHARDCLOUD_DB_URL nao configurada no .env');
+  const client = new Client({
+    connectionString: raw,
+    ssl: sslFor(raw),
+    connectionTimeoutMillis: 20000,
+    statement_timeout: 120000,
+  });
+  await client.connect();
+  log(`Conectado ao destino (Shard): ${new URL(raw).hostname}${new URL(raw).pathname}`);
+  return client;
 }
 
 async function q(client, sql, params) {
@@ -374,18 +362,28 @@ async function main() {
   try {
     await runMigrations(target);
 
+    const sourceUrl = process.env.SUPABASE_DB_URL;
+    if (doClone && !sourceUrl) {
+      fail('SUPABASE_DB_URL nao configurada no .env; necessaria apenas para --clone');
+      return;
+    }
+
     if (!doClone) {
-      const source = await connect(process.env.SUPABASE_DB_URL, 'origem (Supabase)');
-      try {
-        await addMissingColumns(source, target, TABLES_ALL, false);
-      } finally {
-        await source.end();
+      if (sourceUrl) {
+        const source = await connect(sourceUrl, 'origem (Supabase)');
+        try {
+          await addMissingColumns(source, target, TABLES_ALL, false);
+        } finally {
+          await source.end();
+        }
+      } else {
+        warn('SUPABASE_DB_URL ausente; comparacao de colunas ignorada no modo somente migrations');
       }
       log('\nSchema pronto. Proximo passo: --clone --yes');
       return;
     }
 
-    const source = await connect(process.env.SUPABASE_DB_URL, 'origem (Supabase)');
+    const source = await connect(sourceUrl, 'origem (Supabase)');
     try {
       const tables = onlyCatalog ? TABLES_CATALOG : TABLES_ALL;
       log('\nTabelas que serao copiadas: ' + tables.join(', '));

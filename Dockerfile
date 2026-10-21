@@ -1,8 +1,9 @@
 # Imagem para VPS/Docker ou Custom Docker Image no Shard Cloud.
 FROM node:20-alpine
 
-# dumb-init, timezone e wget (healthcheck)
-RUN apk add --no-cache dumb-init tzdata wget
+# dumb-init, timezone, wget (healthcheck) e setcap (porta 80 sem root)
+RUN apk add --no-cache dumb-init tzdata wget libcap && \
+    setcap 'cap_net_bind_service=+ep' /usr/local/bin/node
 ENV TZ=America/Sao_Paulo \
     NODE_ENV=production \
     PORT=80
