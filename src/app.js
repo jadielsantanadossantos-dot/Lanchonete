@@ -51,7 +51,7 @@ function buildApp() {
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
     font-src 'self' https://fonts.gstatic.com;
     img-src 'self' data: blob: https: http: /uploads/ https://images.unsplash.com https://*.unsplash.com https://via.placeholder.com https://picsum.photos;
-    connect-src 'self' ${supabaseOrigin} ${supabaseWss} ws: wss: https://viacep.com.br;
+    connect-src 'self' ${supabaseOrigin} ${supabaseWss} ws: wss: https://viacep.com.br https://fonts.googleapis.com https://fonts.gstatic.com;
     object-src 'none';
     frame-ancestors 'none';
     base-uri 'self';
