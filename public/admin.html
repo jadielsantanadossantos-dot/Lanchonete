@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Painel Admin - Lanchonete</title>
-  <link rel="stylesheet" href="/css/admin.css?v=20261020t">
+  <link rel="stylesheet" href="/css/admin.css?v=20261021e">
   <script src="/socket.io/socket.io.js"></script>
   <script>
     // Redirect imediato para login se acessar /admin diretamente
@@ -285,22 +285,38 @@
 
       <!-- ADICIONAIS -->
       <section id="sec-adicionais" class="section">
-        <div class="inline-form">
-          <input class="form-control" id="adic-nome" placeholder="Nome do adicional">
-          <textarea class="form-control" id="adic-descricao" placeholder="Descrição (opcional)" style="width:250px; height:40px; resize:vertical;"></textarea>
-          <input class="form-control" id="adic-preco" type="number" step="0.01" placeholder="Preço (0 para sabor/grátis)" style="width:130px" value="0">
-          <select class="form-control" id="adic-tipo" style="width:130px">
-            <option value="adicional">Adicional</option>
-            <option value="sabor">Sabor</option>
-            <option value="borda">Borda Recheada</option>
-            <option value="base">Base (açai)</option>
-            <option value="cobertura">Cobertura</option>
-            <option value="acompanhamento">Acompanhamento</option>
-          </select>
-          <input class="form-control" id="adic-limite" type="number" step="1" min="0" placeholder="Limite (0= livre)" style="width:130px" value="0" title="Quantidade máxima selecionável">
-          <button class="btn btn-primary btn-sm" id="btn-seletor-alvo" onclick="abrirSeletorCategorias()">Aplicar a: todas as categorias</button>
-          <button class="btn btn-primary btn-sm" onclick="salvarAdicional()" id="btn-salvar-adic">Adicionar</button>
-          <button class="btn btn-secondary btn-sm" onclick="cancelarEdicaoAdicional()" id="btn-cancelar-adic" style="display:none;">Cancelar</button>
+        <div class="adic-form" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; align-items: end;">
+          <div style="display: flex; flex-direction: column; gap: 2px;">
+            <label style="font-size: 0.75rem; font-weight: 600; color: #555;">Nome</label>
+            <input class="form-control" id="adic-nome" placeholder="Nome" style="width: 100%; height: 38px;">
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 2px;">
+            <label style="font-size: 0.75rem; font-weight: 600; color: #555;">Descrição</label>
+            <input class="form-control" id="adic-descricao" placeholder="Descrição" style="width: 100%; height: 38px;">
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 2px;">
+            <label style="font-size: 0.75rem; font-weight: 600; color: #555;">Preço</label>
+            <input class="form-control" id="adic-preco" type="number" step="0.01" value="0" style="width: 100%; height: 38px;">
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 2px;">
+            <label style="font-size: 0.75rem; font-weight: 600; color: #555;">Tipo</label>
+            <select class="form-control" id="adic-tipo" style="width: 100%; height: 38px;" onchange="atualizarPreviewTipoAdicional()">
+              <option value="adicional">Adicional</option>
+              <option value="sabor">Sabor</option>
+              <option value="borda">Borda Recheada</option>
+              <option value="base">Base (açai)</option>
+              <option value="cobertura">Cobertura</option>
+              <option value="acompanhamento">Acompanhamento</option>
+            </select>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 2px;">
+            <label style="font-size: 0.75rem; font-weight: 600; color: #555;">Limite</label>
+            <input class="form-control" id="adic-limite" type="number" step="1" min="0" value="0" style="width: 100%; height: 38px;">
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            <button class="btn btn-primary btn-sm" id="btn-seletor-alvo" onclick="abrirSeletorCategorias()" style="width:100%; height: 38px;">Aplicar a: categorias</button>
+            <button class="btn btn-primary btn-sm" onclick="salvarAdicional()" id="btn-salvar-adic" style="width:100%; height: 38px;">Salvar</button>
+          </div>
         </div>
 
         <!-- Modal de seleção de categorias -->

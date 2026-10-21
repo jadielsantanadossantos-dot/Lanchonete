@@ -331,7 +331,30 @@ textarea.form-control { min-height: 100px; resize: vertical; }
   .modal-overlay { align-items: center; padding: var(--space-4); }
 }
 
-/* Mobile (480px - 767px) - OVERRIDES base to column layout */
+/* Refinamento de overflow para evitar quebra de layout horizontal */
+html, body {
+  overflow-x: hidden;
+  width: 100%;
+  position: relative;
+}
+
+/* Ajustes de densidade para telas muito pequenas (< 400px) */
+@media (max-width: 400px) {
+  .pedido-card { padding: var(--space-2); }
+  .pedido-header { font-size: 0.9rem; }
+  .badge { font-size: 0.7rem; padding: 2px 6px; }
+  .btn { font-size: 0.85rem; padding: var(--space-1) var(--space-2); }
+}
+
+/* Melhoria no scroll do modal para evitar double scroll no iOS */
+.modal-overlay {
+  -webkit-overflow-scrolling: touch;
+}
+.modal-body {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  max-height: 70vh; /* Garante que o conteúdo role dentro do modal */
+}
 @media (max-width: 767px) {
   :root { --header-h: 68px; }
   .header { padding: var(--space-3); }

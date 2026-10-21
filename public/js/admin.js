@@ -13,6 +13,22 @@ let produtosAdicionaisSelecionadas = [];
 
 function escapeHtml(s){ if(s==null) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
+// Função para atualizar o preview do tipo de adicional (nome da caixa no modal do cliente)
+function atualizarPreviewTipoAdicional() {
+  const tipo = document.getElementById('adic-tipo')?.value;
+  const preview = document.getElementById('adic-tipo-preview');
+  if (!preview) return;
+  const mapas = {
+    'adicional': 'Adicionais',
+    'sabor': 'Sabores',
+    'borda': 'Borda Recheada',
+    'base': 'Base',
+    'cobertura': 'Coberturas',
+    'acompanhamento': 'Acompanhamentos'
+  };
+  preview.textContent = mapas[tipo] || 'Adicionais';
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   if (!verificarAuth(['admin'])) {
     redirecionarSemAuth('/login-admin');
@@ -35,6 +51,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   carregarSomPrefs();
   carregarLojaStatus();
   carregarConfigAdmin();
+  
+  // Inicializa o preview do tipo de adicional
+  atualizarPreviewTipoAdicional();
   
   // Inicializar Socket.io Realtime local
   if (window.Realtime && window.Realtime.init) {
@@ -144,9 +163,21 @@ function toggleSidebar() {
   document.getElementById('overlay').classList.toggle('active');
 }
 
+function toggleSidebarMobile() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('overlay').classList.toggle('active');
+}
+
 window.toggleSidebarCollapse = function() {
   const sidebar = document.getElementById('sidebar');
-  if (sidebar) {
+  if (!sidebar) return;
+  
+  // No mobile (< 768px), usa a classe .open para abrir/fechar gaveta
+  // No desktop, usa .collapsed para recolher/expandir
+  if (window.innerWidth < 768) {
+    sidebar.classList.toggle('open');
+    document.getElementById('overlay').classList.toggle('active');
+  } else {
     sidebar.classList.toggle('collapsed');
   }
 };
@@ -2445,13 +2476,74 @@ function whatsappAlterarQtdCarrinho(idx,delta){
 }
 function whatsappRemover(idx){ whatsappCarrinho.splice(idx,1); renderCarrinhoWhatsApp(); }
 function formatarTelefoneWhatsApp(inp){
-  let v=inp.value.replace(/\D/g,'');
-  if(v.length>11) v=v.slice(0,11);
-  if(v.length>6) v=`(${v.slice(0,2)}) ${v.slice(2,7)}-${v.slice(7)}`;
-  else if(v.length>2) v=`(${v.slice(0,2)}) ${v.slice(2)}`;
-  else if(v.length>0) v=`(${v}`;
-  inp.value=v;
+  // Permite apagar números normalmente
+  let v = inp.value.replace(/\D/g,'');
+  
+  // Se o usuário está apagando, não precisamos forçar a formatação imediatamente se for curto
+  // Apenas limitamos a 11 dígitos
+  if (v.length > 11) v = v.slice(0, 11);
+  
+  // Aplica a formatação apenas se houver o suficiente para formatar
+  let formatted = v;
+  if (v.length > 7) {
+    formatted = `(${v.slice(0, 2)}) ${v.slice(2, 7)}-${v.slice(7)}`;
+  } else if (v.length > 2) {
+    formatted = `(${v.slice(0, 2)}) ${v.slice(2)}`;
+  } else if (v.length > 0) {
+    formatted = `(${v}`;
+  }
+  
+  inp.value = formatted;
+  
+  // Buscar cliente quando telefone estiver completo (10 ou 11 dígitos)
+  if(v.length >= 10) {
+    buscarClientePorTelefoneWhatsApp(v);
+  }
 }
+
+async function buscarClientePorTelefoneWhatsApp(telefone) {
+  try {
+    const res = await authFetch(`/api/clientes/telefone/${encodeURIComponent(telefone)}`);
+    if (res.ok) {
+      const cliente = await res.json();
+      // Cliente encontrado - preencher campos
+      document.getElementById('whatsapp-cliente-nome').value = cliente.nome || '';
+      document.getElementById('whatsapp-cliente-rua').value = cliente.rua || '';
+      document.getElementById('whatsapp-cliente-numero').value = cliente.numero || '';
+      document.getElementById('whatsapp-cliente-complemento').value = cliente.complemento || '';
+      document.getElementById('whatsapp-cliente-referencia').value = cliente.ponto_referencia || '';
+      // Selecionar bairro se existir
+      if (cliente.bairro) {
+        const bairroSel = document.getElementById('whatsapp-cliente-bairro');
+        for (let i = 0; i < bairroSel.options.length; i++) {
+          if (bairroSel.options[i].value.toLowerCase() === cliente.bairro.toLowerCase()) {
+            bairroSel.selectedIndex = i;
+            break;
+          }
+        }
+        renderCarrinhoWhatsApp(); // Atualiza taxa
+      }
+      showToast('Cliente encontrado: ' + cliente.nome, 'success');
+    } else {
+      // Cliente não encontrado - limpar campos para novo cadastro
+      limparCamposClienteWhatsApp();
+      showToast('Cliente não cadastrado. Preencha os dados para novo cadastro.', 'info');
+    }
+  } catch (e) {
+    console.error('Erro ao buscar cliente:', e);
+  }
+}
+
+function limparCamposClienteWhatsApp() {
+  document.getElementById('whatsapp-cliente-nome').value = '';
+  document.getElementById('whatsapp-cliente-rua').value = '';
+  document.getElementById('whatsapp-cliente-numero').value = '';
+  document.getElementById('whatsapp-cliente-complemento').value = '';
+  document.getElementById('whatsapp-cliente-referencia').value = '';
+  document.getElementById('whatsapp-cliente-bairro').value = '';
+  // Não limpa o telefone
+}
+
 document.getElementById('whatsapp-cliente-bairro')?.addEventListener('change', renderCarrinhoWhatsApp);
 document.getElementById('whatsapp-forma-pagamento')?.addEventListener('change', function(){
   document.getElementById('whatsapp-troco-box').style.display=this.value==='dinheiro'?'block':'none';
