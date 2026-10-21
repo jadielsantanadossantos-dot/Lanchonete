@@ -2035,7 +2035,7 @@ function isPizzaWhatsApp(p){ return !!(p && p.categoria_nome && p.categoria_nome
 function isPorPeso(p){
   if(!p) return false;
   if(p.unidade==='kg') return true;
-  const cat=(p.categoria_nome||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+  const cat = String(p.categoria_nome || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
   return cat.includes('acai');
 }
 
