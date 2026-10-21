@@ -165,6 +165,9 @@ async function carregarConfig() {
         box.style.display = 'none';
       }
     }
+
+    // Chamada para exibir o prompt
+    renderPwaInstallPrompt();
   } catch (e) {}
 }
 
@@ -1797,3 +1800,5 @@ function mostrarErroCad(msg) {
   const el = document.getElementById(id);
   if (el) el.addEventListener('input', function() { formatarTelefoneInput(this); });
 });
+
+

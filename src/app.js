@@ -8,7 +8,7 @@ const path = require('path');
 function buildApp() {
   const app = express();
 
-  if (process.env.VERCEL) {
+  if (process.env.VERCEL || process.env.TRUST_PROXY === '1') {
     app.set('trust proxy', 1);
   }
 
@@ -46,12 +46,12 @@ function buildApp() {
 
   const cspValue = `
     default-src 'self';
-    script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;
+    script-src 'self' 'unsafe-inline';
     script-src-attr 'unsafe-inline';
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
     font-src 'self' https://fonts.gstatic.com;
-    img-src 'self' data: blob: ${supabaseOrigin || 'https:'} https://images.unsplash.com https://*.unsplash.com https://via.placeholder.com https://picsum.photos;
-    connect-src 'self' ${supabaseOrigin} ${supabaseWss} https://viacep.com.br;
+    img-src 'self' data: blob: https: http: /uploads/ https://images.unsplash.com https://*.unsplash.com https://via.placeholder.com https://picsum.photos;
+    connect-src 'self' ${supabaseOrigin} ${supabaseWss} ws: wss: https://viacep.com.br;
     object-src 'none';
     frame-ancestors 'none';
     base-uri 'self';
@@ -101,6 +101,12 @@ function buildApp() {
 
   if (!process.env.VERCEL) {
     app.use(express.static(path.join(__dirname, '..', 'public')));
+    const storage = require('./storage');
+    app.use('/uploads', express.static(storage.ROOT, {
+      maxAge: '1y',
+      immutable: true,
+      dotfiles: 'deny'
+    }));
   }
 
   app.use('/api/auth', require('./routes/auth'));

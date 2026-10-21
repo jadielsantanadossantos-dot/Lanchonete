@@ -1,22 +1,28 @@
 // ============================================
-// REALTIME NOTIFIER - Supabase Broadcast REST
-// Substitui Socket.io para compatibilidade com Vercel serverless
-// Docs: https://supabase.com/docs/guides/realtime/broadcast
+// REALTIME NOTIFIER
+// Socket.io quando o servidor roda como processo persistente (VPS/Shard).
+// Fallback: Supabase Broadcast REST (Vercel serverless), se configurado.
 // ============================================
 
-function getConfig() {
-  return {
-    url: process.env.SUPABASE_URL,
-    key: process.env.SUPABASE_SERVICE_ROLE_KEY
-  };
+let io = null;
+let avisoSemRealtime = false;
+
+function init(socketServer) {
+  io = socketServer;
+  console.log('[realtime] Socket.io inicializado');
 }
 
-async function broadcast(topic, event, payload, retries = 2) {
-  const { url, key } = getConfig();
+async function broadcastSupabase(topic, event, payload, retries = 2) {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) {
-    console.warn(`Realtime desabilitado (sem SUPABASE_URL/SERVICE_ROLE_KEY): ${event}`);
+    if (!avisoSemRealtime) {
+      avisoSemRealtime = true;
+      console.warn('[realtime] Socket.io nao inicializado e Supabase nao configurado; notificacoes desabilitadas');
+    }
     return;
   }
+
   for (let attempt = 0; attempt <= retries; attempt++) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 5000);
@@ -33,22 +39,30 @@ async function broadcast(topic, event, payload, retries = 2) {
       });
       clearTimeout(timeout);
       if (res.ok || res.status === 202) return;
-      console.error(`Realtime broadcast falhou (${event}) tentativa ${attempt + 1}: HTTP ${res.status}`);
+      console.error(`[realtime] broadcast falhou (${event}) tentativa ${attempt + 1}: HTTP ${res.status}`);
       if (attempt === retries) return;
     } catch (e) {
       clearTimeout(timeout);
       const isAbort = e.name === 'AbortError';
-      console.error(`Realtime broadcast erro (${event}) tentativa ${attempt + 1}:`, isAbort ? 'timeout 5s' : e.message);
+      console.error(`[realtime] broadcast erro (${event}) tentativa ${attempt + 1}:`, isAbort ? 'timeout 5s' : e.message);
       if (attempt === retries) return;
     }
-    // backoff exponencial simples
     await new Promise(r => setTimeout(r, 300 * Math.pow(2, attempt)));
   }
 }
 
+function emitToRoom(room, event, payload) {
+  if (io) {
+    io.to(room).emit(event, payload);
+    return Promise.resolve();
+  }
+  return broadcastSupabase(room, event, payload);
+}
+
 module.exports = {
-  emitToAdmin: (event, data) => broadcast('admin', event, data),
-  emitToGarcom: (event, data) => broadcast('garcom', event, data),
-  emitToMesa: (mesaId, event, data) => broadcast(`mesa-${mesaId}`, event, data),
-  emitToPedido: (pedidoId, event, data) => broadcast(`pedido-${pedidoId}`, event, data)
+  init,
+  emitToAdmin: (event, data) => emitToRoom('admin', event, data),
+  emitToGarcom: (event, data) => emitToRoom('garcom', event, data),
+  emitToMesa: (mesaId, event, data) => emitToRoom(`mesa-${mesaId}`, event, data),
+  emitToPedido: (pedidoId, event, data) => emitToRoom(`pedido-${pedidoId}`, event, data)
 };

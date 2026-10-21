@@ -144,6 +144,13 @@ function toggleSidebar() {
   document.getElementById('overlay').classList.toggle('active');
 }
 
+window.toggleSidebarCollapse = function() {
+  const sidebar = document.getElementById('sidebar');
+  if (sidebar) {
+    sidebar.classList.toggle('collapsed');
+  }
+};
+
 function fecharSidebar() {
   document.getElementById('sidebar').classList.remove('open');
   document.getElementById('overlay').classList.remove('active');

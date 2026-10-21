@@ -1,8 +1,7 @@
 const express = require('express');
 const multer = require('multer');
-const crypto = require('crypto');
 const path = require('path');
-const { createClient } = require('@supabase/supabase-js');
+const { saveImage, removeByUrl } = require('../storage');
 const router = express.Router();
 const db = require('../db/database');
 const QRCode = require('qrcode');
@@ -34,8 +33,6 @@ router.get('/public', wrapAsync(async (req, res) => {
   all.forEach(r => map[r.chave] = r.valor);
   const efetiva = isLojaAbertaEfetiva(map);
   res.json({
-    supabaseUrl: process.env.SUPABASE_URL || '',
-    supabaseAnonKey: process.env.SUPABASE_ANON_KEY || '',
     logo_url: map.logo_url || '',
     loja_nome: map.loja_nome || 'Lanchonete',
     loja_telefone: map.loja_telefone || '',
@@ -62,19 +59,9 @@ router.put('/', middlewareAdmin, wrapAsync(async (req, res) => {
   res.json({ success: true });
 }));
 
-// === LOGO UPLOAD === 2MB, bucket logos, admin only
+// === LOGO UPLOAD === 2MB, disco local, admin only
 const ALLOWED_MIME_TYPES_LOGO = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 const ALLOWED_EXTENSIONS_LOGO = ['.jpg', '.jpeg', '.png', '.webp', '.gif'];
-let storageClientLogo = null;
-function getStorageLogo() {
-  if (!storageClientLogo) {
-    const url = process.env.SUPABASE_URL;
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!url || !key) throw new Error('SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY não configurados para upload');
-    storageClientLogo = createClient(url, key, { auth: { persistSession: false } });
-  }
-  return storageClientLogo;
-}
 function validarBufferImagemLogo(buffer) {
   if (!buffer || buffer.length < 12) return false;
   if (buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF) return true;
@@ -83,42 +70,9 @@ function validarBufferImagemLogo(buffer) {
   if (buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46 && buffer[8] === 0x57 && buffer[9] === 0x45 && buffer[10] === 0x42 && buffer[11] === 0x50) return true;
   return false;
 }
-function isStorageQuotaErrorLogo(e) {
-  const msg = (e && (e.message || e.error || '')) + '';
-  return e && (e.status === 402 || e.statusCode === '402' || e.statusCode === 402 || /quota|restricted|402|egress/i.test(msg));
-}
 async function uploadLogo(file) {
   if (!validarBufferImagemLogo(file.buffer)) throw new Error('Arquivo não é uma imagem válida (conteúdo não corresponde ao tipo)');
-  const fallbackDataUrl = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
-  const ext = path.extname(file.originalname).toLowerCase();
-  const nome = `logo-${Date.now()}-${crypto.randomBytes(6).toString('hex')}${ext}`;
-  let supabase;
-  try { supabase = getStorageLogo(); } catch (e) { return fallbackDataUrl; }
-  try {
-    const { error } = await supabase.storage.from('logos').upload(nome, file.buffer, { contentType: file.mimetype, cacheControl: '31536000' });
-    if (error) throw error;
-  } catch (e) {
-    if (isStorageQuotaErrorLogo(e)) {
-      console.warn('Supabase Storage bloqueado (quota 402) — salvando logo como data URL');
-      return fallbackDataUrl;
-    }
-    if (/Bucket not found/i.test(e.message)) {
-      try {
-        const { error: createErr } = await supabase.storage.createBucket('logos', { public: true });
-        if (createErr && !/already exists/i.test(createErr.message)) throw createErr;
-        const { error: retryErr } = await supabase.storage.from('logos').upload(nome, file.buffer, { contentType: file.mimetype, cacheControl: '31536000' });
-        if (retryErr) throw retryErr;
-      } catch (e2) {
-        if (isStorageQuotaErrorLogo(e2)) {
-          console.warn('Supabase Storage bloqueado (quota 402) — salvando logo como data URL');
-          return fallbackDataUrl;
-        }
-        throw e2;
-      }
-    } else throw e;
-  }
-  const { data } = supabase.storage.from('logos').getPublicUrl(nome);
-  return data.publicUrl;
+  return saveImage(file.buffer, file.originalname, 'logos');
 }
 function fileFilterLogo(req, file, cb) {
   if (!ALLOWED_MIME_TYPES_LOGO.includes(file.mimetype)) return cb(new Error('Tipo de arquivo não permitido. Use JPEG, PNG, WebP ou GIF.'), false);
@@ -130,23 +84,19 @@ const uploadLogoMulter = multer({ storage: multer.memoryStorage(), limits: { fil
 
 router.put('/logo', middlewareAdmin, uploadLogoMulter.single('logo'), wrapAsync(async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'Arquivo de logo obrigatório' });
+  const anterior = await db.get("SELECT valor FROM configuracoes WHERE chave='logo_url'");
   const url = await uploadLogo(req.file);
   await db.run('INSERT INTO configuracoes (chave, valor) VALUES ($1,$2) ON CONFLICT (chave) DO UPDATE SET valor=$2, atualizado_em=NOW()', 'logo_url', url);
+  if (anterior && anterior.valor && anterior.valor !== url) {
+    await removeByUrl(anterior.valor);
+  }
   res.json({ logo_url: url });
 }));
 
 router.delete('/logo', middlewareAdmin, wrapAsync(async (req, res) => {
   const row = await db.get("SELECT valor FROM configuracoes WHERE chave='logo_url'");
   const url = row ? row.valor : '';
-  if (url) {
-    try {
-      const supabase = getStorageLogo();
-      // extrair nome após /logos/
-      const m = url.match(/\/logos\/([^?]+)/);
-      const nome = m ? decodeURIComponent(m[1]) : null;
-      if (nome) await supabase.storage.from('logos').remove([nome]);
-    } catch (e) { console.warn('Falha ao remover logo do storage:', e.message); }
-  }
+  if (url) await removeByUrl(url);
   await db.run("DELETE FROM configuracoes WHERE chave='logo_url'");
   res.json({ success: true });
 }));

@@ -1,0 +1,27 @@
+# Arquivos que não precisam ir para o deploy no Shard Cloud
+node_modules/
+.git/
+.vercel/
+.vscode/
+.gradle/
+android/
+app/build/
+build/
+tests/
+coverage/
+graphify-out/
+tmp/
+temp/
+*.log
+*.keystore
+*.jks
+android.keystore
+twa-manifest.json
+manifest-checksum.txt
+store_icon.png
+public/uploads/*
+!public/uploads/migrados/
+!public/uploads/migrados/**
+.env
+.env.*
+!.env.example

@@ -1,37 +1,34 @@
-# Dockerfile for Railway/Render deployment with Supabase
+# Imagem para VPS/Docker ou Custom Docker Image no Shard Cloud.
 FROM node:20-alpine
 
-# Install dumb-init and timezone data
-RUN apk add --no-cache dumb-init tzdata
-ENV TZ=America/Sao_Paulo
+# dumb-init, timezone e wget (healthcheck)
+RUN apk add --no-cache dumb-init tzdata wget
+ENV TZ=America/Sao_Paulo \
+    NODE_ENV=production \
+    PORT=80
 
-# Create app directory
 WORKDIR /app
 
-# Create non-root user
+# Usuário sem privilégios
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nodejs -u 1001
 
-# Copy package files
 COPY package*.json ./
-
-# Install dependencies (production only)
-RUN npm ci --only=production && \
+RUN npm ci --omit=dev && \
     npm cache clean --force
 
-# Copy application code
 COPY --chown=nodejs:nodejs . .
 
-# Switch to non-root user
+# Uploads locais (volume persistente em /app/public/uploads)
+RUN mkdir -p /app/public/uploads && \
+    chown -R nodejs:nodejs /app/public/uploads
+
 USER nodejs
 
-# Expose port
-EXPOSE 4000
+EXPOSE 80
 
-# Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:4000/health || exit 1
+  CMD-SHELL wget --no-verbose --tries=1 --spider "http://127.0.0.1:${PORT:-80}/health" || exit 1
 
-# Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]
 CMD ["node", "server.js"]

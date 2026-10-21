@@ -5,7 +5,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Lanchonete</title>
 <link rel="stylesheet" href="/css/v2.css?v=20261017c">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#004E89">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Lanchonete">
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js')
+        .then(reg => console.log('Service Worker registrado:', reg.scope))
+        .catch(err => console.log('Falha no SW:', err));
+    });
+  }
+</script>
 </head>
 <body>
 <header class="v2-header" id="v2-header">
@@ -146,9 +160,9 @@
 <div id="v2-toast" class="v2-toast"></div>
 
 <script src="/js/img-fallback.js?v=20261017c"></script>
-<script src="/js/realtime.js?v=20261017c"></script>
+<script src="/js/realtime.js?v=20261021a"></script>
 <script src="/js/pizza-modal.js?v=20261017c"></script>
-<script src="/js/app.js?v=20261017c"></script>
+<script src="/js/app.js?v=20261020twa"></script>
 <script src="/js/v2.js?v=20261017c"></script>
 </body>
 </html>

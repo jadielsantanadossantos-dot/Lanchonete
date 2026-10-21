@@ -1,0 +1,7 @@
+DISPLAY_NAME=Anderson Lanches
+DESCRIPTION=Sistema de pedidos, PDV e painel do garcom
+LANGUAGE=node
+MEMORY=512
+VERSION=recommended
+SUBDOMAIN=andersonlanches
+CUSTOM_COMMAND=PORT=80 npm start

@@ -11,44 +11,33 @@ process.env.TZ = process.env.TZ || 'America/Sao_Paulo';
 
 function getPool() {
   if (!pool) {
-    const connectionString = process.env.DATABASE_URL || process.env.SUPABASE_DB_URL;
+    // Agora usando primariamente DATABASE_URL para o Shard Cloud
+    const connectionString = process.env.DATABASE_URL;
     if (!connectionString) {
-      throw new Error('DATABASE_URL ou SUPABASE_DB_URL não configurado no .env');
+      throw new Error('DATABASE_URL não configurado no .env');
     }
-    const isSupabasePooler = /pooler\.supabase\.(com|co)/.test(connectionString);
-    const needsSsl = isSupabasePooler || /supabase\.(com|co)/.test(connectionString) || process.env.PGSSL === 'require';
 
-    let finalConnectionString = connectionString;
-    if (isSupabasePooler) {
-      try {
-        const url = new URL(connectionString);
-        const refFromUrl = process.env.SUPABASE_URL
-          ? new URL(process.env.SUPABASE_URL).hostname.split('.')[0]
-          : null;
-        const user = decodeURIComponent(url.username);
-        if (refFromUrl && (user === 'postgres' || !user.includes('.'))) {
-          url.username = `postgres.${refFromUrl}`;
-          finalConnectionString = url.toString();
-        }
-      } catch (e) {
-        console.error('Não foi possível normalizar DATABASE_URL do pooler:', e.message);
-      }
-    }
+    // Configuração limpa para o Shard Cloud PostgreSQL
+    // Caso o Shard Cloud exija SSL, mantemos a opção (pode ajustar via SHARD_SSL=true/false no .env se necessário)
+    const needsSsl = process.env.SHARD_SSL === 'true' || process.env.PGSSL === 'require';
 
     pool = new Pool({
-      connectionString: finalConnectionString,
+      connectionString: connectionString,
       max: process.env.VERCEL ? 5 : 20,
       idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 10000,
+      connectionTimeoutMillis: 20000,
+      keepAlive: true,
       statement_timeout: 15000,
       query_timeout: 15000,
       ssl: needsSsl ? { rejectUnauthorized: false } : undefined,
     });
+
     pool.on('connect', (client) => {
       client.query("SET TIME ZONE 'America/Sao_Paulo'").catch(() => {});
     });
+
     pool.on('error', (err) => {
-      console.error('Erro inesperado no pool PostgreSQL:', err);
+      console.error('Erro inesperado no pool PostgreSQL (Shard Cloud):', err);
     });
   }
   return pool;

@@ -1,21 +1,22 @@
 // ============================================
-// SUPABASE REALTIME CLIENT - Broadcast
-// Substitui Socket.io para funcionar na Vercel (serverless)
-// Requer: @supabase/supabase-js carregado globalmente
+// REALTIME CLIENT - Socket.io
+// Servidor persistente (VPS/Shard/Docker).
+// Requer: /socket.io/socket.io.js carregado antes deste arquivo.
 // ============================================
 
-let supabaseClient = null;
+let socket = null;
 let initPromise = null;
 const listeners = new Map();
-const channels = new Map();
+const joinedRooms = new Set();
+const roomRefs = new Map();
 const EVENTS = ['novo-pedido', 'pedido-atualizado', 'pix-confirmado', 'motoboy-atribuido', 'comanda-atualizada', 'mesa-atualizada'];
 
-async function loadConfig() {
-  const res = await fetch('/api/config/public');
-  if (!res.ok) throw new Error('Falha ao carregar configuração realtime');
-  const cfg = await res.json();
-  if (!cfg.supabaseUrl || !cfg.supabaseAnonKey) throw new Error('Realtime não configurado no servidor');
-  return cfg;
+function getToken() {
+  try {
+    return localStorage.getItem('auth_token') || '';
+  } catch (e) {
+    return '';
+  }
 }
 
 function notifyListeners(event, data) {
@@ -29,50 +30,87 @@ function notifyListeners(event, data) {
   });
 }
 
-function ensureTopic(topic) {
-  if (channels.has(topic)) return;
-  if (!supabaseClient) {
-    // aguarda init
-    initRealtime().then(() => ensureTopic(topic)).catch(()=>{});
-    return;
-  }
-  const ch = supabaseClient.channel(topic, { config: { broadcast: { self: false } } });
-  EVENTS.forEach(ev => {
-    ch.on('broadcast', { event: ev }, ({ payload }) => notifyListeners(ev, payload));
-  });
-  ch.subscribe(status => {
-    if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-      // Silenciar avisos de CHANNEL_ERROR/TIMED_OUT em ambiente local sem Supabase Realtime ativo
-      if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
-        console.warn(`Realtime canal ${topic}:`, status);
-      } else {
-        console.error(`Realtime canal ${topic}:`, status);
-      }
-      channels.delete(topic);
-      setTimeout(() => ensureTopic(topic), 3000);
+function sendJoin(room) {
+  if (!socket || !socket.connected) return;
+  socket.emit('join', room, (res) => {
+    if (res && res.ok === false) {
+      console.warn(`Realtime: nao foi possivel entrar na sala ${room}:`, res.error);
     }
   });
-  channels.set(topic, ch);
+}
+
+function joinRoom(room) {
+  if (!room) return;
+  const refs = (roomRefs.get(room) || 0) + 1;
+  roomRefs.set(room, refs);
+  if (refs > 1) return;
+  joinedRooms.add(room);
+  initRealtime();
+  sendJoin(room);
+}
+
+function leaveRoom(room) {
+  if (!room) return;
+  const refs = (roomRefs.get(room) || 1) - 1;
+  if (refs > 0) {
+    roomRefs.set(room, refs);
+    return;
+  }
+  roomRefs.delete(room);
+  joinedRooms.delete(room);
+  if (socket && socket.connected) socket.emit('leave', room);
+}
+
+function registerHandlers(sock) {
+  EVENTS.forEach(ev => {
+    sock.on(ev, data => notifyListeners(ev, data));
+  });
 }
 
 function initRealtime() {
-  if (!initPromise) {
-    initPromise = (async () => {
-      const cfg = await loadConfig();
-      supabaseClient = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey, {
-        realtime: { params: { eventsPerSecond: 10 } }
-      });
-      ensureTopic('admin');
-      ensureTopic('garcom');
-      console.log('Supabase Realtime conectado');
-    })().catch(e => {
-      console.error('Erro ao inicializar Realtime:', e);
-      initPromise = null;
-      // retry em 5s
-      setTimeout(() => initRealtime().catch(()=>{}), 5000);
-      throw e;
+  if (initPromise) return initPromise;
+
+  initPromise = new Promise((resolve) => {
+    if (typeof window.io !== 'function') {
+      console.error('Realtime: socket.io client nao carregado (/socket.io/socket.io.js)');
+      resolve(null);
+      return;
+    }
+
+    socket = window.io({
+      path: '/socket.io',
+      auth: { token: getToken() },
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000
     });
-  }
+
+    registerHandlers(socket);
+
+    socket.on('connect', () => {
+      console.log('Socket.io conectado');
+      // Reconectou: reentra em todas as salas ativas.
+      joinedRooms.forEach(room => sendJoin(room));
+      resolve(socket);
+    });
+
+    socket.on('connect_error', (err) => {
+      console.warn('Socket.io erro de conexao:', err.message);
+    });
+
+    socket.on('disconnect', (reason) => {
+      if (reason !== 'io client disconnect') {
+        console.warn('Socket.io desconectado:', reason);
+      }
+    });
+
+    if (socket.connected) {
+      joinedRooms.forEach(room => sendJoin(room));
+      resolve(socket);
+    }
+  });
+
   return initPromise;
 }
 
@@ -96,37 +134,27 @@ function unsubscribe(event, callback) {
 }
 
 function joinMesa(mesaId) {
-  initRealtime().then(() => ensureTopic(`mesa-${mesaId}`));
+  joinRoom(`mesa-${mesaId}`);
 }
 
 function leaveMesa(mesaId) {
-  const topic = `mesa-${mesaId}`;
-  const ch = channels.get(topic);
-  if (ch && supabaseClient) {
-    supabaseClient.removeChannel(ch);
-    channels.delete(topic);
-  }
-}
-
-function leavePedido(pedidoId) {
-  const topic = `pedido-${pedidoId}`;
-  const ch = channels.get(topic);
-  if (ch && supabaseClient) {
-    supabaseClient.removeChannel(ch);
-    channels.delete(topic);
-  }
+  leaveRoom(`mesa-${mesaId}`);
 }
 
 function joinAdmin() {
-  initRealtime().then(() => ensureTopic('admin'));
+  joinRoom('admin');
 }
 
 function joinGarcom() {
-  initRealtime().then(() => ensureTopic('garcom'));
+  joinRoom('garcom');
 }
 
 function joinPedido(pedidoId) {
-  initRealtime().then(() => ensureTopic(`pedido-${pedidoId}`));
+  joinRoom(`pedido-${pedidoId}`);
+}
+
+function leavePedido(pedidoId) {
+  leaveRoom(`pedido-${pedidoId}`);
 }
 
 // ============================================
@@ -134,10 +162,15 @@ function joinPedido(pedidoId) {
 // ============================================
 
 function subscribePixConfirmado(pedidoId, callback) {
+  joinPedido(pedidoId);
   const handler = (data) => {
-    if (data.id === pedidoId) callback(data);
+    if (String(data.id) === String(pedidoId)) callback(data);
   };
-  return subscribe('pix-confirmado', handler);
+  const unsub = subscribe('pix-confirmado', handler);
+  return () => {
+    unsub();
+    leavePedido(pedidoId);
+  };
 }
 
 function subscribePedidoStatus(pedidoId, callback) {
@@ -159,9 +192,13 @@ function subscribePedidoStatus(pedidoId, callback) {
 function subscribeComandaMesa(mesaId, callback) {
   joinMesa(mesaId);
   const handler = (data) => {
-    if (data.mesaId === mesaId) callback({ eventType: 'UPDATE' });
+    if (Number(data.mesaId) === Number(mesaId)) callback({ eventType: 'UPDATE' });
   };
-  return subscribe('comanda-atualizada', handler);
+  const unsub = subscribe('comanda-atualizada', handler);
+  return () => {
+    unsub();
+    leaveMesa(mesaId);
+  };
 }
 
 function subscribeMesasStatus(callback) {
@@ -213,12 +250,14 @@ function subscribeComandaAdmin(callback) {
 // ============================================
 
 function cleanupRealtime() {
-  if (supabaseClient) {
-    channels.forEach(ch => supabaseClient.removeChannel(ch));
-    channels.clear();
-    supabaseClient = null;
-    initPromise = null;
+  if (socket) {
+    socket.removeAllListeners();
+    socket.disconnect();
+    socket = null;
   }
+  initPromise = null;
+  joinedRooms.clear();
+  roomRefs.clear();
   listeners.clear();
 }
 

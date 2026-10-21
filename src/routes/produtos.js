@@ -2,24 +2,12 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db/database');
 const multer = require('multer');
-const crypto = require('crypto');
 const path = require('path');
-const { createClient } = require('@supabase/supabase-js');
+const { saveImage, removeByUrl } = require('../storage');
 const { middlewareAdmin } = require('../auth/auth');
 
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp', '.gif'];
-
-let storageClient = null;
-function getStorage() {
-  if (!storageClient) {
-    const url = process.env.SUPABASE_URL;
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!url || !key) throw new Error('SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY não configurados para upload');
-    storageClient = createClient(url, key, { auth: { persistSession: false } });
-  }
-  return storageClient;
-}
 
 function validarBufferImagem(buffer) {
   if (!buffer || buffer.length < 12) return false;
@@ -34,52 +22,11 @@ function validarBufferImagem(buffer) {
   return false;
 }
 
-function isStorageQuotaError(e) {
-  const msg = (e && (e.message || e.error || '')) + '';
-  return e && (e.status === 402 || e.statusCode === '402' || e.statusCode === 402 || /quota|restricted|402|egress/i.test(msg));
-}
 async function uploadFoto(file) {
   if (!validarBufferImagem(file.buffer)) {
     throw new Error('Arquivo não é uma imagem válida (conteúdo não corresponde ao tipo)');
   }
-  const fallbackDataUrl = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
-  const ext = path.extname(file.originalname).toLowerCase();
-  const nome = `${Date.now()}-${crypto.randomBytes(6).toString('hex')}${ext}`;
-  let supabase;
-  try { supabase = getStorage(); } catch (e) { return fallbackDataUrl; }
-  try {
-    const { error } = await supabase.storage.from('produtos').upload(nome, file.buffer, {
-      contentType: file.mimetype,
-      cacheControl: '31536000'
-    });
-    if (error) throw error;
-  } catch (e) {
-    if (isStorageQuotaError(e)) {
-      console.warn('Supabase Storage bloqueado (quota 402) — salvando imagem como data URL');
-      return fallbackDataUrl;
-    }
-    if (/Bucket not found/i.test(e.message)) {
-      try {
-        const { error: createErr } = await supabase.storage.createBucket('produtos', { public: true });
-        if (createErr && !/already exists/i.test(createErr.message)) throw createErr;
-        const { error: retryErr } = await supabase.storage.from('produtos').upload(nome, file.buffer, {
-          contentType: file.mimetype,
-          cacheControl: '31536000'
-        });
-        if (retryErr) throw retryErr;
-      } catch (e2) {
-        if (isStorageQuotaError(e2)) {
-          console.warn('Supabase Storage bloqueado (quota 402) — salvando imagem como data URL');
-          return fallbackDataUrl;
-        }
-        throw e2;
-      }
-    } else {
-      throw e;
-    }
-  }
-  const { data } = supabase.storage.from('produtos').getPublicUrl(nome);
-  return data.publicUrl;
+  return saveImage(file.buffer, file.originalname, 'produtos');
 }
 
 function fileFilter(req, file, cb) {
@@ -255,6 +202,7 @@ router.put('/:id', middlewareAdmin, upload.single('foto'), wrapAsync(async (req,
     if (isNaN(pn) || pn < 0) return res.status(400).json({ error: 'Preço inválido (deve ser >= 0)' });
   }
   const foto = req.file ? await uploadFoto(req.file) : existing.foto;
+  const fotoAntiga = existing.foto;
   const soGarcom = somente_garcom !== undefined ? (somente_garcom === true || somente_garcom === '1') : existing.somente_garcom;
   const limiteSab = limite_sabores !== undefined ? (parseInt(limite_sabores) || 0) : existing.limite_sabores;
 
@@ -272,6 +220,10 @@ router.put('/:id', middlewareAdmin, upload.single('foto'), wrapAsync(async (req,
     req.params.id
   );
 
+  if (req.file && fotoAntiga && fotoAntiga !== foto) {
+    await removeByUrl(fotoAntiga);
+  }
+
   await db.run('DELETE FROM produto_adicionais WHERE produto_id = $1', req.params.id);
   if (adicionais_ids) {
     let ids;
@@ -287,7 +239,9 @@ router.put('/:id', middlewareAdmin, upload.single('foto'), wrapAsync(async (req,
 
 router.delete('/:id', middlewareAdmin, wrapAsync(async (req, res) => {
   try {
+    const existing = await db.get('SELECT foto FROM produtos WHERE id = $1', req.params.id);
     await db.run('DELETE FROM produtos WHERE id = $1', req.params.id);
+    if (existing && existing.foto) await removeByUrl(existing.foto);
     res.json({ success: true });
   } catch (e) {
     res.status(409).json({ error: 'Não foi possível excluir este produto.' });

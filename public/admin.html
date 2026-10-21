@@ -4,22 +4,27 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Painel Admin - Lanchonete</title>
-  <link rel="stylesheet" href="/css/admin.css?v=20261017d">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="/css/admin.css?v=20261020t">
+  <script src="/socket.io/socket.io.js"></script>
   <script>
     // Redirect imediato para login se acessar /admin diretamente
     // Só permite acesso se veio de login bem-sucedido (flag no sessionStorage)
     // A flag persiste até logout explícito (não é consumida no carregamento)
     (function() {
-      const cameFromLogin = sessionStorage.getItem('admin_logged_in');
-      if (!cameFromLogin) {
+      const cameFromLogin = sessionStorage.getItem('admin_logged_in') === '1';
+      let token = null, perfil = null;
+      try {
+        token = localStorage.getItem('auth_token');
+        perfil = localStorage.getItem('auth_perfil');
+      } catch (e) {}
+      // Permite refresh/nova aba quando já existe sessão válida de admin.
+      if (!cameFromLogin && !(token && perfil === 'admin')) {
         sessionStorage.removeItem('admin_logged_in');
         localStorage.removeItem('auth_token');
         localStorage.removeItem('auth_perfil');
         localStorage.removeItem('auth_nome');
         window.location.href = '/login-admin';
       }
-      // Flag NÃO é removida aqui - persiste até logout explícito
     })();
   </script>
 </head>
@@ -32,7 +37,6 @@
     <div class="sidebar-header">
       <img src="/logo.jpeg" id="site-logo-admin" alt="Logo" style="height: 40px; width: auto; margin-bottom: 12px;" onerror="this.src='/logo.jpeg'">
       <h2 class="sidebar-title">PDV</h2>
-      <button class="sidebar-close" onclick="toggleSidebar()" aria-label="Fechar menu">&#10005;</button>
     </div>
     <ul class="nav-list">
       <li class="nav-item active" onclick="showSection('pedidos', this)"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> Pedidos</li>
@@ -51,7 +55,7 @@
 
   <div class="main">
     <header class="topbar">
-      <button class="menu-btn" onclick="toggleSidebar()" aria-label="Abrir menu">&#9776;</button>
+      <button class="menu-btn" onclick="toggleSidebarCollapse()" aria-label="Alternar menu">☰</button>
       <h1 id="page-title" class="topbar-title">Pedidos</h1>
       <div class="topbar-right">
         <div id="admin-relogio" class="admin-relogio" title="Horário de Brasília (GMT-3)">
@@ -717,10 +721,10 @@
   <audio id="som-alert" preload="auto"><source src="/sounds/alert.wav" type="audio/wav"></audio>
   <audio id="som-notification" preload="auto"><source src="/sounds/notification.wav" type="audio/wav"></audio>
   <script src="/js/img-fallback.js?v=20261003a"></script>
-  <script src="/js/realtime.js?v=20260829d"></script>
+  <script src="/js/realtime.js?v=20261021a"></script>
   <script src="/js/auth.js?v=20260829d"></script>
   <script src="/js/pizza-modal.js?v=20260831b"></script>
-  <script src="/js/admin.js?v=20261017d"></script>
+  <script src="/js/admin.js?v=20261020n"></script>
   <script>
     // Demo: esconde logo original
     (function(){

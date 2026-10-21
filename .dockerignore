@@ -6,10 +6,9 @@ lanchonete.db
 lanchonete.db-shm
 lanchonete.db-wal
 
-# Environment
-.env
-.env.local
-.env.production
+# Environment (nunca copiar segredos para a imagem)
+.env*
+!.env.example
 
 # Logs
 *.log
@@ -48,12 +47,24 @@ tmp/
 temp/
 *.tmp
 
-# Uploads (if any)
-public/uploads/
+# Uploads (if any) - mantem as imagens migradas no build
+public/uploads/*
+!public/uploads/migrados/
+!public/uploads/migrados/**
 
 # Documentation
 *.md
 !README.md
+
+# Android/TWA (keystore e builds não vão para a imagem)
+*.keystore
+*.jks
+.gradle/
+android/
+app/build/
+twa-manifest.json
+manifest-checksum.txt
+store_icon.png
 
 # Railway
 railway.toml

@@ -34,8 +34,10 @@ tmp/
 temp/
 *.tmp
 
-# Uploads (if any)
-public/uploads/
+# Uploads (if any) - imagens migradas do Supabase ficam versionadas
+public/uploads/*
+!public/uploads/migrados/
+!public/uploads/migrados/**
 .vercel
 .env*
 
@@ -49,6 +51,12 @@ test_dbwrapper.js
 # Binarios/locais
 cloudflared.exe
 *.old
+
+# Android/TWA (nunca versionar keystore nem builds)
+*.keystore
+*.jks
+.gradle/
+app/build/
 
 # Temporários de simulação/carga e debug local
 .tmp-simulacao.js
