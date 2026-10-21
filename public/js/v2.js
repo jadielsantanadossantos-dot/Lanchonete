@@ -267,7 +267,7 @@ V2.mostrarConta=function(){
     const foot=`<button class="v2-btn v2-btn-primary" onclick="V2.abrirAcompanhar()">Meus pedidos</button><button class="v2-btn v2-btn-outline" style="margin-top:8px" onclick="V2.mostrarEdicao()">Editar cadastro</button><button class="v2-btn v2-btn-outline" style="margin-top:8px" onclick="V2.sairConta()">Sair da conta</button>`;
     openDrawer('Minha conta',body,foot); return;
   }
-  const body=`<div style="display:flex;gap:8px;margin-bottom:12px"><button class="v2-btn v2-btn-primary" style="flex:1" onclick="V2.mostrarCadastro()">Cadastrar</button><button class="v2-btn v2-btn-outline" style="flex:1" onclick="V2.mostrarEntrar()">Entrar</button></div><div id="v2-conta-form"></div><div id="v2-conta-err" style="color:#E74C3C;font-size:.82rem;margin-top:6px"></div>`;
+  const body=`<div style="display:flex;gap:8px;margin-bottom:12px"><button class="v2-btn v2-btn-primary" style="flex:1" onclick="V2.mostrarCadastro()">Cadastrar</button><button class="v2-btn v2-btn-outline" style="flex:1" onclick="V2.mostrarEntrar()">Entrar</button></div><button class="v2-btn v2-btn-primary" onclick="V2.abrirAcompanhar()" style="width:100%;margin-top:8px">Meus pedidos</button><div id="v2-conta-form"></div><div id="v2-conta-err" style="color:#E74C3C;font-size:.82rem;margin-top:6px"></div>`;
   openDrawer('Minha conta',body,''); V2.mostrarCadastro();
 };
 V2.mostrarCadastro=function(){
