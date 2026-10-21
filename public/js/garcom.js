@@ -408,7 +408,11 @@ function renderComanda() {
     let itemTotal = item.preco_unitario * item.quantidade;
     const adcText = (item.adicionais || []).map(a => {
       itemTotal += a.preco * item.quantidade;
-      return `+ ${escapeHtml(a.nome)} (R$ ${a.preco.toFixed(2)})`;
+      let prefix = '+ ';
+      if (a.tipo && a.tipo !== 'adicional') {
+        prefix = `[${a.tipo.toUpperCase()}] `;
+      }
+      return `${prefix}${escapeHtml(a.nome)} (R$ ${a.preco.toFixed(2)})`;
     }).join(', ');
 
     const isNovo = !item.enviado_cozinha;

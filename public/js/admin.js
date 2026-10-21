@@ -708,7 +708,10 @@ function _gerarHtmlComanda(p){
               ${item.adicionais.map(a=>{
                 const borda = isBordaAdicional(a);
                 const cls = borda ? 'adic-linha adic-linha--borda' : 'adic-linha';
-                const pref = borda ? '🧀 BORDA RECHEADA: ' : '↳ ';
+                let pref = borda ? '🧀 BORDA RECHEADA: ' : '↳ ';
+                if (!borda && a.tipo && a.tipo !== 'adicional') {
+                   pref = `[${a.tipo.toUpperCase()}]: `;
+                }
                 const nEx=borda?_displayBordaNome(a):a.adicional_nome;
                 return `<div class="${cls}"><span class="adic-nome">${pref}${escapeHtml(nEx)}</span><span class="adic-val">${a.preco > 0 ? 'R$ ' + ((parseFloat(a.preco)||0) * (parseFloat(item.quantidade)||0)).toFixed(2) : 'Incluído'}</span></div>`;
               }).join('')}

@@ -163,7 +163,11 @@ function syncCart(){
     else {
       sideBody.innerHTML=c.map((it,i)=>{
         const qTexto=it.unidade==='kg'?(window.formatarPeso?window.formatarPeso(it.quantidade):it.quantidade+' kg'):`${it.quantidade}x`;
-        let adc=(it.adicionais||[]).map(a=>`+ ${esc(a.nome)}${a.preco>0?' (+R$ '+Number(a.preco).toFixed(2)+')':''}`).join(', ');
+        let adc=(it.adicionais||[]).map(a=>{
+        let prefix='+ ';
+        if(a.tipo && a.tipo!=='adicional') prefix=`[${a.tipo.toUpperCase()}] `;
+        return `${prefix}${esc(a.nome)}${a.preco>0?' (+R$ '+Number(a.preco).toFixed(2)+')':''}`;
+      }).join(', ');
         let lineTot=Number(it.preco_unitario)*Number(it.quantidade); (it.adicionais||[]).forEach(a=>lineTot+=Number(a.preco)*Number(it.quantidade));
         return `<div class="v2-cart-item"><div class="v2-cart-item-head"><div style="flex:1;min-width:0"><div class="v2-cart-item-name">${esc(it.produto_nome)}</div>${adc?`<div class="v2-cart-item-meta">${adc}</div>`:''}${it.observacao?`<div class="v2-cart-item-meta">Obs: ${esc(it.observacao)}</div>`:''}${it.unidade==='un'?`<div style="display:flex;align-items:center;gap:6px;margin-top:6px"><button class="v2-qty-btn" onclick="V2.qtdCarrinho(${i},-1)">−</button><span style="font-weight:800;min-width:18px;text-align:center">${it.quantidade}</span><button class="v2-qty-btn" onclick="V2.qtdCarrinho(${i},1)">+</button></div>`:`<div class="v2-cart-item-meta" style="color:var(--color-primary);font-weight:700;margin-top:4px">${qTexto}</div>`}</div><div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:6px"><div class="v2-cart-item-price">R$ ${lineTot.toFixed(2)}</div><button class="v2-remove" onclick="V2.remover(${i})" aria-label="Remover">×</button></div></div></div>`;
       }).join('');
@@ -198,7 +202,11 @@ function renderDrawerCart(){
   const c=getCarrinho(); const {sub,taxa,total}=calcTotais();
   if(!c.length){ openDrawer('Carrinho','<div class="v2-empty">Carrinho vazio</div>','<button class="v2-btn v2-btn-outline" onclick="V2.fecharDrawer()">Continuar comprando</button>'); return; }
   const body=c.map((it,i)=>{
-    let adc=(it.adicionais||[]).map(a=>`+ ${esc(a.nome)}${a.preco>0?' (+R$ '+Number(a.preco).toFixed(2)+')':''}`).join('<br>');
+    let adc=(it.adicionais||[]).map(a=>{
+      let prefix='+ ';
+      if(a.tipo && a.tipo!=='adicional') prefix=`[${a.tipo.toUpperCase()}] `;
+      return `${prefix}${esc(a.nome)}${a.preco>0?' (+R$ '+Number(a.preco).toFixed(2)+')':''}`;
+    }).join('<br>');
     let lineTot=Number(it.preco_unitario)*Number(it.quantidade); (it.adicionais||[]).forEach(a=>lineTot+=Number(a.preco)*Number(it.quantidade));
     const qTexto=it.unidade==='kg'?(window.formatarPeso?window.formatarPeso(it.quantidade):it.quantidade+' kg'):`${it.quantidade}x`;
     return `<div class="v2-cart-item"><div class="v2-cart-item-head"><div style="flex:1"><div class="v2-cart-item-name">${esc(it.produto_nome)}</div>${adc?`<div class="v2-cart-item-meta">${adc}</div>`:''}${it.observacao?`<div class="v2-cart-item-meta">Obs: ${esc(it.observacao)}</div>`:''}${it.unidade==='un'?`<div style="display:flex;align-items:center;gap:6px;margin-top:6px"><button class="v2-qty-btn" onclick="V2.qtdCarrinho(${i},-1)">−</button><span style="font-weight:800">${it.quantidade}</span><button class="v2-qty-btn" onclick="V2.qtdCarrinho(${i},1)">+</button></div>`:`<div class="v2-cart-item-meta" style="color:var(--color-primary);font-weight:700">${qTexto}</div>`}</div><div style="text-align:right"><div class="v2-cart-item-price">R$ ${lineTot.toFixed(2)}</div><button class="v2-remove" onclick="V2.remover(${i})">×</button></div></div></div>`;

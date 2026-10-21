@@ -1408,7 +1408,11 @@ async function carregarDetalhesPedido(pedidoId) {
       const qtdTexto = item.unidade === 'kg' ? formatarPeso(Number(item.quantidade)) : `${item.quantidade}x`;
       let line = `<div class="pedido-item-line">${qtdTexto} ${escapeHtml(item.produto_nome)} - R$ ${(item.preco_unitario * item.quantidade).toFixed(2)}</div>`;
       if (item.adicionais && item.adicionais.length) {
-        line += item.adicionais.map(a => `<div class="pedido-item-adicional">+ ${escapeHtml(a.adicional_nome)} (R$ ${a.preco.toFixed(2)})</div>`).join('');
+        line += item.adicionais.map(a => {
+          let prefix = '+ ';
+          if (a.tipo && a.tipo !== 'adicional') prefix = `[${a.tipo.toUpperCase()}] `;
+          return `<div class="pedido-item-adicional">${prefix}${escapeHtml(a.adicional_nome || a.nome)} (R$ ${a.preco.toFixed(2)})</div>`;
+        }).join('');
       }
       if (item.observacao) line += `<div class="pedido-item-adicional">Obs: ${escapeHtml(item.observacao)}</div>`;
       return line;
