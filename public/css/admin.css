@@ -469,11 +469,11 @@ body { font-family: var(--font-sans); background: var(--color-bg); color: var(--
 .pedido-card.status-cancelado { border-left-color: var(--color-danger); opacity: 0.7; }
 
 .pedido-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--space-3); flex-wrap: wrap; gap: var(--space-2); }
-.pedido-id { font-weight: var(--font-bold); font-size: var(--text-lg); color: var(--color-text); }
+.pedido-id { font-weight: var(--font-bold); font-size: var(--text-2xl); color: var(--color-text); }
 .pedido-time { font-size: var(--text-sm); color: var(--color-text-muted); white-space: nowrap; }
 .pedido-meta { display: flex; flex-direction: column; gap: var(--space-2); margin-bottom: var(--space-3); flex: 1; min-width: 0; }
 .pedido-cliente { font-weight: var(--font-semibold); font-size: var(--text-base); color: var(--color-text); word-break: break-word; }
-.pedido-tel { font-size: var(--text-sm); color: var(--color-text-muted); }
+.pedido-tel { font-size: var(--text-lg); font-weight: var(--font-medium); color: var(--color-text-secondary); }
 .pedido-endereco { font-size: var(--text-sm); color: var(--color-text-secondary); padding: var(--space-2) var(--space-3); background: var(--color-bg-alt); border-radius: var(--radius); display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; min-width: 0; }
 .pedido-obs { font-size: var(--text-sm); color: var(--color-warning); font-style: italic; background: var(--color-warning-soft); padding: var(--space-2) var(--space-3); border-radius: var(--radius); display: inline-flex; align-items: center; gap: var(--space-2); max-width: 100%; }
 
@@ -483,7 +483,7 @@ body { font-family: var(--font-sans); background: var(--color-bg); color: var(--
 .pedido-item-line--novo { background: #FFFBEB !important; border: 1px solid #F59E0B !important; border-left: 4px solid #F59E0B !important; border-radius: 8px; padding: 6px 8px !important; margin: 4px 0; animation: pulseNovo 2s infinite; }
 .badge-item-novo { display: inline-flex; align-items: center; background: #F59E0B; color: white; font-size: 0.6rem; font-weight: 800; padding: 1px 6px; border-radius: 9999px; margin-left: 6px; letter-spacing: 0.3px; }
 .pedido-item-name { font-weight: var(--font-medium); color: var(--color-text); flex: 1; min-width: 0; }
-.pedido-item-qty { color: var(--color-text-secondary); margin: 0 var(--space-2); white-space: nowrap; }
+.pedido-item-qty { font-size: var(--text-lg); font-weight: var(--font-bold); color: var(--color-primary); margin: 0 var(--space-2); white-space: nowrap; }
 .pedido-item-price { font-weight: var(--font-bold); color: var(--color-primary); white-space: nowrap; }
 .pedido-item-adicional { color: var(--color-text-muted); font-size: var(--text-xs); padding-left: var(--space-3); display: flex; justify-content: space-between; gap: var(--space-2); }
 .pedido-item-adicional > span:first-child { min-width: 0; overflow-wrap: anywhere; }
