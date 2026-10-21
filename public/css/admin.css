@@ -485,7 +485,8 @@ body { font-family: var(--font-sans); background: var(--color-bg); color: var(--
 .pedido-item-name { font-weight: var(--font-medium); color: var(--color-text); flex: 1; min-width: 0; }
 .pedido-item-qty { font-size: var(--text-lg); font-weight: var(--font-bold); color: var(--color-primary); margin: 0 var(--space-2); white-space: nowrap; }
 .pedido-item-price { font-weight: var(--font-bold); color: var(--color-primary); white-space: nowrap; }
-.pedido-item-adicional { color: var(--color-text-muted); font-size: var(--text-xs); padding-left: var(--space-3); display: flex; justify-content: space-between; gap: var(--space-2); }
+.pedido-item-adicional { color: var(--color-primary-dark); font-size: var(--text-xs); padding-left: var(--space-4); display: flex; justify-content: space-between; gap: var(--space-2); font-weight: 600; }
+.pedido-item-adicional::before { content: '•'; margin-right: 4px; color: var(--color-text-muted); }
 .pedido-item-adicional > span:first-child { min-width: 0; overflow-wrap: anywhere; }
 .pedido-item-adicional > span:last-child { white-space: nowrap; flex-shrink: 0; }
 
