@@ -39,11 +39,6 @@ function buildApp() {
     credentials: false
   };
 
-  const supabaseOrigin = process.env.SUPABASE_URL
-    ? process.env.SUPABASE_URL.replace(/\/$/, '')
-    : '';
-  const supabaseWss = supabaseOrigin ? supabaseOrigin.replace('https://', 'wss://') : '';
-
   const cspValue = `
     default-src 'self';
     script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com https://*.cloudflareinsights.com https://cloudflareinsights.com;
@@ -51,7 +46,7 @@ function buildApp() {
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
     font-src 'self' https://fonts.gstatic.com;
     img-src 'self' data: blob: https: http: /uploads/ https://images.unsplash.com https://*.unsplash.com https://via.placeholder.com https://picsum.photos;
-    connect-src 'self' ${supabaseOrigin} ${supabaseWss} ws: wss: https://viacep.com.br https://fonts.googleapis.com https://fonts.gstatic.com;
+    connect-src 'self' ws: wss: https://viacep.com.br https://fonts.googleapis.com https://fonts.gstatic.com https://cloudflareinsights.com;
     object-src 'none';
     frame-ancestors 'none';
     base-uri 'self';

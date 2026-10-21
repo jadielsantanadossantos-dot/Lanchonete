@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lanchonete-v2';
+const CACHE_NAME = 'lanchonete-v3';
 const urlsToCache = [
   '/',
   '/css/admin.css',
