@@ -28,8 +28,13 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
-  // Ignorar rotas de websocket e esquema não-http
-  if (!event.request.url.startsWith('http')) return;
+  // Ignorar: não-http, websockets, e origens cruzadas (Google Fonts, Cloudflare Insights, etc)
+  const url = event.request.url;
+  if (!url.startsWith('http') || url.startsWith('ws')) return;
+  // Não interceptar fontes do Google e scripts de analytics - deixar o browser gerenciar
+  if (url.includes('fonts.googleapis.com') || url.includes('fonts.gstatic.com') || url.includes('cloudflareinsights.com')) {
+    return;
+  }
   event.respondWith(
     fetch(event.request).catch(err => {
       return caches.match(event.request).then(res => res || Promise.reject(err));
