@@ -1980,33 +1980,46 @@ function adicionarItemWhatsApp(item) {
 }
 
 async function abrirModalPedidoWhatsApp() {
-  whatsappCarrinho = [];
-  whatsappCategoriaFiltro = '';
-  document.getElementById('whatsapp-cliente-nome').value = '';
-  document.getElementById('whatsapp-cliente-telefone').value = '';
-  document.getElementById('whatsapp-cliente-cep').value = '';
-  document.getElementById('whatsapp-cliente-bairro').value = '';
-  document.getElementById('whatsapp-cliente-rua').value = '';
-  document.getElementById('whatsapp-cliente-numero').value = '';
-  document.getElementById('whatsapp-cliente-complemento').value = '';
-  document.getElementById('whatsapp-cliente-referencia').value = '';
-  document.getElementById('whatsapp-forma-pagamento').value = 'pix';
-  document.getElementById('whatsapp-troco-box').style.display = 'none';
-  document.getElementById('whatsapp-observacoes').value = '';
-  document.getElementById('whatsapp-busca-produto').value = '';
-  const radioEntrega=document.querySelector('input[name="whatsapp-tipo"][value="entrega"]');
-  if(radioEntrega) radioEntrega.checked=true;
-  document.getElementById('modal-pedido-whatsapp').classList.add('active');
   try {
+    whatsappCarrinho = [];
+    whatsappCategoriaFiltro = '';
+    safeSetValue('whatsapp-cliente-nome', '');
+    safeSetValue('whatsapp-cliente-telefone', '');
+    safeSetValue('whatsapp-cliente-cep', '');
+    safeSetValue('whatsapp-cliente-bairro', '');
+    safeSetValue('whatsapp-cliente-rua', '');
+    safeSetValue('whatsapp-cliente-numero', '');
+    safeSetValue('whatsapp-cliente-complemento', '');
+    safeSetValue('whatsapp-cliente-referencia', '');
+    safeSetValue('whatsapp-forma-pagamento', 'pix');
+    safeHide('whatsapp-troco-box');
+    safeSetValue('whatsapp-observacoes', '');
+    safeSetValue('whatsapp-busca-produto', '');
+    const radioEntrega=document.querySelector('input[name="whatsapp-tipo"][value="entrega"]');
+    if(radioEntrega) radioEntrega.checked=true;
+    
+    const modal = document.getElementById('modal-pedido-whatsapp');
+    if (!modal) { console.error('Modal WhatsApp não encontrado'); showToast('Erro interno'); return; }
+    modal.classList.add('active');
+    
     await carregarDadosWhatsApp();
+    alternarTipoWhatsApp();
+    renderCarrinhoWhatsApp();
   } catch (e) {
-    console.error('Erro ao carregar dados WhatsApp:', e);
+    console.error('Erro ao abrir modal WhatsApp:', e);
     showToast('Erro ao carregar dados do pedido');
     fecharModalPedidoWhatsApp();
-    return;
   }
-  alternarTipoWhatsApp();
-  renderCarrinhoWhatsApp();
+}
+
+function safeSetValue(id, value) {
+  const el = document.getElementById(id);
+  if (el) el.value = value;
+}
+
+function safeHide(id) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = 'none';
 }
 
 function fecharModalPedidoWhatsApp() {
