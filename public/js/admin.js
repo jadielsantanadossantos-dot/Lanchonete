@@ -360,7 +360,10 @@ function renderPedidoCard(p) {
       line += i.adicionais.map(a => {
         const borda = isBordaAdicional(a);
         const cls = borda ? 'pedido-item-adicional--borda' : 'pedido-item-adicional';
-        const prefix = borda ? '🧀 BORDA: ' : '+ ';
+        let prefix = borda ? '🧀 BORDA: ' : '+ ';
+        if (!borda && a.tipo && a.tipo !== 'adicional') {
+           prefix = `[${a.tipo.toUpperCase()}]: `;
+        }
         const nomeExib = borda ? _displayBordaNome(a) : a.adicional_nome;
         return `<div class="${cls}"><span>${prefix}${escapeHtml(nomeExib)}</span><span>${a.preco>0?'R$ '+(a.preco * i.quantidade).toFixed(2):'Incluído'}</span></div>`;
       }).join('');
