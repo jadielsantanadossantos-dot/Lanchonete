@@ -709,10 +709,13 @@ function _gerarHtmlComanda(p){
                 const borda = isBordaAdicional(a);
                 const cls = borda ? 'adic-linha adic-linha--borda' : 'adic-linha';
                 let pref = borda ? '🧀 BORDA RECHEADA: ' : '↳ ';
+                const adicNome = a.adicional_nome || a.nome || '';
                 if (!borda && a.tipo && a.tipo !== 'adicional') {
-                   pref = `[${a.tipo.toUpperCase()}]: `;
+                   pref = `[${a.tipo.toUpperCase()}] `;
+                } else if (!borda) {
+                   pref = `[ADICIONAL] `;
                 }
-                const nEx=borda?_displayBordaNome(a):a.adicional_nome;
+                const nEx = borda ? _displayBordaNome(a) : adicNome;
                 return `<div class="${cls}"><span class="adic-nome">${pref}${escapeHtml(nEx)}</span><span class="adic-val">${a.preco > 0 ? 'R$ ' + ((parseFloat(a.preco)||0) * (parseFloat(item.quantidade)||0)).toFixed(2) : 'Incluído'}</span></div>`;
               }).join('')}
             </div>
@@ -765,7 +768,7 @@ function _gerarHtmlComanda(p){
   .item-bloco { border-bottom: 1px dashed #000; padding: 0 0 2mm 0; margin: 0 0 2mm 0; }
   .item-bloco:last-child { border-bottom: none; padding-bottom: 0; margin-bottom: 0; }
   .item-header { display: flex; align-items: center; gap: 2mm; font-size: 12px; border-bottom: 1px solid #000; padding-bottom: 1.5mm; margin-bottom: 1.5mm; }
-  .item-qty { border: 1.5px solid #000; font-weight: 900; font-size: 11px; padding: 1mm 2mm; min-width: 10mm; text-align: center; flex-shrink: 0; background: #fff; color: #000; }
+  .item-qty { border: 1.5px solid #000; font-weight: 900; font-size: 13px; padding: 1mm 2.5mm; min-width: 11mm; text-align: center; flex-shrink: 0; background: #000; color: #fff; }
   .item-nome { flex: 1; font-weight: 900; font-size: 13px; text-transform: uppercase; letter-spacing: 0.3px; }
   .item-val { font-weight: 900; white-space: nowrap; font-size: 12px; border: 1px solid #000; padding: 0.5mm 2mm; background: #fff; color: #000; }
   .item-detalhe { font-size: 8px; margin: 1mm 0 0 0; font-style: italic; font-weight: 600; color: #000; }
