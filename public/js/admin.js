@@ -1997,7 +1997,14 @@ async function abrirModalPedidoWhatsApp() {
   const radioEntrega=document.querySelector('input[name="whatsapp-tipo"][value="entrega"]');
   if(radioEntrega) radioEntrega.checked=true;
   document.getElementById('modal-pedido-whatsapp').classList.add('active');
-  await carregarDadosWhatsApp();
+  try {
+    await carregarDadosWhatsApp();
+  } catch (e) {
+    console.error('Erro ao carregar dados WhatsApp:', e);
+    showToast('Erro ao carregar dados do pedido');
+    fecharModalPedidoWhatsApp();
+    return;
+  }
   alternarTipoWhatsApp();
   renderCarrinhoWhatsApp();
 }
@@ -2131,7 +2138,10 @@ async function carregarDadosWhatsApp() {
       window.__pizzaCfgWhatsApp={ produtos: whatsappProdutos, toast: showToast, onAdd:item=>adicionarItemWhatsApp(item) };
     }
     renderProdutosWhatsApp();
-  } catch(e){ showToast('Erro ao carregar dados do pedido'); }
+  } catch(e){
+    console.error('carregarDadosWhatsApp falhou:', e);
+    throw e;
+  }
 }
 
 function filtrarCategoriaWhatsApp(cat) {
