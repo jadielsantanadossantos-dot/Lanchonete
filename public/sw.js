@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lanchonete-v1';
+const CACHE_NAME = 'lanchonete-v2';
 const urlsToCache = [
   '/',
   '/css/admin.css',
@@ -28,7 +28,11 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
+  // Ignorar rotas de websocket e esquema não-http
+  if (!event.request.url.startsWith('http')) return;
   event.respondWith(
-    fetch(event.request).catch(() => caches.match(event.request))
+    fetch(event.request).catch(err => {
+      return caches.match(event.request).then(res => res || Promise.reject(err));
+    })
   );
 });
