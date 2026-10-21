@@ -2040,6 +2040,7 @@ function isPorPeso(p){
 }
 
 function whatsappProdutoCardHtml(p){
+  if(!p.adicionais) p.adicionais = [];
   return `
     <div class="product-card" onclick="abrirModalWhatsAppQtd(${p.id})">
       <div class="product-media">
@@ -2204,7 +2205,7 @@ function abrirModalWhatsAppQtd(prodId) {
   document.getElementById('whatsapp-qtd-obs').value = '';
   const adcBox = document.getElementById('whatsapp-qtd-adicionais');
   const adcList = document.getElementById('whatsapp-qtd-adicionais-lista');
-  const adicionaisAcaI = whatsappProdutoSelecionado.adicionais.filter(a=>['base','cobertura','acompanhamento'].includes(a.tipo));
+  const adicionaisAcaI = (whatsappProdutoSelecionado.adicionais || []).filter(a=>['base','cobertura','acompanhamento'].includes(a.tipo));
   const isAcaI = adicionaisAcaI.length>0;
   if(whatsappProdutoSelecionado.adicionais && whatsappProdutoSelecionado.adicionais.length){
     adcBox.style.display='block';
