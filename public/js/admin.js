@@ -778,8 +778,8 @@ function _gerarHtmlComanda(p){
 <title>Comanda #${p.id}</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { width: 80mm; font-family: 'Courier New', monospace; font-size: 11px; color: #000; padding: 0; background: #fff; font-weight: 700; }
-  .ticket * { font-weight: 700 !important; }
+  body { width: 80mm; font-family: 'Courier New', monospace; font-size: 11px; color: #000 !important; padding: 0; background: #fff !important; font-weight: 700; }
+  .ticket * { font-weight: 700 !important; color: #000 !important; background: #fff !important; }
   .ticket { padding: 4mm; }
   .header { text-align: center; padding: 3mm 2mm; border-bottom: 2px solid #000; margin-bottom: 3mm; }
   .header h1 { font-size: 16px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; }
@@ -793,13 +793,13 @@ function _gerarHtmlComanda(p){
   .sep-strong { border-top: 2px solid #000; margin: 3mm 0; }
   .itens-lista { border: 2px solid #000; padding: 2.5mm; margin: 3mm 0; }
   .itens-titulo { font-size: 9px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; text-align: center; border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 1.5mm 0; margin-bottom: 2mm; }
-  .item-bloco--pizza-borda { border: 2.5px solid #000 !important; background: #FFF7ED !important; padding: 2mm !important; }
-  .badge-borda-print { display: inline-block; border: 1.5px solid #000; padding: 0.5mm 2mm; font-size: 9px; font-weight: 900; background: #000; color: #fff; margin-left: 1.5mm; vertical-align: middle; }
-  .adic-linha--borda { background: #FFF7ED !important; border: 1.5px solid #000 !important; padding: 1.5mm 2mm !important; margin: 1mm 0; font-size: 12px !important; }
+  .item-bloco--pizza-borda { border: 2.5px solid #000 !important; background: #fff !important; padding: 2mm !important; }
+  .badge-borda-print { display: inline-block; border: 1.5px solid #000; padding: 0.5mm 2mm; font-size: 9px; font-weight: 900; background: #fff; color: #000; margin-left: 1.5mm; vertical-align: middle; }
+  .adic-linha--borda { background: #fff !important; border: 1.5px solid #000 !important; padding: 1.5mm 2mm !important; margin: 1mm 0; font-size: 12px !important; }
   .item-bloco { border-bottom: 1px dashed #000; padding: 0 0 2mm 0; margin: 0 0 2mm 0; }
   .item-bloco:last-child { border-bottom: none; padding-bottom: 0; margin-bottom: 0; }
   .item-header { display: flex; align-items: center; gap: 2mm; font-size: 12px; border-bottom: 1px solid #000; padding-bottom: 1.5mm; margin-bottom: 1.5mm; }
-  .item-qty { border: 1.5px solid #000; font-weight: 900; font-size: 13px; padding: 1mm 2.5mm; min-width: 11mm; text-align: center; flex-shrink: 0; background: #000; color: #fff; }
+  .item-qty { border: 1.5px solid #000; font-weight: 900; font-size: 13px; padding: 1mm 2.5mm; min-width: 11mm; text-align: center; flex-shrink: 0; background: #fff; color: #000; }
   .item-nome { flex: 1; font-weight: 900; font-size: 13px; text-transform: uppercase; letter-spacing: 0.3px; }
   .item-val { font-weight: 900; white-space: nowrap; font-size: 12px; border: 1px solid #000; padding: 0.5mm 2mm; background: #fff; color: #000; }
   .item-detalhe { font-size: 8px; margin: 1mm 0 0 0; font-style: italic; font-weight: 600; color: #000; }
