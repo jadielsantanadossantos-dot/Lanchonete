@@ -247,9 +247,11 @@ body { font-family: var(--font-sans); background: var(--color-bg); color: var(--
     transition: margin-left var(--transition-slow), width var(--transition-slow);
   }
   .topbar {
+    position: fixed;
+    top: 0;
+    right: 0;
     width: calc(100% - var(--sidebar-w));
-    margin-left: var(--sidebar-w);
-    transition: width var(--transition-slow), margin-left var(--transition-slow);
+    transition: width var(--transition-slow);
   }
   .sidebar.collapsed ~ .main,
   .sidebar.collapsed + .main {
@@ -259,7 +261,6 @@ body { font-family: var(--font-sans); background: var(--color-bg); color: var(--
   .sidebar.collapsed ~ .topbar,
   .sidebar.collapsed + .topbar {
     width: 100%;
-    margin-left: 0;
   }
 }
 
