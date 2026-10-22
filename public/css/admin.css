@@ -889,26 +889,41 @@ textarea.form-control { min-height: 100px; resize: vertical; }
 }
 
 /* Mobile refinement for topbar */
-@media (max-width: 479px) {
+@media (max-width: 767px) {
   .topbar { 
-    padding: var(--space-2); 
+    padding: var(--space-2) var(--space-3); 
     gap: var(--space-2);
+    flex-wrap: nowrap; /* Não quebra linha em 2 andares, fica tudo em uma barra limpa */
+    justify-content: space-between;
+  }
+  .topbar-title {
+    font-size: 1rem;
+    flex: 0 1 auto;
   }
   .topbar-right {
-    gap: var(--space-1);
+    gap: 6px;
+    flex-wrap: nowrap;
+    align-items: center;
+  }
+  .admin-relogio {
+    display: none; /* Oculta relógio no mobile para economizar espaço valioso */
   }
   .loja-status-btn {
-    padding: 6px 10px;
-    font-size: 0.75rem;
+    padding: 4px 8px;
+    font-size: 0.7rem;
+    min-height: 32px;
   }
   .topbar-right .btn-sm {
-    padding: 4px 6px;
-    font-size: 0.7rem;
+    padding: 4px 8px;
+    font-size: 0.75rem;
+    min-height: 32px;
   }
-  .badge {
-    position: absolute;
-    top: 5px;
-    right: 5px;
+  .topbar .badge {
+    position: static;
+    min-width: 18px;
+    height: 18px;
+    font-size: 10px;
+    padding: 0 4px;
   }
 }
 @media (max-width: 767px) {
