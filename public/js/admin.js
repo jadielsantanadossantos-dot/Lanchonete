@@ -799,9 +799,9 @@ function _gerarHtmlComanda(p){
   .item-bloco { border-bottom: 1px dashed #000; padding: 0 0 2mm 0; margin: 0 0 2mm 0; }
   .item-bloco:last-child { border-bottom: none; padding-bottom: 0; margin-bottom: 0; }
   .item-header { display: flex; align-items: center; gap: 2mm; font-size: 12px; border-bottom: 1px solid #000; padding-bottom: 1.5mm; margin-bottom: 1.5mm; }
-  .item-qty { border: 1.5px solid #000; font-weight: 900; font-size: 13px; padding: 1mm 2.5mm; min-width: 11mm; text-align: center; flex-shrink: 0; background: #fff !important; color: #000 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .item-qty { border: 1.5px solid #000; font-weight: 900; font-size: 13px; padding: 1mm 2.5mm; min-width: 11mm; text-align: center; flex-shrink: 0; background: #fff !important; color: #000 !important; }
   .item-nome { flex: 1; font-weight: 900; font-size: 13px; text-transform: uppercase; letter-spacing: 0.3px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .item-val { font-weight: 900; white-space: nowrap; font-size: 12px; border: 1px solid #000; padding: 0.5mm 2mm; background: #fff !important; color: #000 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .item-val { font-weight: 900; white-space: nowrap; font-size: 12px; border: 1px solid #000; padding: 0.5mm 2mm; background: #fff !important; color: #000 !important; }
   .item-detalhe { font-size: 8px; margin: 1mm 0 0 0; font-style: italic; font-weight: 600; color: #000; }
   .item-adics { margin: 2mm 0 0 0; padding: 1.2mm 2mm; border: 1.2px dashed #000; background: #fff; }
   .adic-linha { display: flex; justify-content: space-between; align-items: flex-start; gap: 2mm; font-size: 11.5px; line-height: 1.35; padding: 1.3mm 0; border-bottom: 1px dashed #000; font-weight: 900; color: #000; text-transform: uppercase; letter-spacing: 0.2px; }
