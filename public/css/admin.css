@@ -888,12 +888,28 @@ textarea.form-control { min-height: 100px; resize: vertical; }
   .modal { max-width: 560px; max-height: 85vh; border-radius: var(--radius-xl); }
 }
 
-/* Ajustes adicionais de responsividade para telas muito pequenas no admin e pedidos */
+/* Mobile refinement for topbar */
 @media (max-width: 479px) {
-  .card, .pedido-card { padding: var(--space-3); }
-  table { font-size: 0.85rem; }
-  th, td { padding: 8px 6px; }
-  .btn-sm { padding: 4px 8px; font-size: 0.75rem; }
+  .topbar { 
+    padding: var(--space-2); 
+    gap: var(--space-2);
+  }
+  .topbar-right {
+    gap: var(--space-1);
+  }
+  .loja-status-btn {
+    padding: 6px 10px;
+    font-size: 0.75rem;
+  }
+  .topbar-right .btn-sm {
+    padding: 4px 6px;
+    font-size: 0.7rem;
+  }
+  .badge {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+  }
 }
 @media (max-width: 767px) {
   :root { --sidebar-w: 260px; }
