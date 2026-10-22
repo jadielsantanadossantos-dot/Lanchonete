@@ -247,10 +247,9 @@ body { font-family: var(--font-sans); background: var(--color-bg); color: var(--
     transition: margin-left var(--transition-slow), width var(--transition-slow);
   }
   .topbar {
-    position: fixed;
+    position: sticky;
     top: 0;
-    right: 0;
-    width: calc(100% - var(--sidebar-w));
+    width: 100%;
     transition: width var(--transition-slow);
   }
   .sidebar.collapsed ~ .main,
@@ -275,7 +274,6 @@ body { font-family: var(--font-sans); background: var(--color-bg); color: var(--
   flex-wrap: wrap;
   height: var(--header-h);
   min-height: var(--header-h);
-  transition: width var(--transition-slow);
 }
 .menu-btn { 
   width: 44px; height: 44px; 
