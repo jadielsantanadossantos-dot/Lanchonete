@@ -234,6 +234,8 @@ body { font-family: var(--font-sans); background: var(--color-bg); color: var(--
   display: flex; 
   flex-direction: column; 
   width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
   margin-left: 0;
   transition: margin-left var(--transition-slow); 
 }
@@ -241,6 +243,7 @@ body { font-family: var(--font-sans); background: var(--color-bg); color: var(--
 @media (min-width: 768px) {
   .main {
     margin-left: var(--sidebar-w);
+    width: calc(100% - var(--sidebar-w));
   }
 }
 
