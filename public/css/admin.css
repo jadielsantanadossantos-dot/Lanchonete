@@ -244,6 +244,22 @@ body { font-family: var(--font-sans); background: var(--color-bg); color: var(--
   .main {
     margin-left: var(--sidebar-w);
     width: calc(100% - var(--sidebar-w));
+    transition: margin-left var(--transition-slow), width var(--transition-slow);
+  }
+  .topbar {
+    width: calc(100% - var(--sidebar-w));
+    margin-left: var(--sidebar-w);
+    transition: width var(--transition-slow), margin-left var(--transition-slow);
+  }
+  .sidebar.collapsed ~ .main,
+  .sidebar.collapsed + .main {
+    margin-left: 0;
+    width: 100%;
+  }
+  .sidebar.collapsed ~ .topbar,
+  .sidebar.collapsed + .topbar {
+    width: 100%;
+    margin-left: 0;
   }
 }
 
@@ -258,6 +274,7 @@ body { font-family: var(--font-sans); background: var(--color-bg); color: var(--
   flex-wrap: wrap;
   height: var(--header-h);
   min-height: var(--header-h);
+  transition: width var(--transition-slow);
 }
 .menu-btn { 
   width: 44px; height: 44px; 
