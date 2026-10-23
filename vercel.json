@@ -1,5 +1,12 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "destination": "https://andersonlanches.shardweb.app/$1",
+      "permanent": true
+    }
+  ],
   "crons": [
     {
       "path": "/api/cron/reset-demo",
@@ -28,15 +35,5 @@
         { "key": "X-Frame-Options", "value": "DENY" }
       ]
     }
-  ],
-  "builds": [
-    { "src": "api/index.js", "use": "@vercel/node" },
-    { "src": "public/**", "use": "@vercel/static" }
-  ],
-  "routes": [
-    { "src": "/api/(.*)", "dest": "/api/index.js" },
-    { "src": "/(.*)", "dest": "/public/$1", "check": true },
-    { "handle": "filesystem" },
-    { "src": "/(.*)", "dest": "/api/index.js" }
   ]
 }

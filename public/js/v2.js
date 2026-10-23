@@ -14,10 +14,16 @@ function getBairros(){ try{ if(typeof bairros!=='undefined'&&Array.isArray(bairr
 function syncBairros(arr){ if(!Array.isArray(arr)) return; try{ if(typeof bairros!=='undefined') bairros=arr; }catch(e){} try{ window.bairros=arr; }catch(e){} }
 function getClienteLogado(){ try{ if(typeof clienteLogado!=='undefined'&&clienteLogado) return clienteLogado; }catch(e){} return window.clienteLogado||null; }
 function syncContaLabel(){
-  const el=document.querySelector('.v2-account-label'); if(!el) return;
-  const cli=getClienteLogado();
-  if(cli&&cli.telefone){ const primeiro=String(cli.nome||'').trim().split(/\s+/)[0]||'Minha conta'; el.textContent=primeiro; }
-  else el.innerHTML='LOGIN<br>REGISTRAR';
+  const els=document.querySelectorAll('.v2-account-label');
+  els.forEach(el => {
+    const cli=getClienteLogado();
+    if(el.closest('.v2-account-btn')) {
+      if(cli&&cli.telefone){ const primeiro=String(cli.nome||'').trim().split(/\s+/)[0]||'Minha conta'; el.textContent=primeiro; }
+      else el.innerHTML='LOGIN<br>REGISTRAR';
+    } else if(el.closest('.v2-apk-download')) {
+      el.innerHTML='ANDERSON<br>LANCHES APP';
+    }
+  });
 }
 function syncHeaderConfig(){
   try{
